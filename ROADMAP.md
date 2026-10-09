@@ -2,10 +2,12 @@
 
 This roadmap sequences implementation without pretending unresolved choices are settled.
 
-Current progress: Phase 0 development tooling/configuration/CI/docs and initial
-Phase 1 validated contracts are present. The package is an offline foundation,
-not a complete v0.1 kernel. Requirement coverage and provisional choices are in
-`docs/FOUNDATION.md`; the next milestone is the smallest Phase 2 security slice.
+Current progress: Phase 0/1 tooling and validated contracts plus the Phase 2
+in-memory identity, owner grant/revoke, deterministic policy, validated execution,
+and audit pipeline are implemented. `jarvis demo` exercises simulated capabilities.
+Production authentication, persistent authorization, and production security are
+not complete. See `docs/FOUNDATION.md` and `docs/PHASE2.md` for coverage and limits.
+The next milestone is Phase 3 durable events and recoverable tasks.
 
 ## Phase 0 — Repository and Specification Baseline
 
@@ -57,6 +59,11 @@ Exact schemas remain open. Implement minimal versions that satisfy confirmed req
 ---
 
 ## Phase 2 — Identity, Permissions, and Capability Execution
+
+**Implementation status:** Complete for the scoped offline/in-memory milestone.
+The required owner/guest/revocation/impersonation/private-result denial checks run
+against the real policy/executor with fake providers. Storage, authentication,
+transport, and final policy syntax remain open; no production readiness is claimed.
 
 **Goal:** create the security boundary before autonomous behavior.
 

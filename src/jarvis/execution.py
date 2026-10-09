@@ -1,0 +1,191 @@
+"""The sole request-facing invocation path: validate, authorize, audit, then invoke."""
+
+import logging
+from concurrent.futures import CancelledError
+from copy import deepcopy
+
+from jsonschema import Draft202012Validator, FormatChecker
+from pydantic import ConfigDict, JsonValue, TypeAdapter
+
+from jarvis.authorization import PolicyEvaluator
+from jarvis.capabilities import CapabilityRegistry
+from jarvis.core.contracts import (
+    ActionProposal,
+    AuditRecord,
+    ErrorDetail,
+    ExecutionResult,
+    PolicyDecision,
+)
+from jarvis.identity import IdentityError, IdentityRepository
+from jarvis.observability import AuditSink, AuditWriteError, write_audit
+
+_JSON_OBJECT = TypeAdapter(
+    dict[str, JsonValue], config=ConfigDict(strict=True, allow_inf_nan=False)
+)
+
+
+class CapabilityExecutor:
+    def __init__(
+        self,
+        identities: IdentityRepository,
+        registry: CapabilityRegistry,
+        policy: PolicyEvaluator,
+        audit: AuditSink,
+    ) -> None:
+        if policy.identities is not identities:
+            raise ValueError("executor and policy must share trusted identity state")
+        self._identities = identities
+        self._registry = registry
+        self._policy = policy
+        self._audit = audit
+
+    def execute(self, proposal: ActionProposal, *, session_token: str) -> ExecutionResult:
+        # A valid schema is only intent. Freeze a validated snapshot before checking it.
+        proposal = ActionProposal.model_validate(proposal.model_dump()).model_copy(deep=True)
+        with self._identities.transaction():
+            decision = None
+            principal_id = None
+            session_id = None
+            action = "capability.resolve"
+
+            def finish(status: str, code: str, output=None) -> ExecutionResult:
+                result = ExecutionResult(
+                    proposal_id=proposal.proposal_id,
+                    task_id=proposal.task_id,
+                    correlation_id=proposal.correlation_id,
+                    status=status,
+                    output=output,
+                    error=None if status == "success" else ErrorDetail(code=code, message=code),
+                )
+                outcome = {
+                    "success": "succeeded",
+                    "denied": "denied",
+                    "cancelled": "cancelled",
+                }.get(status, "failed")
+                try:
+                    write_audit(
+                        self._audit,
+                        AuditRecord(
+                            principal_id=principal_id,
+                            session_id=session_id,
+                            proposal_id=proposal.proposal_id,
+                            task_id=proposal.task_id,
+                            decision_id=decision.decision_id if decision else None,
+                            correlation_id=proposal.correlation_id,
+                            action=action,
+                            outcome=outcome,
+                            reason_code=code,
+                            policy_refs=decision.policy_refs if decision else (),
+                        ),
+                    )
+                except AuditWriteError:
+                    # After invocation the side effect may already exist. Never report success
+                    # or imply rollback/retry safety when the outcome could not be audited.
+                    result = ExecutionResult(
+                        proposal_id=proposal.proposal_id,
+                        task_id=proposal.task_id,
+                        correlation_id=proposal.correlation_id,
+                        status="execution_failure",
+                        error=ErrorDetail(code="audit_unavailable", message="audit_unavailable"),
+                    )
+                logging.getLogger("jarvis").log(
+                    logging.INFO if result.status == "success" else logging.WARNING,
+                    "capability.execution",
+                    extra={
+                        "proposal_id": proposal.proposal_id,
+                        "correlation_id": proposal.correlation_id,
+                        "reason_code": result.error.code if result.error else code,
+                    },
+                )
+                return result
+
+            # Bind the transport credential to the proposal before examining capability data.
+            try:
+                session = self._identities.resolve_session(session_token)
+                principal_id = session.principal_id
+                session_id = session.session_id
+            except IdentityError as exc:
+                # A known capability still gets a policy denial audit when credentials fail.
+                try:
+                    registered = self._registry._resolve_for_executor(proposal.capability_id)
+                    action = registered.capability.capability_id
+                    decision = self._policy.evaluate(
+                        session_token,
+                        proposal,
+                        registered.capability,
+                        access_scope=registered.access_scope,
+                    )
+                except KeyError:
+                    pass
+                except AuditWriteError:
+                    return finish("execution_failure", "audit_unavailable")
+                except Exception:
+                    return finish("execution_failure", "policy_unavailable")
+                return finish("denied", exc.reason_code)
+            except Exception:
+                return finish("execution_failure", "identity_unavailable")
+
+            try:
+                registered = self._registry._resolve_for_executor(proposal.capability_id)
+            except KeyError:
+                return finish("validation_failure", "capability_unknown")
+            except Exception:
+                return finish("execution_failure", "registry_unavailable")
+            capability = registered.capability
+            action = capability.capability_id
+            # Session mismatches/unknown identities are audited by the same policy entry point.
+            if session_id != proposal.session_id or principal_id is None:
+                try:
+                    decision = self._policy.evaluate(
+                        session_token, proposal, capability, access_scope=registered.access_scope
+                    )
+                except AuditWriteError:
+                    return finish("execution_failure", "audit_unavailable")
+                except Exception:
+                    return finish("execution_failure", "policy_unavailable")
+                return finish("denied", decision.reason_code)
+
+            try:
+                validator = Draft202012Validator(
+                    capability.input_schema, format_checker=FormatChecker()
+                )
+                validator.validate(proposal.arguments)
+            except Exception:
+                return finish("validation_failure", "input_invalid")
+            try:
+                decision = self._policy.evaluate(
+                    session_token, proposal, capability, access_scope=registered.access_scope
+                )
+                decision = PolicyDecision.model_validate(decision.model_dump())
+            except AuditWriteError:
+                return finish("execution_failure", "audit_unavailable")
+            except Exception:
+                return finish("execution_failure", "policy_unavailable")
+            if decision.decision != "allow":
+                return finish("denied", decision.reason_code)
+            if (
+                decision.proposal_id != proposal.proposal_id
+                or decision.session_id != session_id
+                or decision.principal_id != principal_id
+                or decision.correlation_id != proposal.correlation_id
+            ):
+                return finish("execution_failure", "policy_decision_mismatch")
+            if registered.provider is None:
+                return finish("execution_failure", "provider_unavailable")
+            try:
+                output = registered.provider(deepcopy(proposal.arguments))
+            except TimeoutError:
+                return finish("timeout", "provider_timeout")
+            except CancelledError:
+                return finish("cancelled", "provider_cancelled")
+            except Exception:
+                return finish("execution_failure", "provider_failed")
+            try:
+                output = _JSON_OBJECT.validate_python(output)
+                validator = Draft202012Validator(
+                    capability.output_schema, format_checker=FormatChecker()
+                )
+                validator.validate(output)
+            except Exception:
+                return finish("execution_failure", "output_invalid")
+            return finish("success", "executed", deepcopy(output))

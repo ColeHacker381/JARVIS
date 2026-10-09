@@ -615,3 +615,11 @@ and policy separation, metadata registration, structured failures, and logging.
 and outstanding acceptance criteria. Contract fields alone do not satisfy durable
 storage, authorization enforcement, private retrieval, or recovery requirements.
 The REQUIRED / PROPOSED / OPEN statuses above remain unchanged.
+
+Phase 2 now exercises in-memory identity, owner-only grant/revoke, fresh policy
+decisions, input/output-validated fake capability execution, and linked audits.
+`docs/PHASE2.md` maps IAM-001/002/003/004/007, PER-001/002/003, CAP-001/002/003,
+and SEC-003/004 to the tested local behaviors and production/persistence gaps.
+Private capability-result isolation is tested; full scoped memory retrieval is
+still unimplemented. Authentication, persistent authorization, and production
+security are not marked complete, and requirement statuses are unchanged.

@@ -46,9 +46,15 @@ def smoke() -> dict[str, object]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="JARVIS development foundation")
-    parser.add_argument("command", choices=["smoke"])
-    parser.parse_args()
-    print(json.dumps(smoke()))
+    parser.add_argument("command", choices=["smoke", "demo"])
+    args = parser.parse_args()
+    if args.command == "demo":
+        from jarvis.development import run_demo
+
+        configure_logging(Settings.from_environment().log_level)
+        print(json.dumps(run_demo()))
+    else:
+        print(json.dumps(smoke()))
 
 
 if __name__ == "__main__":

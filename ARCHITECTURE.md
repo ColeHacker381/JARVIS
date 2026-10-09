@@ -337,8 +337,14 @@ observations, cognition, initiative, and audit expose narrow adapter protocols.
 Capability metadata registration/discovery and structured logging are working
 local implementations. `jarvis smoke` exercises this finite offline foundation.
 
-No privileged execution, authentication, policy grants, persistent stores, task
-recovery, memory retrieval, world-state inference, or continuous initiative is
-implemented. ADR-T01 records provisional tooling/schema choices; these do not
-settle the open questions above. See `docs/FOUNDATION.md` for dependency order,
-contract trust boundaries, tests, and remaining acceptance criteria.
+Phase 2 adds server-owned development sessions, separate opaque bearer tokens,
+owner-only explicit grants, deterministic default-deny policy, registered fake
+provider execution, input/output validation, and linked in-memory audit records.
+The executor resolves current trusted state; proposals cannot carry authorization.
+Registered private/shared scopes restrict provider access independently of action
+permissions. `jarvis demo` exercises the full offline pipeline.
+
+No production authentication, persistent stores, task recovery, memory retrieval,
+world-state inference, or continuous initiative is implemented. ADR-T01 and
+ADR-T02 record provisional choices; these do not settle the open questions above.
+See `docs/FOUNDATION.md` and `docs/PHASE2.md` for coverage and trust boundaries.
