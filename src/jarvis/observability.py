@@ -12,6 +12,34 @@ class AuditSink(Protocol):
     def append(self, record: AuditRecord) -> None: ...
 
 
+class AuditWriteError(RuntimeError):
+    """Sanitized failure: callers must not perform unaudited privileged work."""
+
+
+def write_audit(sink: AuditSink, record: AuditRecord) -> None:
+    try:
+        sink.append(record)
+    except Exception as exc:
+        logging.getLogger("jarvis").error(
+            "audit.unavailable",
+            extra={"correlation_id": record.correlation_id, "reason_code": "audit_unavailable"},
+        )
+        raise AuditWriteError("audit_unavailable") from exc
+
+
+class InMemoryAuditSink:
+    """Local append-only-by-API records; not durable or tamper-resistant storage."""
+
+    def __init__(self) -> None:
+        self._records: list[AuditRecord] = []
+
+    def append(self, record: AuditRecord) -> None:
+        self._records.append(AuditRecord.model_validate(record.model_dump()))
+
+    def records(self) -> tuple[AuditRecord, ...]:
+        return tuple(record.model_copy(deep=True) for record in self._records)
+
+
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         # Only stable codes/IDs should be logged; no proposal/memory payloads.

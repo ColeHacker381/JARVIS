@@ -306,3 +306,40 @@ API transport, or deployment topology. No privileged executor is supplied yet.
 The repository previously had no implementation or persisted application data.
 Future wire changes require explicit schema/version handling and migration tests.
 See `docs/FOUNDATION.md` for review, limits, requirement coverage, and pytest checks.
+
+---
+
+## ADR-T02 — Offline Phase 2 Trust and Execution Boundary
+
+**Status:** Provisional implementation choice; not final production security architecture
+**Date:** 2026-10-09
+
+### Context and choice
+IAM-001/002/003/004/007, PER-001/002/003, CAP-001/002/003, and SEC-003/004 require
+a model-independent policy boundary before real integrations. For this local
+milestone, server-owned identity fixtures issue opaque session tokens; proposals
+carry IDs but no credentials or policy authority. One bootstrapped owner manages
+exact principal/permission grants, including its own capability grants.
+
+Trusted registry wiring binds schemas, providers, and optional existing
+AccessScope labels. The executor alone validates, obtains a current deterministic
+decision, invokes, validates output, and audits the outcome. Policy audits must
+succeed before invocation. No cached/caller-supplied decision is accepted.
+
+### Scope and consequences
+All state and audit records are in memory. A process-local lock serializes
+identity/grant mutation with synchronous invocation; already-started work is not
+cancelled by a waiting revocation. Auditing failure before a grant/change or
+invocation prevents it. An outcome-audit failure after invocation is reported as
+failure without claiming rollback or retry safety. There is no production
+authentication, role inheritance, durable authorization, remote schema fetching,
+real provider integration, or sandbox for untrusted Python plugins.
+
+### Migration and validation
+Existing v1 wire contracts are reused unchanged. The Python PolicyEvaluator now
+takes a separate session token and optional trusted scope rather than accepting
+an arbitrary Session as authority. There are no external protocol consumers or
+persisted grants to migrate. Future authentication/storage/concurrency decisions
+must replace the named test fixture methods and add durability/recovery tests.
+`tests/test_phase2.py` and `jarvis demo` cover the actual enforcement boundary;
+`docs/PHASE2.md` maps exact tested behavior and outstanding acceptance criteria.
