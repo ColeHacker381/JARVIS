@@ -155,12 +155,14 @@ model integration, cloud call, initiative engine, scheduler, or memory backend.
 Wire contracts stay at v1; the Python policy protocol now accepts the token
 separately rather than treating a caller-supplied `Session` as authority.
 
-## Next milestone
+## Phase 3 extension
 
-Implement a Phase 3 local event/task store with explicit crash/restart tests.
-First document provisional storage and transaction choices, recoverable task
-transitions, ambiguous side-effect handling, retry/idempotency rules, and audit
-durability. Preserve this policy boundary while replacing in-memory adapters.
+The Phase 2 demo remains an in-memory workflow. Phase 3 now supplies optional
+SQLite event/task/audit adapters and a recoverable sequential task runner through
+the same executor. Identity/session/grant state still requires trusted runtime
+re-establishment; saved task approvals cannot restore permissions. See
+[PHASE3.md](PHASE3.md) and ADR-T03 for the current implementation and limits.
+The validation below records the original Phase 2 baseline.
 
 ## Validation performed
 

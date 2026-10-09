@@ -343,3 +343,56 @@ persisted grants to migrate. Future authentication/storage/concurrency decisions
 must replace the named test fixture methods and add durability/recovery tests.
 `tests/test_phase2.py` and `jarvis demo` cover the actual enforcement boundary;
 `docs/PHASE2.md` maps exact tested behavior and outstanding acceptance criteria.
+
+---
+
+## ADR-T03 — Provisional Local Durability and Safe Sequential Recovery
+
+**Status:** Provisional implementation choice; owner authorized SQLite for Phase 3,
+not a final database, scheduler or production identity decision
+**Date:** 2026-10-09
+
+### Context and choice
+EVT-001, TASK-001/002, REL-001/002 and ARCH-004 require actual durable events and
+recoverable work while PER-001/IAM-007/CAP-002/003 retain current model-independent
+authority. Use Python stdlib SQLite behind repository interfaces: explicit numbered
+migrations, foreign keys, WAL, synchronous FULL, short immediate write transactions
+and a five-second busy timeout. Event append is idempotent for identical IDs/content
+and rejects conflicting duplicates. Task/history/event/audit checkpoints commit
+atomically with revision checks; no SQL transaction spans provider execution.
+
+Extend the existing Task envelope explicitly as TaskRecord v2, preserving v1
+decoding without guessing runnable plans. A small sequential runner uses only
+CapabilityExecutor; its trusted post-authorization/pre-invocation hook persists
+an attempt. Task submission keys are owner-scoped; step keys are task/step scoped.
+The trusted registry declares provider idempotency, and the executor passes stable
+keys independently of untrusted proposal arguments. POSIX file claims release on
+actual process exit and prevent concurrent execution on one local host/path.
+
+### Consequences and scope
+Completed checkpoints are immutable. Abandoned attempts have unknown outcomes;
+pure/idempotent providers with unchanged replay metadata may retry, while unknown
+non-idempotent effects enter terminal NEEDS_REVIEW. Timeouts/safe audit failures
+can wait for an explicit retry. Cancellation is cooperative, not provider rollback.
+Persisted authority references do not authenticate or grant privileges: every
+resumed step rechecks current Phase 2 policy. Identity/grants remain in memory;
+trusted fixtures establish current authority independently after restart. Durable
+audits extend the original in-memory scope of ADR-T02; its trust boundary remains.
+
+This does not supply arbitrary external exactly-once guarantees, distributed
+leases, network-filesystem support, production auth, encryption/tamper resistance,
+retention, automatic review resolution or later-phase integrations. The original
+confirmed ADRs remain unchanged.
+
+### Migration and validation
+Storage schema v1 and task wire v2 are separate versions. Future/invalid versions
+fail closed. There was no persisted v1 task database to migrate; any later v1 task
+import must supply a trusted explicit plan/migration. A PostgreSQL adapter can
+replace SQL migrations, transactions, uniqueness/CAS and claim implementation
+through the existing protocols; the final engine/scheduler remains OPEN.
+
+The actual seven-process recovery demo and tests cover acknowledged event restart
+durability, completed-step preservation, provider-effect crash/deduplication,
+ambiguous-outcome review, revocation, concurrent claims/revision conflicts,
+cancellation, atomic rollback, storage failures and corrupted/unsupported records.
+See `docs/PHASE3.md` for operational backup/reset procedures and precise limits.

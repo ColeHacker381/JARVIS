@@ -299,6 +299,14 @@ def decode_contract(serialized: str) -> Contract:
     data = json.loads(serialized)
     if not isinstance(data, dict):
         raise ValueError("contract must be a JSON object")
+    if (
+        data.get("contract_type") == "task"
+        and type(data.get("schema_version")) is int
+        and data["schema_version"] == 2
+    ):
+        from jarvis.core.task_records import decode_task
+
+        return decode_task(serialized)
     if type(data.get("schema_version")) is not int or data["schema_version"] != 1:
         raise ValueError("explicit integer schema_version 1 is required")
     kind = data.get("contract_type")

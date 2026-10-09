@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from threading import RLock
 from typing import Protocol
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from jarvis.core.contracts import Principal, Session
 from jarvis.core.time import utc_now
@@ -65,24 +65,40 @@ class InMemoryIdentityService:
         with self.transaction():
             return self._owner_id
 
-    def bootstrap_owner_for_testing(self, display_name: str = "Development owner") -> Principal:
+    def bootstrap_owner_for_testing(
+        self, display_name: str = "Development owner", *, principal_id: UUID | None = None
+    ) -> Principal:
         with self.transaction():
             if self._owner_id is not None:
                 raise ValueError("owner already bootstrapped")
-            owner = Principal(display_name=display_name, kind="owner")
+            if principal_id is not None and principal_id in self._principals:
+                raise ValueError("principal already exists")
+            owner = Principal(
+                display_name=display_name, kind="owner", principal_id=principal_id or uuid4()
+            )
             self._principals[owner.principal_id] = owner
             self._owner_id = owner.principal_id
             return owner
 
     def create_principal_for_testing(
-        self, display_name: str, *, kind: str = "user", relationship_ref: str | None = None
+        self,
+        display_name: str,
+        *,
+        kind: str = "user",
+        relationship_ref: str | None = None,
+        principal_id: UUID | None = None,
     ) -> Principal:
         if kind not in ("user", "guest"):
             raise ValueError("only the singleton bootstrap may create the owner")
         principal = Principal(
-            display_name=display_name, kind=kind, relationship_ref=relationship_ref
+            display_name=display_name,
+            kind=kind,
+            relationship_ref=relationship_ref,
+            principal_id=principal_id or uuid4(),
         )
         with self.transaction():
+            if principal.principal_id in self._principals:
+                raise ValueError("principal already exists")
             self._principals[principal.principal_id] = principal
         return principal
 

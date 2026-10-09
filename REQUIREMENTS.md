@@ -623,3 +623,11 @@ and SEC-003/004 to the tested local behaviors and production/persistence gaps.
 Private capability-result isolation is tested; full scoped memory retrieval is
 still unimplemented. Authentication, persistent authorization, and production
 security are not marked complete, and requirement statuses are unchanged.
+
+Phase 3 implements local event/task/audit durability, atomic checkpoints, explicit
+state/attempt history, current-authority execution and actual subprocess recovery.
+`docs/PHASE3.md` maps EVT-001, TASK-001/002, REL-001/002, ARCH-004, PER-001, IAM-007
+and CAP-002/003 to the demonstrated slice and its limits. SQLite and a sequential
+runner are authorized provisional choices (ADR-T03); final storage/scheduler,
+production authority persistence, arbitrary external exactly-once semantics and
+a complete kernel remain unclaimed. Requirement statuses above are unchanged.

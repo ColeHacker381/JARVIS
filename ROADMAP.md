@@ -7,7 +7,9 @@ in-memory identity, owner grant/revoke, deterministic policy, validated executio
 and audit pipeline are implemented. `jarvis demo` exercises simulated capabilities.
 Production authentication, persistent authorization, and production security are
 not complete. See `docs/FOUNDATION.md` and `docs/PHASE2.md` for coverage and limits.
-The next milestone is Phase 3 durable events and recoverable tasks.
+Phase 3 now adds a provisional SQLite event/task/audit adapter, checkpointed
+sequential execution and real subprocess recovery (`jarvis recovery-demo`).
+See `docs/PHASE3.md` and ADR-T03. The next milestone is Phase 4 scoped local memory.
 
 ## Phase 0 — Repository and Specification Baseline
 
@@ -105,7 +107,16 @@ A fake model or direct API can propose actions, but only authorized capabilities
 - operator inspection endpoint/CLI.
 
 ### Open decision likely required
-Choose initial storage backend and task execution approach.
+The owner authorized provisional SQLite and a small sequential local runner for
+this milestone (ADR-T03). Final storage and scheduler choices remain open.
+
+### Implemented local milestone
+The listed deliverables now work through repository protocols and the Phase 2
+executor. Seven separate demo processes show persisted checkpoint preservation,
+provider idempotent replay, ambiguous-outcome review and effective revocation.
+Cancellation, immutable history, revision conflicts and storage/corruption failures
+are tested. POSIX local locking is not a distributed worker system; production
+authority persistence, manual review resolution and real providers remain future work.
 
 ### Exit criteria
 - controlled crash does not lose persisted task/event state;

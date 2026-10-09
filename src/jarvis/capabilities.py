@@ -19,6 +19,7 @@ class _Registration:
     capability: Capability
     provider: CapabilityProvider | None
     access_scope: AccessScope | None
+    supports_idempotency: bool = False
 
 
 def _local_schema_only(value: JsonValue) -> None:
@@ -47,6 +48,7 @@ class CapabilityRegistry(Protocol):
         provider: CapabilityProvider | None = None,
         *,
         access_scope: AccessScope | None = None,
+        supports_idempotency: bool = False,
     ) -> None: ...
 
     def get(self, capability_id: str) -> Capability: ...
@@ -67,9 +69,12 @@ class InMemoryCapabilityRegistry:
         provider: CapabilityProvider | None = None,
         *,
         access_scope: AccessScope | None = None,
+        supports_idempotency: bool = False,
     ) -> None:
         # Revalidate even objects built via unchecked model_copy/model_construct.
         capability = Capability.model_validate(capability.model_dump())
+        if type(supports_idempotency) is not bool or (supports_idempotency and provider is None):
+            raise ValueError("idempotency requires a trusted callable provider")
         if provider is not None and (not callable(provider) or not capability.required_permissions):
             raise ValueError("callable capabilities require a provider and explicit permissions")
         for schema in (capability.input_schema, capability.output_schema):
@@ -82,7 +87,7 @@ class InMemoryCapabilityRegistry:
             if capability.capability_id in self._capabilities:
                 raise ValueError(f"duplicate capability: {capability.capability_id}")
             self._capabilities[capability.capability_id] = _Registration(
-                capability.model_copy(deep=True), provider, access_scope
+                capability.model_copy(deep=True), provider, access_scope, supports_idempotency
             )
 
     def get(self, capability_id: str) -> Capability:
@@ -100,4 +105,5 @@ class InMemoryCapabilityRegistry:
                 registered.capability.model_copy(deep=True),
                 registered.provider,
                 registered.access_scope,
+                registered.supports_idempotency,
             )

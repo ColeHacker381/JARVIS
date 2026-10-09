@@ -344,7 +344,21 @@ The executor resolves current trusted state; proposals cannot carry authorizatio
 Registered private/shared scopes restrict provider access independently of action
 permissions. `jarvis demo` exercises the full offline pipeline.
 
-No production authentication, persistent stores, task recovery, memory retrieval,
-world-state inference, or continuous initiative is implemented. ADR-T01 and
-ADR-T02 record provisional choices; these do not settle the open questions above.
-See `docs/FOUNDATION.md` and `docs/PHASE2.md` for coverage and trust boundaries.
+Phase 3 adds SQLite implementations of event/task/audit protocols, explicit
+TaskRecord v2 alongside legacy Task v1, atomic revision-checked checkpoints and
+a sequential TaskManager. A trusted executor hook records an attempt after current
+authorization and before provider invocation; the executor remains the only
+provider invocation path. Results are durably checkpointed before advancing.
+Recovery preserves completed steps, retries only pure/idempotent operations under
+an unchanged trusted replay profile, and sends ambiguous non-idempotent work to
+terminal NEEDS_REVIEW. Fresh credentials and current grants are required.
+
+SQLite WAL/FULL transactions and POSIX crash-released task claims are local
+provisional adapters, not distributed orchestration or final database selection.
+Events/history/audits are append-only by application convention; provider effects
+are outside the checkpoint transaction. Arbitrary external exactly-once semantics
+are not claimed. Identity/grants remain in memory and are never restored from a
+task's saved authority references. No production authentication, scoped memory
+backend, world-state inference, or continuous initiative is implemented.
+ADR-T01/T02/T03 document provisional choices. See `docs/FOUNDATION.md`,
+`docs/PHASE2.md`, and `docs/PHASE3.md` for coverage, operations and trust boundaries.
