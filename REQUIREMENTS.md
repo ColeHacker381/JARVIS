@@ -605,3 +605,13 @@ The following must remain open until explicitly decided:
 13. Exact initiative thresholds and human-confirmation rules.
 14. Exact notification integrations.
 15. Binding performance/SLO targets.
+
+## 17. Foundation Implementation Coverage
+
+Phase 0 and the initial Phase 1 contracts are implemented in `src/jarvis`, with
+pytest checks for validation, serialization, explicit version rejection, proposal
+and policy separation, metadata registration, structured failures, and logging.
+`docs/FOUNDATION.md` maps each affected requirement to implemented/tested scope
+and outstanding acceptance criteria. Contract fields alone do not satisfy durable
+storage, authorization enforcement, private retrieval, or recovery requirements.
+The REQUIRED / PROPOSED / OPEN statuses above remain unchanged.

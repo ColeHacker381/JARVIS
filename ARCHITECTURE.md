@@ -328,3 +328,17 @@ Exact transactional/event-sourcing design remains open.
 - identity/authentication stack;
 - model routing;
 - sensor streaming architecture.
+
+## 13. Current Foundation Implementation
+
+The Phase 0/1 implementation uses the `src/jarvis` Python package. Core v1
+contracts and decoding live in `core/`; identity, policy, events, tasks, memory,
+observations, cognition, initiative, and audit expose narrow adapter protocols.
+Capability metadata registration/discovery and structured logging are working
+local implementations. `jarvis smoke` exercises this finite offline foundation.
+
+No privileged execution, authentication, policy grants, persistent stores, task
+recovery, memory retrieval, world-state inference, or continuous initiative is
+implemented. ADR-T01 records provisional tooling/schema choices; these do not
+settle the open questions above. See `docs/FOUNDATION.md` for dependency order,
+contract trust boundaries, tests, and remaining acceptance criteria.
