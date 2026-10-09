@@ -2,6 +2,11 @@
 
 This roadmap sequences implementation without pretending unresolved choices are settled.
 
+Current progress: Phase 0 development tooling/configuration/CI/docs and initial
+Phase 1 validated contracts are present. The package is an offline foundation,
+not a complete v0.1 kernel. Requirement coverage and provisional choices are in
+`docs/FOUNDATION.md`; the next milestone is the smallest Phase 2 security slice.
+
 ## Phase 0 — Repository and Specification Baseline
 
 **Goal:** make the repository safe for iterative Codex development.

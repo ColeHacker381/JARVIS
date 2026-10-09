@@ -282,3 +282,27 @@ Used/proposed in an early prototype. Superseded in direction by structured scope
 
 ## LEGACY-003 — Ollama / Local Model Direction
 Local Ollama-based experiments and custom model/fine-tuning were explored in 2025. Local models remain compatible with v0.1, but no specific model is currently selected.
+
+---
+
+## ADR-T01 — Phase 0/1 Python Contract Foundation
+
+**Status:** Provisional implementation choice; not a final architectural decision
+**Date:** 2026-10-09
+
+### Context and choice
+The initial implementation request selects Python for the kernel foundation.
+Python 3.12+, Pydantic v2, uv, pytest, and Ruff provide a small local package with
+strict, serializable v1 contracts and reproducible development checks. A local
+JSON Schema Draft 2020-12 metadata registry supports simulated discovery.
+
+### Scope and consequences
+Schemas, UUID identifiers, synchronous protocol signatures, scope labels, and
+minimal result/task states are reversible development choices. They do not select
+the final policy language, authentication mechanism, scheduler, database, model,
+API transport, or deployment topology. No privileged executor is supplied yet.
+
+### Migration and validation
+The repository previously had no implementation or persisted application data.
+Future wire changes require explicit schema/version handling and migration tests.
+See `docs/FOUNDATION.md` for review, limits, requirement coverage, and pytest checks.
