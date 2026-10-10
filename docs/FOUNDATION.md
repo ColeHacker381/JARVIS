@@ -2,7 +2,10 @@
 
 Phase 0/1 contracts remain the baseline. Phase 2 now implements the offline
 identity, owner grant/revoke, policy, capability execution, and audit boundary.
-See [PHASE2.md](PHASE2.md) for its exact trust model, usage, and limitations.
+Phase 3 adds durable local events/tasks/audits, checkpointed sequential execution,
+and safe actual-process recovery. See [PHASE2.md](PHASE2.md) and
+[PHASE3.md](PHASE3.md) for the trust model, usage and operations. The local
+verification/hardening findings are in [PHASE3_VERIFICATION.md](PHASE3_VERIFICATION.md).
 
 ## Authoritative baseline
 
@@ -46,9 +49,14 @@ These are implementation choices for this milestone, not final architecture:
 - Private scope defaults to a required owner ID; sharing requires explicit
   recipient IDs. These labels do not enforce access. There is no memory backend
   or unscoped retrieval operation in this milestone.
-- Minimal task/result states represent errors, cancellation, and timeouts, without
-  fixing transition policy, retry counts, scheduler semantics, or idempotency
-  enforcement. Task state is not yet durable.
+- The legacy Task v1 remains readable. TaskRecord v2 explicitly extends its
+  envelope with eight states, ordered steps, revision-checked checkpoints, results
+  and attempt/replay history. Final contract/scheduler choices remain open.
+- Provisional SQLite implements event/task/audit protocols, explicit migrations,
+  WAL/FULL commits, append-only journals and atomic task/history/event/audit
+  transitions. Short transactions and local POSIX claims protect concurrent work.
+  Completed steps are preserved, safe retries use stable provider keys, and
+  ambiguous non-idempotent operations require review. See ADR-T03.
 - Capability schemas are checked as JSON Schema Draft 2020-12 on registration.
   Discovery exposes metadata only. Phase 2 binds trusted providers separately,
   validates inputs/outputs, rejects remote references/base relocation, and obtains
@@ -57,55 +65,57 @@ These are implementation choices for this milestone, not final architecture:
   They do not establish a network transport or concurrency architecture.
 - Logging has an allowlist of trace identifiers, no payloads, and exception types
   without exception messages. Callers remain responsible for keeping messages and
-  codes free of sensitive data. AuditSink now has an in-memory implementation;
-  durable audit storage is not implemented.
+  codes free of sensitive data. AuditSink has both in-memory and local SQLite
+  implementations; neither claims production tamper resistance.
 
-No code relies on a cloud provider or sends private context outside the process.
-The smoke command is a finite contract readiness check; `jarvis demo` tests the
-real Phase 2 pipeline. Neither starts a long-running service.
+No code relies on a cloud provider or sends private context to network services.
+Smoke and demo are finite Phase 0/1 and Phase 2 readiness checks; recovery-demo
+uses seven separate processes and private file-backed storage. None starts a
+long-running service. SQLite identity/session/grant adapters now preserve current
+authority across restart; the Phase 2 demo still uses in-memory fixtures. Default
+durable identity wiring denies without trusted authentication, and saved task
+approvals cannot re-establish privileges. Production authentication remains OPEN.
 
 ## Requirement coverage
 
 | Requirement | Implemented and tested scope | Remaining acceptance criteria |
 |---|---|---|
-| ARCH-004 | All primary contracts serialize with explicit v1; unknown/missing versions and fields rejected at the decoder | Future version migrations |
+| ARCH-004 | Primary v1 contracts plus explicit task v2; missing/invalid outer/nested versions and corrupt records rejected | Future version migrations |
 | DEV-001 | Locked local install, lint, format, pytest, packaged smoke command | Running the eventual kernel |
 | CAP-001 | Metadata/provider registration/discovery with schemas and declared permissions; real fake-provider policy/executor integration | Real integration adapters |
 | MEM-002 | Source category/reference, derived evidence references, optional model reference | Storage and retrieval integration |
 | MEM-006 | Record time separate from validity interval; invalid intervals rejected | Temporal retrieval behavior |
-| IAM-001 | Distinct server-owned principals, known/unknown sessions and effective explicit grants | Persistent identity and production authentication |
-| IAM-002/003/004/007, PER-001 | Owner grant/revoke, guest allow/deny, forged-identity rejection, fresh policy enforcement and effective revocation | Durable authority and production authentication; see PHASE2.md |
-| PER-002/003 | Declared permissions checked before invocation; linked allow/deny/outcome audits | Durable audit sink and production policy design |
-| CAP-002/003, REL-001 | Actual fake-provider input/output validation, correlated structured failures and JSON logs | Real deadlines/cancellation and persistent failure/audit handling |
-| SEC-003/004 | Private/shared capability-result isolation, audited privilege decisions and grant/revoke | Full scoped memory retrieval, durable auditing and future cloud egress |
+| IAM-001 | Durable local principals/session references and exact grants, explicit fixture namespace | Production authentication/provisioning |
+| IAM-002/003/004/007, PER-001 | Owner grant/revoke, guest allow/deny, forged-identity rejection, fresh policy enforcement and effective revocation | Production authentication/administration; see PHASE3_VERIFICATION.md |
+| PER-002/003 | Declared permissions checked before invocation; linked allow/deny/outcome audits | Production policy design and tamper resistance |
+| CAP-002/003, REL-001 | Actual fake-provider input/output validation, correlated structured failures and JSON logs | Real deadlines/provider cancellation and production failure policy |
+| SEC-003/004 | Private/shared capability-result isolation, audited privilege decisions and grant/revoke | Full scoped memory retrieval, audit tamper resistance and future cloud egress |
 | MEM-003/004/005, SOC-001 | Explicit private/shared labels, subjects, consent, retention, tombstone fields | Authorized storage/retrieval and revocation |
 | WORLD-001/002/003 | Source/time, evidence-vs-inference labels, derived provenance, confidence validation | World-state beliefs and staleness policy |
 | DEV-003, ARCH-003 | Fake capability/model/observation adapter paths used in tests | Production adapters and provider provenance integration |
-| EVT-001, TASK-001/002, REL-002 | Event/task identity/state/correlation/idempotency metadata only | Durability, crash recovery, retry enforcement |
+| EVT-001, TASK-001/002, REL-002 | Durable ordered events, atomic task/history/audit checkpoints, explicit states/cancellation/CAS, safe idempotent retry, real subprocess recovery and ambiguous review | Distributed scheduling, real provider guarantees, manual review resolution and retention |
 
-Tests now demonstrate contracts and the full in-memory Phase 2 pipeline, including
-private capability-result isolation. They do not prove production authentication,
-full memory retrieval isolation, persistent authorization, crash recovery,
-continuous initiative, or a complete v0.1 kernel. See `PHASE2.md` for coverage of
-each Phase 2 acceptance criterion and remaining production limits.
+Tests demonstrate contracts, the Phase 2 security boundary, local durable
+events/tasks/audits and actual-process recovery. They do not prove production
+authentication, full memory isolation, distributed recovery,
+continuous initiative or a complete v0.1 kernel. Phase 3 preserves current-policy
+enforcement and tests revocation and owner isolation, including denial without
+returning another principal's task payload.
 
 ## Decisions still open
 
-No owner decision blocks this reversible foundation. ADR-T02 records the Phase 2
-provisional testing bootstrap, explicit grants, enforcement, and auditing choices.
-Before Phase 3 choose a
-local persistence backend and define crash ambiguity, transitions, retries, and
-idempotency semantics. Final schema fields, authentication stack, policy syntax,
-API transport, event bus, task scheduler, model providers, data classification,
-retention periods, sensors, profiling rules, notification services, initiative
-thresholds, and SLOs remain unresolved.
+No owner decision blocks this authorized local milestone. ADR-T02 records the
+development identity/grant fixture boundary; ADR-T03 records owner-authorized
+provisional SQLite, local task claims and conservative recovery. Final schemas,
+authentication stack and owner provisioning, policy syntax, storage engine, API
+transport, event bus, distributed scheduler, model providers, data classification,
+retention periods, profiling rules, initiative thresholds and SLOs remain open.
 
 ## Next smallest milestone
 
-Implement a local Phase 3 event/task store, recoverable task transitions, and
-crash/restart integration tests. Document provisional storage and transaction
-choices, execution ambiguity, idempotency, and retry behavior first. Preserve
-the existing model-free authorization boundary while replacing in-memory stores.
+Phase 4 scoped local memory storage/retrieval with provenance, consent, retention/
+deletion and multi-user isolation tests. Reuse the current policy boundary and
+durable journal. Keep models/voice/devices and production identity separate.
 
 ## Validation performed
 
@@ -120,3 +130,26 @@ Both smoke and the Phase 2 demo passed from a separate installed wheel in `/tmp`
 the documented Phase 2 code example also ran successfully.
 `git diff --check` passed. CI is configured for Python 3.12 and 3.13; hosted CI and
 the Python 3.13 matrix were not executed in this local validation.
+
+Phase 3 started from the passing 180-test baseline. On Python 3.12.14 the extended
+suite executes **256 tests, all passing** (76 added), including actual separate
+process event append/retrieval, task history inspection, lock contention, and the
+seven-process crash/recovery harness. Ruff lint/format and frozen installation passed. `uv build` produced source and
+wheel distributions. Smoke, Phase 2 demo and seven-process recovery passed from
+the checkout and a separately installed wheel in `/tmp` (confirmed site-packages
+import). Wheel database init/inspect/backup passed, including repeat initialization.
+Whitespace checks passed. CI runs Python 3.12 and 3.13, including recovery-demo;
+local validation uses Python 3.12.14. No production/power-loss acceptance is claimed.
+
+The Phase 3 verification baseline passed 256 tests. Hardening adds 35 cases for
+**291 tests, all passing**, including 17 independent-process security/recovery cases
+and 18 storage/security cases. Schema migration 2 preserves old journal/task/audit
+records without reconstructing authority. Default identity denial, durable grants/
+revocations/session references, atomic permission/audit changes, host-wide security
+serialization, current-policy task recovery and actual killed-worker claim release
+are covered. See PHASE3_VERIFICATION.md for demonstrated limits and ADR-T04 for
+provisional choices. Frozen installation, Ruff lint/format, source/wheel build,
+smoke, demo, recovery-demo and whitespace checks passed on Python 3.12.14.
+The updated wheel was separately installed and imported from site-packages outside
+the checkout; all three CLI demos, repeated schema 2 initialization, inspection,
+and backup/backup inspection passed. Hosted CI results are reported with the PR.

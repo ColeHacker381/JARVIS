@@ -2,6 +2,7 @@
 
 import argparse
 import json
+from pathlib import Path
 from uuid import uuid4
 
 from jarvis.capabilities import InMemoryCapabilityRegistry
@@ -44,17 +45,71 @@ def smoke() -> dict[str, object]:
     }
 
 
-def main() -> None:
+def _main() -> None:
     parser = argparse.ArgumentParser(description="JARVIS development foundation")
-    parser.add_argument("command", choices=["smoke", "demo"])
+    parser.add_argument(
+        "command", choices=["smoke", "demo", "recovery-demo", "db-init", "db-inspect", "db-backup"]
+    )
+    parser.add_argument("--destination", type=Path, help="new backup file (db-backup only)")
     args = parser.parse_args()
-    if args.command == "demo":
+    if args.command == "recovery-demo":
+        from jarvis.recovery_demo import run_recovery_demo
+
+        print(json.dumps(run_recovery_demo()))
+    elif args.command.startswith("db-"):
+        from jarvis.storage.sqlite import SCHEMA_VERSION, SQLiteDatabase, SQLiteTaskStore
+
+        database = SQLiteDatabase(Settings.from_environment().resolved_database_path)
+        if args.command == "db-init":
+            database.initialize()
+            result = {
+                "status": "ok",
+                "database_path": str(database.path),
+                "schema_version": SCHEMA_VERSION,
+            }
+        elif args.command == "db-backup":
+            if args.destination is None:
+                parser.error("db-backup requires --destination pointing to a new file")
+            database.backup(args.destination)
+            result = {"status": "ok", "backup_path": str(args.destination.resolve())}
+        else:
+            tasks = SQLiteTaskStore(database).all()
+            result = {
+                "status": "ok",
+                "database_path": str(database.path),
+                "schema_version": SCHEMA_VERSION,
+                "tasks": [
+                    {
+                        "task_id": str(task.task_id),
+                        "state": task.state,
+                        "revision": task.revision,
+                        "completed_steps": sum(step.state == "COMPLETED" for step in task.steps),
+                    }
+                    for task in tasks
+                ],
+            }
+        print(json.dumps(result))
+    elif args.command == "demo":
         from jarvis.development import run_demo
 
         configure_logging(Settings.from_environment().log_level)
         print(json.dumps(run_demo()))
     else:
         print(json.dumps(smoke()))
+
+
+def main() -> None:
+    from jarvis.storage.errors import StorageError
+
+    try:
+        _main()
+    except StorageError as exc:
+        print(
+            json.dumps(
+                {"status": "storage_failure", "error": {"code": exc.code, "message": exc.code}}
+            )
+        )
+        raise SystemExit(1) from None
 
 
 if __name__ == "__main__":

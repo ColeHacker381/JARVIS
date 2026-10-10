@@ -191,3 +191,16 @@ The permission system should eventually include tests for:
 - approval workflows;
 - high-risk action taxonomy;
 - data classification taxonomy.
+
+## 14. Current Local Persistence Verification
+
+The offline Phase 3 verification now provides SQLite identity/permission adapters
+with durable principal/session records and owner-controlled grants/revocations.
+Permission changes and their success audits commit atomically; current policy
+reads authoritative SQL rather than saved task approvals. A local cross-process
+security claim serializes checks/invocation with permission mutation. Missing or
+corrupt security state denies without fallback. The default durable repository
+requires trusted credential verification and rejects development stores/sessions;
+only the explicit testing subclass bootstraps fixture authority. Authentication,
+owner provisioning/recovery and final policy syntax remain OPEN. See
+`docs/PHASE3_VERIFICATION.md` and provisional ADR-T04 for scope and limitations.
