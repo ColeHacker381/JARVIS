@@ -299,6 +299,16 @@ def decode_contract(serialized: str) -> Contract:
     data = json.loads(serialized)
     if not isinstance(data, dict):
         raise ValueError("contract must be a JSON object")
+    if data.get("contract_type") in (
+        "model_request",
+        "cognitive_decision",
+        "cognitive_response",
+        "conversation",
+        "conversation_turn",
+    ):
+        from jarvis.core.cognitive_records import decode_cognitive
+
+        return decode_cognitive(serialized)
     if (
         data.get("contract_type") == "task"
         and type(data.get("schema_version")) is int

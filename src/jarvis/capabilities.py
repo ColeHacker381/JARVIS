@@ -3,11 +3,12 @@
 from dataclasses import dataclass
 from threading import RLock
 from typing import Protocol
+from uuid import UUID
 
 from jsonschema import Draft202012Validator
 from pydantic import JsonValue
 
-from jarvis.core.contracts import AccessScope, Capability
+from jarvis.core.contracts import AccessScope, ActionProposal, Capability
 
 
 class CapabilityProvider(Protocol):
@@ -96,6 +97,27 @@ class InMemoryCapabilityRegistry:
     def discover(self) -> tuple[Capability, ...]:
         with self._lock:
             return tuple(self.get(key) for key in sorted(self._capabilities))
+
+    def discover_authorized(self, *, session_token: str, policy, correlation_id: UUID):
+        """Trusted discovery uses the existing policy and registration scope, never handlers."""
+        with policy.identities.transaction():
+            session = policy.identities.resolve_session(session_token)
+            available = []
+            for capability in self.discover():
+                registered = self._resolve_for_executor(capability.capability_id)
+                proposal = ActionProposal(
+                    session_id=session.session_id,
+                    capability_id=capability.capability_id,
+                    correlation_id=correlation_id,
+                    origin="rule",
+                    source_ref="jarvis.capability.discovery",
+                )
+                decision = policy.evaluate(
+                    session_token, proposal, capability, access_scope=registered.access_scope
+                )
+                if decision.decision == "allow":
+                    available.append(capability)
+            return tuple(available)
 
     def _resolve_for_executor(self, capability_id: str) -> _Registration:
         """Trusted internal dependency API, never exposed to a model or request transport."""

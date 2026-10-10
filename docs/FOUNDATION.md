@@ -68,7 +68,9 @@ These are implementation choices for this milestone, not final architecture:
   codes free of sensitive data. AuditSink has both in-memory and local SQLite
   implementations; neither claims production tamper resistance.
 
-No code relies on a cloud provider or sends private context to network services.
+No code requires a cloud provider. Phase 5 optionally supplies authorized private
+context to a pinned loopback model; a future cloud adapter requires trusted egress
+policy. No production cloud backend or automatic fallback is installed.
 Smoke and demo are finite Phase 0/1 and Phase 2 readiness checks; recovery-demo
 uses seven separate processes and private file-backed storage. None starts a
 long-running service. SQLite identity/session/grant adapters now preserve current
@@ -93,6 +95,9 @@ approvals cannot re-establish privileges. Production authentication remains OPEN
 | MEM-003/004/005, SOC-001 | Enforced scopes/subjects, consent metadata, current revocation, configurable expiry, tombstones and hidden inactive history | Verified consent/collection policies, retention durations and physical purge |
 | WORLD-001/002/003 | Source/time, evidence-vs-inference labels, derived provenance, confidence validation | World-state beliefs and staleness policy |
 | DEV-003, ARCH-003 | Fake capability/model/observation adapter paths used in tests | Production adapters and provider provenance integration |
+| COG-001, ARCH-002/003/004 | Bounded coordinator, fake/local models, versioned decisions/provenance, private conversations and task submission | Genuine model validation here; final models/production auth |
+| COG-002 (PROPOSED) | Provisional direct/grounded reply path without invoking tools | Binding adoption remains proposed |
+| SEC-002 | Separate trusted default-deny cloud egress, destination/data-class grants and adapter-call negative tests | Production cloud backend and final classifications |
 | EVT-001, TASK-001/002, REL-002 | Durable ordered events, atomic task/history/audit checkpoints, explicit states/cancellation/CAS, safe idempotent retry, real subprocess recovery and ambiguous review | Distributed scheduling, real provider guarantees, manual review resolution and retention |
 
 Tests demonstrate contracts, the Phase 2 security boundary, local durable
@@ -113,9 +118,9 @@ retention periods, profiling rules, initiative thresholds and SLOs remain open.
 
 ## Next smallest milestone
 
-Phase 5 fake-first cognitive coordination/context building using bounded authorized
-memory and validated action proposals. Preserve evidence/uncertainty and add explicit
-cloud-egress policy before any optional external model receives protected context.
+Phase 6 scoped observation persistence and world-state evidence with fake sensors,
+uncertainty and staleness. First complete genuine local-model validation against
+available weights/endpoint; Phase 5 offline/protocol checks cannot establish that.
 
 ## Validation performed
 
@@ -165,3 +170,22 @@ smoke, demo, recovery-demo and memory-demo checks passed. A separately installed
 wheel imported from site-packages outside the checkout passed all four demos plus
 repeat schema 3 initialization, inspection and backup. Hosted Python 3.12/3.13 CI
 results are attached to the PR; no Phase 5 feature or production auth is claimed.
+
+Phase 5 extends the kernel with bounded authenticated cognition, fake/local async
+models, authorized context/discovery, structured one-action decisions, durable
+private conversations and trusted egress policy. Baseline 357 tests passed before
+coding. New security tests check actual handler/adapter calls, current memory/
+history isolation, revocation, malformed output and forged authority. Actual process
+tests cover crashes before task linking, after task completion and after an ambiguous
+provider effect. The installed CLI/protocol tests and two-process cognition-demo
+exercise real services; docs/PHASE5.md maps files, requirements, examples and limits.
+Provisional ADR-T06 preserves COG-002 PROPOSED and all OPEN production decisions.
+Genuine inference remains unverified here because model-weight downloads are blocked;
+protocol test servers and deterministic fakes are not evidence of AI reasoning.
+
+Final local Phase 5 validation passed **477 tests** (120 added) on Python 3.12.14,
+frozen install, Ruff lint/format, source/wheel build and whitespace checks. Smoke,
+demo, recovery-demo, memory-demo and cognition-demo passed from both the checkout
+and a separately installed wheel outside it, with verified site-packages import.
+Wheel fake chat, repeated schema 4 initialization, inspection and online backup
+passed. Hosted Python 3.12/3.13 CI results are reported with the PR.

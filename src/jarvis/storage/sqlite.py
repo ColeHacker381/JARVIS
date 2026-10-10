@@ -17,7 +17,7 @@ from jarvis.identity import IdentityError
 from jarvis.storage.errors import StorageError
 from jarvis.tasks import TaskBusyError, TaskConflictError
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 class DuplicateEventError(StorageError):
@@ -117,6 +117,27 @@ MIGRATIONS = {
               OR NEW.memory_id != OLD.memory_id OR NEW.owner_id != OLD.owner_id
               OR NEW.creator_id != OLD.creator_id OR NEW.created_at != OLD.created_at
             BEGIN SELECT RAISE(ABORT, 'immutable_memory_or_tombstone'); END""",
+    ),
+    4: (
+        """CREATE TABLE conversations (
+            conversation_id TEXT PRIMARY KEY, owner_id TEXT NOT NULL
+            REFERENCES security_principals(principal_id), data TEXT NOT NULL)""",
+        "CREATE INDEX conversations_owner ON conversations(owner_id,conversation_id)",
+        """CREATE TABLE conversation_turns (
+            sequence INTEGER PRIMARY KEY AUTOINCREMENT, request_id TEXT NOT NULL UNIQUE,
+            conversation_id TEXT NOT NULL REFERENCES conversations(conversation_id),
+            owner_id TEXT NOT NULL REFERENCES security_principals(principal_id),
+            correlation_id TEXT NOT NULL, created_at TEXT NOT NULL,
+            revision INTEGER NOT NULL, state TEXT NOT NULL, data TEXT NOT NULL)""",
+        "CREATE INDEX conversation_recent ON conversation_turns(conversation_id,sequence DESC)",
+        """CREATE TRIGGER conversation_owner_immutable BEFORE UPDATE ON conversations
+            BEGIN SELECT RAISE(ABORT, 'immutable_conversation'); END""",
+        """CREATE TRIGGER conversation_turn_guard BEFORE UPDATE ON conversation_turns
+            WHEN OLD.state IN ('COMPLETED','FAILED') OR NEW.revision != OLD.revision+1
+              OR NEW.request_id != OLD.request_id OR NEW.owner_id != OLD.owner_id
+              OR NEW.conversation_id != OLD.conversation_id
+              OR NEW.correlation_id != OLD.correlation_id OR NEW.created_at != OLD.created_at
+            BEGIN SELECT RAISE(ABORT, 'immutable_or_finished_turn'); END""",
     ),
 }
 

@@ -30,3 +30,4 @@ jobs:
       - run: uv run --no-sync jarvis demo
       - run: uv run --no-sync jarvis recovery-demo
       - run: uv run --no-sync jarvis memory-demo
+      - run: uv run --no-sync jarvis cognition-demo

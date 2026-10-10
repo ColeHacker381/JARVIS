@@ -3,7 +3,7 @@
 import argparse
 import json
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from jarvis.capabilities import InMemoryCapabilityRegistry
 from jarvis.config import Settings
@@ -54,14 +54,35 @@ def _main() -> None:
             "demo",
             "recovery-demo",
             "memory-demo",
+            "cognition-demo",
+            "chat",
             "db-init",
             "db-inspect",
             "db-backup",
         ],
     )
     parser.add_argument("--destination", type=Path, help="new backup file (db-backup only)")
+    parser.add_argument("--database", type=Path, help="development chat database (chat only)")
+    parser.add_argument(
+        "--identity",
+        choices=["owner", "friend", "guest"],
+        default="owner",
+        help="DEVELOPMENT trusted host identity (chat only)",
+    )
+    parser.add_argument("--conversation", type=UUID, help="resume owned conversation (chat only)")
+    parser.add_argument("--model-provider", choices=["local", "fake"], help="chat provider")
+    parser.add_argument("--local-endpoint", help="loopback OpenAI-compatible /v1 URL")
+    parser.add_argument("--local-model", help="local server model name")
     args = parser.parse_args()
-    if args.command == "memory-demo":
+    if args.command == "chat":
+        from jarvis.chat import run_chat
+
+        run_chat(args)
+    elif args.command == "cognition-demo":
+        from jarvis.cognition_demo import run_cognition_demo
+
+        print(json.dumps(run_cognition_demo()))
+    elif args.command == "memory-demo":
         from jarvis.memory_demo import run_memory_demo
 
         print(json.dumps(run_memory_demo()))
