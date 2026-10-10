@@ -357,8 +357,13 @@ SQLite WAL/FULL transactions and POSIX crash-released task claims are local
 provisional adapters, not distributed orchestration or final database selection.
 Events/history/audits are append-only by application convention; provider effects
 are outside the checkpoint transaction. Arbitrary external exactly-once semantics
-are not claimed. Identity/grants remain in memory and are never restored from a
-task's saved authority references. No production authentication, scoped memory
+are not claimed. The verification milestone adds durable principal/session/grant/revocation
+adapters and a host-wide reentrant security claim around checks/invocation and
+permission changes. Task claims precede authorization waiting and remain exclusive
+while active. Default durable identity wiring denies without a trusted authenticator
+and refuses development authority/session records. Only the explicit development
+subclass bootstraps fixtures; startup never infers authority from saved task IDs. No production authentication, scoped memory
 backend, world-state inference, or continuous initiative is implemented.
-ADR-T01/T02/T03 document provisional choices. See `docs/FOUNDATION.md`,
-`docs/PHASE2.md`, and `docs/PHASE3.md` for coverage, operations and trust boundaries.
+ADR-T01/T02/T03/T04 document provisional choices. See `docs/FOUNDATION.md`,
+`docs/PHASE2.md`, `docs/PHASE3.md`, and `docs/PHASE3_VERIFICATION.md` for coverage,
+operations and trust boundaries.

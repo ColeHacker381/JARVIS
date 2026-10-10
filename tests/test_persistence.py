@@ -11,7 +11,12 @@ from pydantic import ValidationError
 from jarvis.config import Settings
 from jarvis.core.contracts import Event
 from jarvis.storage.errors import StorageError
-from jarvis.storage.sqlite import DuplicateEventError, SQLiteDatabase, SQLiteEventStore
+from jarvis.storage.sqlite import (
+    SCHEMA_VERSION,
+    DuplicateEventError,
+    SQLiteDatabase,
+    SQLiteEventStore,
+)
 
 
 @pytest.fixture
@@ -32,7 +37,7 @@ def test_explicit_initialization_migrations_fk_and_durability(tmp_path):
     database.initialize()
     database.initialize()
     with database.transaction() as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
         assert connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         assert connection.execute("PRAGMA synchronous").fetchone()[0] == 2  # FULL
         assert connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"

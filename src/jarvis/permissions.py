@@ -111,13 +111,14 @@ class InMemoryPermissionStore:
                 )
                 raise PermissionAdministrationError("unknown_or_disabled_target")
             key = (principal_id, permission)
-            grant = self._grants.get(key)
+            grant = self._active_grant(principal_id, permission)
             if not revoke and grant is None:
                 grant = PermissionGrant(uuid4(), principal_id, permission, session.principal_id)
             refs = ("policy:owner_administration",) + ((grant.policy_ref,) if grant else ())
-            # Audit before committing a grant/revoke; a sink failure leaves state unchanged.
-            write_audit(
-                self._audit,
+            self._commit_change(
+                key,
+                grant,
+                revoke,
                 AuditRecord(
                     principal_id=session.principal_id,
                     session_id=session.session_id,
@@ -128,12 +129,28 @@ class InMemoryPermissionStore:
                     policy_refs=refs,
                 ),
             )
-            if revoke:
-                self._grants.pop(key, None)
-            else:
-                self._grants[key] = grant
-                self._history[grant.policy_ref] = grant
             return grant
+
+    def _active_grant(self, principal_id: UUID, permission: str) -> PermissionGrant | None:
+        return self._grants.get((principal_id, permission))
+
+    def _commit_change(
+        self,
+        key: tuple[UUID, str],
+        grant: PermissionGrant | None,
+        revoke: bool,
+        record: AuditRecord,
+    ) -> None:
+        # Durable adapters override this commit boundary without duplicating owner/policy checks.
+        write_audit(self._audit, record)
+        if revoke:
+            self._grants.pop(key, None)
+        else:
+            self._grants[key] = grant
+            self._history[grant.policy_ref] = grant
+
+    def _historical_grant(self, policy_ref: str) -> PermissionGrant:
+        return self._history[policy_ref]
 
     def grant(
         self, owner_token: str, principal_id: UUID, permission: str, *, correlation_id: UUID
@@ -154,13 +171,13 @@ class InMemoryPermissionStore:
         """Trusted policy lookup only; it cannot grant or authorize anything."""
         with self.identities.transaction():
             return tuple(
-                self._grants[(principal_id, permission)]
+                grant
                 for permission in permissions
-                if (principal_id, permission) in self._grants
+                if (grant := self._active_grant(principal_id, permission)) is not None
             )
 
     def inspect_grant(self, owner_token: str, policy_ref: str) -> PermissionGrant:
         """Owner-only structured audit metadata, retained after revocation."""
         with self.identities.transaction():
             self._owner_session(owner_token, uuid4(), "permission.inspect")
-            return self._history[policy_ref]
+            return self._historical_grant(policy_ref)

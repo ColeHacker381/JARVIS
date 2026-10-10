@@ -45,6 +45,8 @@ class TaskManager:
         executor: CapabilityExecutor,
         audit: AuditSink,
     ) -> None:
+        if executor.identities is not identities:
+            raise ValueError("task manager and executor must share trusted identity state")
         self.store = store
         self.identities = identities
         self.executor = executor
@@ -203,8 +205,8 @@ class TaskManager:
             task = self.store.get(task_id)
             if task is None:
                 raise ValueError("task_unknown")
-            self._owner_session(session_token, task)
             with self.store.claim(task_id):
+                self._owner_session(session_token, task)
                 task = self.store.get(task_id)
                 if task.state in TERMINAL_STATES:
                     return RunResult(task_id=task_id, status="ok", task=task)
@@ -242,7 +244,7 @@ class TaskManager:
             )
         except TaskBusyError:
             return RunResult(
-                task_id=task_id, status="busy", task=task, error=_error("task_busy", retryable=True)
+                task_id=task_id, status="busy", error=_error("task_busy", retryable=True)
             )
         except StorageError as exc:
             # Existing DB checkpoints remain authoritative. A result cannot claim rollback.

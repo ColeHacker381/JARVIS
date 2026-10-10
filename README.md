@@ -76,7 +76,7 @@ or identifier fields. Arbitrary extras and exception messages are omitted.
 | `execution.py` | Input validation, fresh authorization, invocation, output validation, auditing |
 | `development.py` | Fake echo, simulated lighting, and end-to-end offline demo |
 | `events.py`, `tasks.py` | Durable store/checkpoint/claim protocols |
-| `storage/` | SQLite event journal, task checkpoints/history, durable audit, migrations and backup |
+| `storage/` | SQLite journal/tasks/audits, durable security adapters, migrations and backup |
 | `task_manager.py` | Sequential execution, current authority, cancellation and safe recovery |
 | `recovery_demo.py` | Actual subprocess crash/restart harness and simulated idempotent provider |
 | `memory.py` | Authorized read/write protocol; no retrieval backend |
@@ -101,6 +101,14 @@ notes, and acceptance tests together.
 
 The next milestone is Phase 4 scoped local memory storage/retrieval with provenance,
 consent, retention/deletion and multi-user isolation. Production authentication,
-persistent grants, tamper-resistant auditing, real integrations and the continuous
+production owner provisioning, tamper-resistant auditing, real integrations and the continuous
 assistant remain unfinished. SQLite is a provisional reversible local choice, not
 a final storage or distributed scheduling decision.
+
+The Phase 3 verification pass adds durable current grants/revocations/principals/
+sessions, atomic permission/audit changes and cross-process security exclusion.
+The default durable identity repository denies without a trusted authenticator;
+fixture credentials remain explicitly isolated from production. Run `uv run jarvis db-init` explicitly to migrate existing schema 1 development databases to schema
+2; this never provisions identity or restores old task approvals. See
+[docs/PHASE3_VERIFICATION.md](docs/PHASE3_VERIFICATION.md) for findings, real-process
+race/crash tests, supported local guarantees and Phase 4 prerequisites.

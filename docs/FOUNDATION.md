@@ -4,7 +4,8 @@ Phase 0/1 contracts remain the baseline. Phase 2 now implements the offline
 identity, owner grant/revoke, policy, capability execution, and audit boundary.
 Phase 3 adds durable local events/tasks/audits, checkpointed sequential execution,
 and safe actual-process recovery. See [PHASE2.md](PHASE2.md) and
-[PHASE3.md](PHASE3.md) for the trust model, usage, operations and limitations.
+[PHASE3.md](PHASE3.md) for the trust model, usage and operations. The local
+verification/hardening findings are in [PHASE3_VERIFICATION.md](PHASE3_VERIFICATION.md).
 
 ## Authoritative baseline
 
@@ -70,8 +71,10 @@ These are implementation choices for this milestone, not final architecture:
 No code relies on a cloud provider or sends private context to network services.
 Smoke and demo are finite Phase 0/1 and Phase 2 readiness checks; recovery-demo
 uses seven separate processes and private file-backed storage. None starts a
-long-running service. Identity/session/grant state remains in memory; recovery
-requires trusted fresh authentication/current grants, not saved task approvals.
+long-running service. SQLite identity/session/grant adapters now preserve current
+authority across restart; the Phase 2 demo still uses in-memory fixtures. Default
+durable identity wiring denies without trusted authentication, and saved task
+approvals cannot re-establish privileges. Production authentication remains OPEN.
 
 ## Requirement coverage
 
@@ -82,8 +85,8 @@ requires trusted fresh authentication/current grants, not saved task approvals.
 | CAP-001 | Metadata/provider registration/discovery with schemas and declared permissions; real fake-provider policy/executor integration | Real integration adapters |
 | MEM-002 | Source category/reference, derived evidence references, optional model reference | Storage and retrieval integration |
 | MEM-006 | Record time separate from validity interval; invalid intervals rejected | Temporal retrieval behavior |
-| IAM-001 | Distinct server-owned principals, known/unknown sessions and effective explicit grants | Persistent identity and production authentication |
-| IAM-002/003/004/007, PER-001 | Owner grant/revoke, guest allow/deny, forged-identity rejection, fresh policy enforcement and effective revocation | Durable authority and production authentication; see PHASE2.md |
+| IAM-001 | Durable local principals/session references and exact grants, explicit fixture namespace | Production authentication/provisioning |
+| IAM-002/003/004/007, PER-001 | Owner grant/revoke, guest allow/deny, forged-identity rejection, fresh policy enforcement and effective revocation | Production authentication/administration; see PHASE3_VERIFICATION.md |
 | PER-002/003 | Declared permissions checked before invocation; linked allow/deny/outcome audits | Production policy design and tamper resistance |
 | CAP-002/003, REL-001 | Actual fake-provider input/output validation, correlated structured failures and JSON logs | Real deadlines/provider cancellation and production failure policy |
 | SEC-003/004 | Private/shared capability-result isolation, audited privilege decisions and grant/revoke | Full scoped memory retrieval, audit tamper resistance and future cloud egress |
@@ -94,7 +97,7 @@ requires trusted fresh authentication/current grants, not saved task approvals.
 
 Tests demonstrate contracts, the Phase 2 security boundary, local durable
 events/tasks/audits and actual-process recovery. They do not prove production
-authentication, persistent grants, full memory isolation, distributed recovery,
+authentication, full memory isolation, distributed recovery,
 continuous initiative or a complete v0.1 kernel. Phase 3 preserves current-policy
 enforcement and tests revocation and owner isolation, including denial without
 returning another principal's task payload.
@@ -104,7 +107,7 @@ returning another principal's task payload.
 No owner decision blocks this authorized local milestone. ADR-T02 records the
 development identity/grant fixture boundary; ADR-T03 records owner-authorized
 provisional SQLite, local task claims and conservative recovery. Final schemas,
-authentication stack, persistent authority, policy syntax, storage engine, API
+authentication stack and owner provisioning, policy syntax, storage engine, API
 transport, event bus, distributed scheduler, model providers, data classification,
 retention periods, profiling rules, initiative thresholds and SLOs remain open.
 
@@ -137,3 +140,16 @@ the checkout and a separately installed wheel in `/tmp` (confirmed site-packages
 import). Wheel database init/inspect/backup passed, including repeat initialization.
 Whitespace checks passed. CI runs Python 3.12 and 3.13, including recovery-demo;
 local validation uses Python 3.12.14. No production/power-loss acceptance is claimed.
+
+The Phase 3 verification baseline passed 256 tests. Hardening adds 35 cases for
+**291 tests, all passing**, including 17 independent-process security/recovery cases
+and 18 storage/security cases. Schema migration 2 preserves old journal/task/audit
+records without reconstructing authority. Default identity denial, durable grants/
+revocations/session references, atomic permission/audit changes, host-wide security
+serialization, current-policy task recovery and actual killed-worker claim release
+are covered. See PHASE3_VERIFICATION.md for demonstrated limits and ADR-T04 for
+provisional choices. Frozen installation, Ruff lint/format, source/wheel build,
+smoke, demo, recovery-demo and whitespace checks passed on Python 3.12.14.
+The updated wheel was separately installed and imported from site-packages outside
+the checkout; all three CLI demos, repeated schema 2 initialization, inspection,
+and backup/backup inspection passed. Hosted CI results are reported with the PR.

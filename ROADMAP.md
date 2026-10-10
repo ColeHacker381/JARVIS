@@ -5,11 +5,14 @@ This roadmap sequences implementation without pretending unresolved choices are 
 Current progress: Phase 0/1 tooling and validated contracts plus the Phase 2
 in-memory identity, owner grant/revoke, deterministic policy, validated execution,
 and audit pipeline are implemented. `jarvis demo` exercises simulated capabilities.
-Production authentication, persistent authorization, and production security are
-not complete. See `docs/FOUNDATION.md` and `docs/PHASE2.md` for coverage and limits.
+Production authentication/provisioning and production security are not complete.
+The verification pass adds durable local authority and tests independent processes;
+see `docs/PHASE3_VERIFICATION.md` and provisional ADR-T04. See `docs/FOUNDATION.md` and `docs/PHASE2.md` for coverage and limits.
 Phase 3 now adds a provisional SQLite event/task/audit adapter, checkpointed
 sequential execution and real subprocess recovery (`jarvis recovery-demo`).
-See `docs/PHASE3.md` and ADR-T03. The next milestone is Phase 4 scoped local memory.
+See `docs/PHASE3.md` and ADR-T03. Local Phase 4 scoped-memory work can begin
+using current policy and explicit development fixtures; production exposure still
+requires a trusted authentication/provisioning decision and implementation.
 
 ## Phase 0 — Repository and Specification Baseline
 
@@ -116,7 +119,10 @@ executor. Seven separate demo processes show persisted checkpoint preservation,
 provider idempotent replay, ambiguous-outcome review and effective revocation.
 Cancellation, immutable history, revision conflicts and storage/corruption failures
 are tested. POSIX local locking is not a distributed worker system; production
-authority persistence, manual review resolution and real providers remain future work.
+authentication/provisioning, manual review resolution and real providers remain
+future work. Local SQLite authority now persists across restart; synchronized
+process tests prove exclusive task ownership, effective revocation and safe
+crash handling. No OPEN authentication or scheduler decision is marked accepted.
 
 ### Exit criteria
 - controlled crash does not lose persisted task/event state;

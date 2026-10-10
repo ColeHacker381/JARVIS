@@ -76,7 +76,61 @@ class CapabilityExecutor:
         """Trusted recovery metadata only; exposes neither provider nor an invocation path."""
         return _profile(self._registry._resolve_for_executor(capability_id))
 
+    @property
+    def identities(self) -> IdentityRepository:
+        return self._identities
+
     def execute(
+        self,
+        proposal: ActionProposal,
+        *,
+        session_token: str,
+        context: InvocationContext | None = None,
+        before_invoke: Callable[[PolicyDecision, ReplayProfile], None] | None = None,
+    ) -> ExecutionResult:
+        try:
+            return self._execute(
+                proposal, session_token=session_token, context=context, before_invoke=before_invoke
+            )
+        except IdentityError as exc:
+            # A durable identity transaction may fail before entering the pipeline.
+            # Deny without invoking; if the same database cannot audit, report that failure.
+            error = ErrorDetail(code=exc.reason_code, message=exc.reason_code)
+            status = "denied"
+            try:
+                write_audit(
+                    self._audit,
+                    AuditRecord(
+                        principal_id=None,
+                        proposal_id=proposal.proposal_id,
+                        session_id=None,
+                        task_id=proposal.task_id,
+                        correlation_id=proposal.correlation_id,
+                        action="capability.resolve",
+                        outcome="denied",
+                        reason_code=exc.reason_code,
+                    ),
+                )
+            except AuditWriteError:
+                status = "execution_failure"
+                error = ErrorDetail(code="audit_unavailable", message="audit_unavailable")
+            logging.getLogger("jarvis").warning(
+                "capability.security_unavailable",
+                extra={
+                    "correlation_id": proposal.correlation_id,
+                    "proposal_id": proposal.proposal_id,
+                    "reason_code": error.code,
+                },
+            )
+            return ExecutionResult(
+                proposal_id=proposal.proposal_id,
+                task_id=proposal.task_id,
+                correlation_id=proposal.correlation_id,
+                status=status,
+                error=error,
+            )
+
+    def _execute(
         self,
         proposal: ActionProposal,
         *,
@@ -88,6 +142,11 @@ class CapabilityExecutor:
         proposal = ActionProposal.model_validate(proposal.model_dump()).model_copy(deep=True)
         if context is not None and context.task_id != proposal.task_id:
             raise ValueError("invocation context must match the proposal's task")
+        if (
+            context is not None
+            and context.idempotency_key != f"task:{context.task_id}/step:{context.step_id}"
+        ):
+            raise ValueError("invocation idempotency scope must match its task and step")
         with self._identities.transaction():
             decision = None
             principal_id = None

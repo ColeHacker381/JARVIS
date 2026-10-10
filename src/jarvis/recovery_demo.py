@@ -15,8 +15,7 @@ from jarvis.config import Settings
 from jarvis.core.contracts import Capability
 from jarvis.core.task_records import TaskStep
 from jarvis.execution import CapabilityExecutor
-from jarvis.identity import InMemoryIdentityService
-from jarvis.permissions import InMemoryPermissionStore
+from jarvis.storage.security import SQLiteDevelopmentIdentityService, SQLitePermissionStore
 from jarvis.storage.sqlite import SQLiteAuditSink, SQLiteDatabase, SQLiteTaskStore
 from jarvis.task_manager import TaskManager
 
@@ -75,20 +74,27 @@ class SimulatedEffects:
         return dict(calls), dict(effects)
 
 
-def _runtime(directory: Path, *, crash_label: str | None = None):
+def _runtime(directory: Path, *, crash_label: str | None = None, bootstrap: bool = False):
     database = SQLiteDatabase(directory / "journal.sqlite3")
-    database.initialize()
+    if bootstrap:
+        database.initialize()
     audit = SQLiteAuditSink(database)
-    identities = InMemoryIdentityService()
-    # Fixed, explicitly trusted offline fixture IDs; never restore credentials/grants from a task.
-    owner = identities.bootstrap_owner_for_testing(principal_id=OWNER_ID)
-    friend = identities.create_principal_for_testing(
-        "Trusted development friend", principal_id=FRIEND_ID
-    )
+    identities = SQLiteDevelopmentIdentityService(database)
+    # Explicit bootstrap happens once for this new offline fixture, never on reopen.
+    if bootstrap:
+        identities.bootstrap_owner_for_testing(principal_id=OWNER_ID)
+        identities.create_principal_for_testing(
+            "Trusted development friend", principal_id=FRIEND_ID
+        )
+    owner = identities.get_principal(identities.owner_id)
+    friend = identities.get_principal(FRIEND_ID)
     owner_session = identities.establish_session_for_testing(owner.principal_id)
     friend_session = identities.establish_session_for_testing(friend.principal_id)
-    permissions = InMemoryPermissionStore(identities, audit)
-    permissions.grant(owner_session.token, friend.principal_id, PERMISSION, correlation_id=uuid4())
+    permissions = SQLitePermissionStore(identities, audit)
+    if bootstrap:
+        permissions.grant(
+            owner_session.token, friend.principal_id, PERMISSION, correlation_id=uuid4()
+        )
     registry = InMemoryCapabilityRegistry()
     effects = SimulatedEffects(directory / "simulated-effects.sqlite3", crash_label=crash_label)
     for cap_id, provider, idempotent in (
@@ -158,7 +164,7 @@ def _worker(directory: Path, scenario: str, stage: str) -> None:
         else None
     )
     manager, store, permissions, owner_session, credentials, _, _ = _runtime(
-        directory, crash_label=crash_label
+        directory, crash_label=crash_label, bootstrap=scenario == "safe" and stage == "start"
     )
     if stage == "start":
         labels = (

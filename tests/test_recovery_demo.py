@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from jarvis.recovery_demo import run_recovery_demo
-from jarvis.storage.sqlite import SQLiteDatabase, SQLiteTaskStore
+from jarvis.storage.sqlite import SCHEMA_VERSION, SQLiteDatabase, SQLiteTaskStore
 
 
 def test_real_process_crashes_and_safe_recovery(tmp_path):
@@ -46,7 +46,7 @@ def test_cli_recovery_demo_and_database_operations(tmp_path, monkeypatch):
         assert process.returncode == 0, process.stderr
         return json.loads(process.stdout)
 
-    assert cli("db-init")["schema_version"] == 1
+    assert cli("db-init")["schema_version"] == SCHEMA_VERSION
     assert cli("db-init")["status"] == "ok"
     assert cli("db-inspect")["tasks"] == []
     backup = tmp_path / "backup.sqlite3"

@@ -24,8 +24,9 @@ uv run --no-sync jarvis recovery-demo
 ```
 
 Initialization is explicit, repeatable and runs numbered migrations under a
-schema lock. `PRAGMA user_version=1` is the first storage schema; it is independent
-of contract versions. Future database versions are refused without migration or
+schema lock. `PRAGMA user_version=2` is the current schema; migration 2 adds durable security
+state without changing existing journal/task records. It is independent of contract
+versions. See [PHASE3_VERIFICATION.md](PHASE3_VERIFICATION.md). Future database versions are refused without migration or
 reset. Each connection enforces foreign keys, a five-second busy timeout, and
 `synchronous=FULL`; initialization enables WAL. Connections are scoped to short
 transactions, with `BEGIN IMMEDIATE` for writes. No database transaction spans a
@@ -157,7 +158,7 @@ result before advancing.
 A POSIX `flock` per task is held across execution and released automatically by
 process exit. Nonblocking claims return `busy`; revision checks are an additional
 transactional guard. All workers must use the same canonical database path on one
-host and a local filesystem, without hard-link aliases. This is intentionally
+host and a local filesystem, with hard-linked database aliases rejected. This is intentionally
 not a distributed lease or network-filesystem worker protocol. SQL and locking
 are isolated in the adapter; a PostgreSQL implementation would replace migrations,
 transactions, unique/CAS operations and the claim strategy through the protocols.
@@ -177,12 +178,15 @@ semantics change.
 
 Current authority is rechecked inside the executor for every resumed step.
 Persisted principal/session/grant/decision references are history, not credentials
-or grants. The Phase 2 identity and grant services remain in memory: after restart
-a trusted authentication/fixture adapter must explicitly establish a fresh session
-and current grants. The demo uses fixed nonsecret test principal IDs in trusted
-fixture code, freshly issued tokens, and explicit owner grant/revoke calls in each
-process. It never reconstructs privileges from task data. A persisted allow
-cannot defeat revocation. Production identity/grant persistence remains future work.
+or grants. The Phase 3 verification milestone now persists authoritative principal/
+session/grant state through SQLite adapters and serializes current checks/invocation
+with permission changes across local processes. The default repository denies
+without a trusted authenticator and refuses development authority/session records.
+The explicitly isolated development subclass uses random opaque tokens with stored
+verification digests. The demo bootstraps/grants once, reopens current authority
+after restart, and never restores privileges from task references or re-grants on
+reopen. See [PHASE3_VERIFICATION.md](PHASE3_VERIFICATION.md) and ADR-T04 for current
+findings, migration, production-authentication gaps and the 17 cross-process tests.
 
 Cancellation writes a durable cooperative request, then stops before the next
 step (or at completion) after checkpointing an in-flight synchronous invocation.

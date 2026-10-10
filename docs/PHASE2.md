@@ -159,8 +159,10 @@ separately rather than treating a caller-supplied `Session` as authority.
 
 The Phase 2 demo remains an in-memory workflow. Phase 3 now supplies optional
 SQLite event/task/audit adapters and a recoverable sequential task runner through
-the same executor. Identity/session/grant state still requires trusted runtime
-re-establishment; saved task approvals cannot restore permissions. See
+the same executor. The verification pass also supplies durable current authority through SQLite
+adapters; saved task approvals cannot restore permissions. Production authentication
+remains OPEN and development bootstrap/credentials remain isolated. See
+[PHASE3_VERIFICATION.md](PHASE3_VERIFICATION.md) for the current persistence review. See
 [PHASE3.md](PHASE3.md) and ADR-T03 for the current implementation and limits.
 The validation below records the original Phase 2 baseline.
 

@@ -13,10 +13,11 @@ from uuid import UUID
 from jarvis.core.contracts import AuditRecord, Event, decode_contract
 from jarvis.core.task_records import TERMINAL_STATES, TRANSITIONS, TaskRecord, decode_task
 from jarvis.core.time import utc_now
+from jarvis.identity import IdentityError
 from jarvis.storage.errors import StorageError
 from jarvis.tasks import TaskBusyError, TaskConflictError
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 class DuplicateEventError(StorageError):
@@ -61,12 +62,42 @@ MIGRATIONS = {
             for op in ("UPDATE", "DELETE")
         ),
     ),
+    2: (
+        """CREATE TABLE security_principals (
+            principal_id TEXT PRIMARY KEY, kind TEXT NOT NULL, status TEXT NOT NULL,
+            data TEXT NOT NULL)""",
+        """CREATE TABLE security_authority (
+            singleton INTEGER PRIMARY KEY CHECK(singleton=1), schema_version INTEGER NOT NULL,
+            authority_id TEXT NOT NULL UNIQUE, owner_id TEXT NOT NULL
+            REFERENCES security_principals(principal_id), mode TEXT NOT NULL)""",
+        """CREATE TABLE security_sessions (
+            session_id TEXT PRIMARY KEY,
+            principal_id TEXT REFERENCES security_principals(principal_id),
+            data TEXT NOT NULL)""",
+        """CREATE TABLE development_session_tokens (
+            token_hash TEXT PRIMARY KEY, session_id TEXT NOT NULL UNIQUE
+            REFERENCES security_sessions(session_id))""",
+        """CREATE TABLE security_grants (
+            grant_id TEXT PRIMARY KEY, principal_id TEXT NOT NULL
+            REFERENCES security_principals(principal_id), permission TEXT NOT NULL,
+            granted_by TEXT NOT NULL REFERENCES security_principals(principal_id),
+            revoked_at TEXT, data TEXT NOT NULL)""",
+        """CREATE UNIQUE INDEX security_active_grant ON security_grants(principal_id,permission)
+            WHERE revoked_at IS NULL""",
+        """CREATE TRIGGER security_grants_no_delete BEFORE DELETE ON security_grants
+            BEGIN SELECT RAISE(ABORT, 'retain_revocation_history'); END""",
+        """CREATE TRIGGER security_grants_no_resurrection BEFORE UPDATE ON security_grants
+            WHEN OLD.revoked_at IS NOT NULL OR NEW.revoked_at IS NULL
+              OR NEW.grant_id != OLD.grant_id OR NEW.principal_id != OLD.principal_id
+              OR NEW.permission != OLD.permission OR NEW.granted_by != OLD.granted_by
+            BEGIN SELECT RAISE(ABORT, 'immutable_grant_or_revocation'); END""",
+    ),
 }
 
 
 @contextmanager
-def _file_lock(path: Path) -> Iterator[None]:
-    """Crash-released, nonblocking host-local exclusion; never use on network filesystems."""
+def _file_lock(path: Path, *, blocking: bool = False) -> Iterator[None]:
+    """Crash-released host-local exclusion; nonblocking by default, never for network filesystems."""
     import fcntl
 
     try:
@@ -75,7 +106,7 @@ def _file_lock(path: Path) -> Iterator[None]:
         raise StorageError() from None
     try:
         try:
-            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(descriptor, fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB))
         except BlockingIOError:
             raise TaskBusyError("task_busy") from None
         except OSError:
@@ -97,6 +128,8 @@ class SQLiteDatabase:
     def _open(self) -> sqlite3.Connection:
         connection = None
         try:
+            if self.path.stat().st_nlink != 1:
+                raise StorageError("database_alias_unsupported")
             connection = sqlite3.connect(f"{self.path.as_uri()}?mode=rw", uri=True, timeout=5)
             connection.row_factory = sqlite3.Row
             connection.execute("PRAGMA foreign_keys = ON")
@@ -155,7 +188,7 @@ class SQLiteDatabase:
             connection.commit()
         except BaseException as exc:
             connection.rollback()
-            if isinstance(exc, (sqlite3.Error, OSError)):
+            if isinstance(exc, (sqlite3.Error, OSError)) and not isinstance(exc, IdentityError):
                 raise StorageError() from None
             raise
         finally:

@@ -396,3 +396,58 @@ durability, completed-step preservation, provider-effect crash/deduplication,
 ambiguous-outcome review, revocation, concurrent claims/revision conflicts,
 cancellation, atomic rollback, storage failures and corrupted/unsupported records.
 See `docs/PHASE3.md` for operational backup/reset procedures and precise limits.
+
+---
+
+## ADR-T04 — Local Durable Authority and Cross-Process Security Verification
+
+**Status:** Provisional local hardening authorized for the verification milestone;
+not an accepted production authentication, policy, scheduler or database decision
+**Date:** 2026-10-10
+
+### Context and choice
+Review found that Phase 3 audits/tasks were durable but principals/sessions/grants
+were ephemeral and the offline demo re-granted in each worker. IAM-001/002/007,
+PER-001/003, SEC-004 and REL-002 require durable current authority and auditable
+permission changes before local scoped-memory development. Add SQLite adapters
+through existing identity/permission interfaces, reusing owner-only administration
+checks and the unchanged deterministic policy/executor boundary.
+
+Storage migration 2 adds versioned security authority, Principal/Session records,
+versioned grants with retained revocations and exact active-grant uniqueness.
+Permission mutation and its successful audit commit atomically. Missing or invalid
+authoritative state denies; historical task/allow references cannot restore grants.
+A reentrant POSIX security claim spans current checks/synchronous invocation and
+permission mutation across local processes, without a long SQL transaction.
+Existing task claims/revision checks remain; task claiming precedes waiting for
+authority so competing recovery can return busy without private task data.
+Hard-linked database aliases are rejected; canonical symlinks share claims.
+
+The default SQLiteIdentityRepository requires a trusted SessionAuthenticator and
+refuses development stores/sessions. Only an explicit development subclass issues
+fixture credentials/bootstrap records. Random fixture tokens are verified against
+SHA-256 digests; no raw bearer token is persisted. The demo bootstraps/grants once
+and subsequently reopens current authoritative state. This extends ADR-T02/T03's
+original in-memory security scope without changing their confirmed trust boundary.
+
+### Limits and migration
+Explicit initialization preserves schema 1 journals/tasks/audits and adds empty
+security tables. It never imports lost ephemeral privileges or provisions an owner
+from task IDs. Existing Event v1/TaskRecord v2 wire formats remain unchanged.
+Storage/metadata/lock choices are reversible through repository protocols.
+
+No TTL or lease-based takeover is introduced: a live or hung worker keeps its
+claims, and process death releases them without proving provider effects absent.
+Recovery still checks replay contracts and requires review for ambiguous effects.
+This is one local POSIX host, not distributed orchestration, anti-rollback storage,
+production authentication, public scoped storage APIs or tamper-resistant auditing.
+IAM-005, PER-004 and TASK-003/004 remain OPEN; owner provisioning/recovery and
+real authentication integration must be decided before production exposure.
+
+### Validation
+`tests/test_security_storage.py` and `tests/test_security_processes.py` verify
+restart-persistent authority/audits, revocation, missing/corrupt state denial,
+fixture isolation, atomic permission/audit rollback, deterministic process races,
+actual SIGKILL claim release, safe provider deduplication, ambiguous review and
+completed-checkpoint preservation. See `docs/PHASE3_VERIFICATION.md` for exact
+findings, tested guarantees and prerequisites for Phase 4.
