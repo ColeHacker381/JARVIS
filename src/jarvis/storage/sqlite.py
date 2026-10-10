@@ -97,7 +97,7 @@ MIGRATIONS = {
 
 @contextmanager
 def _file_lock(path: Path, *, blocking: bool = False) -> Iterator[None]:
-    """Crash-released host-local exclusion; nonblocking by default, never for network filesystems."""
+    """Crash-released local exclusion; nonblocking by default. Never use on network filesystems."""
     import fcntl
 
     try:
