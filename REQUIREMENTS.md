@@ -640,3 +640,13 @@ resumed work. IAM-001/002/004/007, PER-001/003, SEC-003/004, REL-001/002 and
 TASK-001/002 coverage is documented in `docs/PHASE3_VERIFICATION.md`. This is a
 reversible local adapter choice (ADR-T04), not production authentication or an
 accepted resolution of IAM-005, PER-004 or TASK-003/004.
+
+Phase 4 implements persistent scoped memory through the domain service/SQLite
+adapter, with multi-principal private/shared/explicit household isolation, current
+grants, bounded search, source/derived evidence metadata, temporal correction and
+history, configurable expiry, recipient revocation and tombstones. MEM-001–006,
+SEC-001/003/004, IAM-001/007, SOC-001, PER-001/003, ARCH-004 and REL-001/002
+coverage/tests/limits are mapped in `docs/PHASE4.md`. Migration 3 preserves Phase
+2/3 authority, tasks/events/history/audits. Retention periods, physical purge,
+verified consent/source authenticity, production authentication and final policy/
+storage remain OPEN; no requirement status is silently changed.

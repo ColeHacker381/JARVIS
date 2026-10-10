@@ -10,9 +10,11 @@ The verification pass adds durable local authority and tests independent process
 see `docs/PHASE3_VERIFICATION.md` and provisional ADR-T04. See `docs/FOUNDATION.md` and `docs/PHASE2.md` for coverage and limits.
 Phase 3 now adds a provisional SQLite event/task/audit adapter, checkpointed
 sequential execution and real subprocess recovery (`jarvis recovery-demo`).
-See `docs/PHASE3.md` and ADR-T03. Local Phase 4 scoped-memory work can begin
-using current policy and explicit development fixtures; production exposure still
-requires a trusted authentication/provisioning decision and implementation.
+See `docs/PHASE3.md` and ADR-T03. Phase 4 now implements persistent permission-scoped
+memory, explicit supersession/history, bounded scoped search, retention/deletion
+and actual separate-process verification (`jarvis memory-demo`). See docs/PHASE4.md
+and ADR-T05. Phase 5 can begin with fake-first cognition/context building; production
+exposure still requires trusted authentication/provisioning and collection policies.
 
 ## Phase 0 — Repository and Specification Baseline
 
@@ -133,6 +135,15 @@ crash handling. No OPEN authentication or scheduler decision is marked accepted.
 ---
 
 ## Phase 4 — Memory v0
+
+**Implementation status:** Complete for the scoped local milestone. The real SQLite
+service supports ownership/current grants, private/shared/explicit household scope,
+source/consent/retention metadata, current/history/date retrieval, supersession,
+revocation/tombstones and deterministic scoped keyset search. Unit, migration and
+real-process tests cover privacy, restart, audit rollback and competing revisions.
+The replaceable backend is exercised with real SQLite and injected failure fakes;
+no separate in-memory memory store is added. Production authentication/collection
+policy, physical purge and final retention durations remain OPEN.
 
 **Goal:** replace raw transcript-style memory with scoped structured memory.
 

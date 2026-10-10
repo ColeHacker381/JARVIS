@@ -217,3 +217,29 @@ For the first kernel:
 9. production local backend later.
 
 Do not start by building automatic social profiling or internet enrichment.
+
+## 15. Implemented Phase 4 Memory v0
+
+`src/jarvis/memory.py` now implements a domain service using trusted session tokens
+and current grants; `storage/memory.py` persists versioned records in the existing
+SQLite journal (migration 3). Private ownership is explicit; creators/subjects are
+not automatic readers and the system owner has no automatic private-read bypass.
+Explicit shared/household membership, policy grants, bounded scoped ID/text/type/
+subject/project/date queries, provenance, temporal supersession, retention expiry,
+recipient revocation and tombstones are implemented and tested across processes.
+
+Legacy Memory v1 remains decodable; MemoryRecord v2 adds flexible types, trusted
+creator, revisions and lifecycle/link timestamps. Corrections create new IDs and
+retain old source/content; history/date queries need current history authority.
+Scope filtering precedes decoding, ordering and pagination. Expiry and tombstones
+also exclude historical retrieval. Successful writes/index changes and outcome
+audits commit atomically. All application reads/writes go through MemoryService;
+the backend has no public unscoped read API. Trusted in-process code and database
+file owners remain outside this interface's security boundary.
+
+See [docs/PHASE4.md](docs/PHASE4.md) for the permission table, tested behavior,
+migration, API boundaries, demonstration and limits. ADR-T05 is provisional.
+Consent/evidence references remain explicit unverified metadata, not permission
+or source-authenticity proof. Retention periods, physical deletion, production
+authentication/collection policy and final schemas/storage remain OPEN. No
+extraction, consolidation, vector/cloud retrieval or automatic profiling is added.

@@ -307,6 +307,29 @@ def decode_contract(serialized: str) -> Contract:
         from jarvis.core.task_records import decode_task
 
         return decode_task(serialized)
+    if (
+        data.get("contract_type") == "memory"
+        and type(data.get("schema_version")) is int
+        and data["schema_version"] == 2
+    ):
+        from jarvis.core.memory_records import decode_memory
+
+        return decode_memory(serialized)
+    if data.get("contract_type") == "memory_search_result":
+        from jarvis.core.memory_records import MemorySearchResult, decode_memory
+
+        if type(data.get("schema_version")) is not int or data["schema_version"] != 1:
+            raise ValueError("explicit search result version 1 required")
+        for record in data.get("records", []):
+            decode_memory(json.dumps(record))
+        cursor = data.get("next_cursor")
+        if cursor is not None and (
+            not isinstance(cursor, dict)
+            or type(cursor.get("schema_version")) is not int
+            or cursor["schema_version"] != 1
+        ):
+            raise ValueError("explicit cursor version 1 required")
+        return MemorySearchResult.model_validate_json(serialized)
     if type(data.get("schema_version")) is not int or data["schema_version"] != 1:
         raise ValueError("explicit integer schema_version 1 is required")
     kind = data.get("contract_type")

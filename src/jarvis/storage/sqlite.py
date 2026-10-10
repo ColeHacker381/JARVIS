@@ -17,7 +17,7 @@ from jarvis.identity import IdentityError
 from jarvis.storage.errors import StorageError
 from jarvis.tasks import TaskBusyError, TaskConflictError
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 class DuplicateEventError(StorageError):
@@ -91,6 +91,32 @@ MIGRATIONS = {
               OR NEW.grant_id != OLD.grant_id OR NEW.principal_id != OLD.principal_id
               OR NEW.permission != OLD.permission OR NEW.granted_by != OLD.granted_by
             BEGIN SELECT RAISE(ABORT, 'immutable_grant_or_revocation'); END""",
+    ),
+    3: (
+        """CREATE TABLE memories (
+            memory_id TEXT PRIMARY KEY, revision INTEGER NOT NULL CHECK(revision >= 0),
+            owner_id TEXT NOT NULL REFERENCES security_principals(principal_id),
+            creator_id TEXT NOT NULL REFERENCES security_principals(principal_id),
+            scope_kind TEXT NOT NULL, kind TEXT NOT NULL, project_ref TEXT,
+            created_at TEXT NOT NULL, valid_from TEXT, valid_to TEXT, expires_at TEXT,
+            superseded_at TEXT, deletion_state TEXT NOT NULL, search_text TEXT NOT NULL,
+            data TEXT NOT NULL)""",
+        "CREATE INDEX memories_owner_recent ON memories(owner_id,created_at DESC,memory_id DESC)",
+        "CREATE INDEX memories_kind_recent ON memories(kind,created_at DESC,memory_id DESC)",
+        "CREATE INDEX memories_project ON memories(project_ref,created_at DESC,memory_id DESC)",
+        """CREATE TABLE memory_readers (
+            memory_id TEXT NOT NULL REFERENCES memories(memory_id), principal_id TEXT NOT NULL
+            REFERENCES security_principals(principal_id), PRIMARY KEY(memory_id,principal_id))""",
+        "CREATE INDEX memory_reader_access ON memory_readers(principal_id,memory_id)",
+        """CREATE TABLE memory_subjects (
+            memory_id TEXT NOT NULL REFERENCES memories(memory_id), subject_id TEXT NOT NULL,
+            PRIMARY KEY(memory_id,subject_id))""",
+        "CREATE INDEX memory_subject_filter ON memory_subjects(subject_id,memory_id)",
+        """CREATE TRIGGER memories_no_restore BEFORE UPDATE ON memories
+            WHEN OLD.deletion_state='tombstoned' OR NEW.revision != OLD.revision+1
+              OR NEW.memory_id != OLD.memory_id OR NEW.owner_id != OLD.owner_id
+              OR NEW.creator_id != OLD.creator_id OR NEW.created_at != OLD.created_at
+            BEGIN SELECT RAISE(ABORT, 'immutable_memory_or_tombstone'); END""",
     ),
 }
 

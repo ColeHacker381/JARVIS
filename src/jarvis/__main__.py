@@ -48,11 +48,24 @@ def smoke() -> dict[str, object]:
 def _main() -> None:
     parser = argparse.ArgumentParser(description="JARVIS development foundation")
     parser.add_argument(
-        "command", choices=["smoke", "demo", "recovery-demo", "db-init", "db-inspect", "db-backup"]
+        "command",
+        choices=[
+            "smoke",
+            "demo",
+            "recovery-demo",
+            "memory-demo",
+            "db-init",
+            "db-inspect",
+            "db-backup",
+        ],
     )
     parser.add_argument("--destination", type=Path, help="new backup file (db-backup only)")
     args = parser.parse_args()
-    if args.command == "recovery-demo":
+    if args.command == "memory-demo":
+        from jarvis.memory_demo import run_memory_demo
+
+        print(json.dumps(run_memory_demo()))
+    elif args.command == "recovery-demo":
         from jarvis.recovery_demo import run_recovery_demo
 
         print(json.dumps(run_recovery_demo()))

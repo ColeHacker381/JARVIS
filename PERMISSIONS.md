@@ -204,3 +204,18 @@ requires trusted credential verification and rejects development stores/sessions
 only the explicit testing subclass bootstraps fixture authority. Authentication,
 owner provisioning/recovery and final policy syntax remain OPEN. See
 `docs/PHASE3_VERIFICATION.md` and provisional ADR-T04 for scope and limitations.
+
+## 15. Current Scoped Memory Enforcement
+
+Phase 4 MemoryService resolves current trusted credentials and grants for each
+read/write under the existing security claim. Private scopes require exact record
+ownership; shared scopes require exact stored recipients, and household reads
+add an explicit current household grant. Neither subject nor creator nor system
+owner administration implies private read access. Memory read/write/history/share
+and owner-only write-for-another-owner are distinct provisional exact permissions.
+ID lookup and search filter scope before decoding/ranking/pagination; inaccessible
+IDs use the same unavailable code as missing IDs and no global count/score leaks.
+Revoked permissions and stored-recipient revocation govern subsequent retrieval;
+old provenance/consent/policy references cannot grant access. Policy decisions and
+sensitive mutations are durably audited without content or queries. See
+`docs/PHASE4.md` and ADR-T05; final syntax/group policies and production auth remain OPEN.

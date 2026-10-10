@@ -2,7 +2,8 @@
 
 A local Python development foundation for the permission-governed JARVIS kernel.
 This implements Phase 0/1 contracts, the Phase 2 identity/authorization/execution
-boundary, and Phase 3 durable events, audit records and recoverable sequential tasks. It is not yet the continuously
+boundary, Phase 3 durable authority/events/tasks/audits, and Phase 4 persistent
+permission-scoped memory. It is not yet the continuously
 running assistant described in the product specification.
 
 ## Setup
@@ -18,6 +19,7 @@ uv run --no-sync ruff format --check .
 uv run --no-sync jarvis smoke
 uv run --no-sync jarvis demo
 uv run --no-sync jarvis recovery-demo
+uv run --no-sync jarvis memory-demo
 ```
 
 The smoke command builds local principal/session/proposal contracts, registers a
@@ -46,6 +48,13 @@ Phase 2 executor. It creates a fresh ignored data directory, preserves the journ
 for inspection, and prints JSON states, call/effect counts and sanitized audits.
 See [docs/PHASE3.md](docs/PHASE3.md) for contracts, operations and crash semantics.
 
+The `memory-demo` command uses two separate processes and the real scoped memory
+service/SQLite backend. It verifies private/shared access, cross-user/guest denial,
+provenance, correction to the current Slipstream fact, authorized historical
+retrieval and tombstones before and after restart. Each run uses a fresh ignored
+fixture directory; it preserves the ordinary database and never prints tokens.
+See [docs/PHASE4.md](docs/PHASE4.md) for grants, API, migration and limits.
+
 `uv.lock` pins the dependency graph; `uv sync --locked` refuses an outdated lock.
 Use `uv lock` deliberately when changing dependencies, and commit both the manifest
 and lockfile. Formatting changes use `uv run --no-sync ruff format .`.
@@ -68,7 +77,7 @@ or identifier fields. Arbitrary extras and exception messages are omitted.
 
 | Path | Responsibility / current implementation |
 |---|---|
-| `src/jarvis/core/` | Strict v1 contracts, explicit TaskRecord v2, decoding, timestamps |
+| `src/jarvis/core/` | Strict v1 contracts, TaskRecord/MemoryRecord v2, query/search contracts and decoding |
 | `identity.py` | Server-owned development principals, sessions, and token lookup |
 | `permissions.py` | Owner-only explicit grant/revoke store and audit references |
 | `authorization.py` | Deterministic default-deny policy and private/shared scope checks |
@@ -76,16 +85,17 @@ or identifier fields. Arbitrary extras and exception messages are omitted.
 | `execution.py` | Input validation, fresh authorization, invocation, output validation, auditing |
 | `development.py` | Fake echo, simulated lighting, and end-to-end offline demo |
 | `events.py`, `tasks.py` | Durable store/checkpoint/claim protocols |
-| `storage/` | SQLite journal/tasks/audits, durable security adapters, migrations and backup |
+| `storage/` | SQLite journal/tasks/audits, durable security/scoped memory adapters, migrations and backup |
 | `task_manager.py` | Sequential execution, current authority, cancellation and safe recovery |
 | `recovery_demo.py` | Actual subprocess crash/restart harness and simulated idempotent provider |
-| `memory.py` | Authorized read/write protocol; no retrieval backend |
+| `memory.py` | Scoped memory domain service, current policy, supersession, retention, deletion |
+| `memory_demo.py` | Real two-process SQLite memory/privacy demonstration |
 | `world_state.py` | Observation adapter protocol; no world model engine |
 | `cognition.py`, `initiative.py` | Proposal-only adapter protocols |
 | `observability.py` | JSON logging, audit interface, and in-memory audit sink (SQLite adapter in storage/) |
-| `config.py`, `__main__.py` | Local configuration, smoke/demo/recovery and database operation commands |
+| `config.py`, `__main__.py` | Local configuration, smoke/demo/recovery/memory and database operation commands |
 | `tests/` | Contracts, policy/execution, durability, recovery, concurrency, corruption and CLI tests |
-| `.github/workflows/ci.yml` | Frozen install, lint, formatting, tests, build, smoke, demo, recovery-demo |
+| `.github/workflows/ci.yml` | Frozen install, lint, formatting, tests, build, smoke, demo, recovery-demo, memory-demo |
 
 Read [docs/FOUNDATION.md](docs/FOUNDATION.md) for the architectural review,
 requirement coverage, temporary choices, and remaining decisions.
@@ -99,8 +109,8 @@ provisional decisions distinct from accepted decisions. When a final decision is
 accepted, update `DECISIONS.md`, affected requirements/architecture, migration
 notes, and acceptance tests together.
 
-The next milestone is Phase 4 scoped local memory storage/retrieval with provenance,
-consent, retention/deletion and multi-user isolation. Production authentication,
+The next milestone is Phase 5 fake-first cognitive coordination and a bounded
+context builder using authorized memory and validated action proposals. Production authentication,
 production owner provisioning, tamper-resistant auditing, real integrations and the continuous
 assistant remain unfinished. SQLite is a provisional reversible local choice, not
 a final storage or distributed scheduling decision.
@@ -108,7 +118,7 @@ a final storage or distributed scheduling decision.
 The Phase 3 verification pass adds durable current grants/revocations/principals/
 sessions, atomic permission/audit changes and cross-process security exclusion.
 The default durable identity repository denies without a trusted authenticator;
-fixture credentials remain explicitly isolated from production. Run `uv run jarvis db-init` explicitly to migrate existing schema 1 development databases to schema
-2; this never provisions identity or restores old task approvals. See
+fixture credentials remain explicitly isolated from production. Run `uv run jarvis db-init` explicitly to migrate existing schema 1/2 development databases to schema
+3; this never provisions identity or restores old task approvals. See
 [docs/PHASE3_VERIFICATION.md](docs/PHASE3_VERIFICATION.md) for findings, real-process
 race/crash tests, supported local guarantees and Phase 4 prerequisites.
