@@ -18,6 +18,7 @@ from jarvis.core.contracts import (
 )
 from jarvis.core.task_records import TaskState
 from jarvis.core.time import utc_now
+from jarvis.core.world_records import WorldContext, WorldReference
 
 Text = Annotated[str, Field(min_length=1, max_length=8192)]
 
@@ -48,6 +49,7 @@ class ModelRequest(Contract):
     memories: Annotated[tuple[MemoryContext, ...], Field(max_length=10)] = ()
     capabilities: Annotated[tuple[Capability, ...], Field(max_length=32)] = ()
     tasks: Annotated[tuple["TaskContext", ...], Field(max_length=3)] = ()
+    world_states: Annotated[tuple[WorldContext, ...], Field(max_length=5)] = ()
     max_output_tokens: Annotated[int, Field(ge=64, le=4096)] = 1024
 
 
@@ -74,10 +76,19 @@ class ModelProvenance(ModelIdentity):
 
 class CognitiveDecision(Contract):
     contract_type: Literal["cognitive_decision"] = "cognitive_decision"
-    kind: Literal["direct", "memory_grounded", "action", "clarification", "unsupported", "failure"]
+    kind: Literal[
+        "direct",
+        "memory_grounded",
+        "world_grounded",
+        "action",
+        "clarification",
+        "unsupported",
+        "failure",
+    ]
     text: Annotated[str, Field(min_length=1, max_length=4096)]
     action: ActionProposal | None = None
     memory_ids: Annotated[tuple[UUID, ...], Field(max_length=10)] = ()
+    world_ids: Annotated[tuple[UUID, ...], Field(max_length=5)] = ()
     error: ErrorDetail | None = None
 
     @model_validator(mode="after")
@@ -88,6 +99,10 @@ class CognitiveDecision(Contract):
             raise ValueError("only failures carry an error")
         if self.kind == "memory_grounded" and not self.memory_ids:
             raise ValueError("grounded responses require memory references")
+        if self.kind == "world_grounded" and not self.world_ids:
+            raise ValueError("world replies require evidence references")
+        if self.kind != "world_grounded" and self.world_ids:
+            raise ValueError("world IDs require world-grounded decision")
         if self.kind == "direct" and self.memory_ids:
             raise ValueError("use memory_grounded for memory references")
         return self
@@ -99,11 +114,19 @@ class CognitiveResponse(Contract):
     request_id: UUID
     correlation_id: UUID
     kind: Literal[
-        "direct", "memory_grounded", "action", "clarification", "unsupported", "failure", "pending"
+        "direct",
+        "memory_grounded",
+        "world_grounded",
+        "action",
+        "clarification",
+        "unsupported",
+        "failure",
+        "pending",
     ]
     text: Text
     provenance: ModelProvenance | None = None
     memory_ids: tuple[UUID, ...] = ()
+    world_refs: Annotated[tuple[WorldReference, ...], Field(max_length=105)] = ()
     task_id: UUID | None = None
     task_state: Name | None = None
     # ExecutionResult is the existing authoritative result envelope, not model text.
@@ -155,6 +178,7 @@ class ConversationTurn(Contract):
     provenance: ModelProvenance | None = None
     # All context dependencies, including those inherited through recent history.
     memory_ids: tuple[UUID, ...] = ()
+    world_refs: Annotated[tuple[WorldReference, ...], Field(max_length=105)] = ()
     task_id: UUID | None = None
     response: CognitiveResponse | None = None
 
@@ -178,6 +202,7 @@ class ConversationTurn(Contract):
             self.response.task_id != self.task_id
             or self.response.provenance != self.provenance
             or not set(self.response.memory_ids) <= set(self.memory_ids)
+            or not set(self.response.world_refs) <= set(self.world_refs)
         ):
             raise ValueError("turn outcome/provenance binding mismatch")
         return self

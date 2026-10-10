@@ -17,7 +17,7 @@ from jarvis.identity import IdentityError
 from jarvis.storage.errors import StorageError
 from jarvis.tasks import TaskBusyError, TaskConflictError
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 class DuplicateEventError(StorageError):
@@ -138,6 +138,44 @@ MIGRATIONS = {
               OR NEW.conversation_id != OLD.conversation_id
               OR NEW.correlation_id != OLD.correlation_id OR NEW.created_at != OLD.created_at
             BEGIN SELECT RAISE(ABORT, 'immutable_or_finished_turn'); END""",
+    ),
+    5: (
+        """CREATE TABLE world_sources (source_id TEXT PRIMARY KEY, principal_id TEXT NOT NULL
+            REFERENCES security_principals(principal_id), partition_id TEXT NOT NULL,
+            revision INTEGER NOT NULL, data TEXT NOT NULL)""",
+        """CREATE TABLE world_entities (partition_id TEXT NOT NULL, entity_id TEXT NOT NULL,
+            location TEXT NOT NULL, PRIMARY KEY(partition_id,entity_id))""",
+        """CREATE TABLE observations (sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+            observation_id TEXT NOT NULL UNIQUE, event_id TEXT NOT NULL UNIQUE,
+            source_id TEXT NOT NULL REFERENCES world_sources(source_id), partition_id TEXT NOT NULL,
+            entity_id TEXT NOT NULL, attribute TEXT NOT NULL, observed_at TEXT NOT NULL,
+            input_data TEXT NOT NULL, data TEXT NOT NULL)""",
+        "CREATE INDEX observation_latest ON observations"
+        "(partition_id,entity_id,attribute,source_id,observed_at DESC)",
+        "CREATE INDEX observation_availability ON observations"
+        "(source_id,attribute,observed_at DESC)",
+        """CREATE TABLE world_states (state_id TEXT PRIMARY KEY, partition_id TEXT NOT NULL,
+            entity_id TEXT NOT NULL, attribute TEXT NOT NULL, location TEXT NOT NULL,
+            revision INTEGER NOT NULL, data TEXT NOT NULL,
+            UNIQUE(partition_id,entity_id,attribute))""",
+        """CREATE TABLE world_readers (partition_id TEXT NOT NULL, principal_id TEXT NOT NULL,
+            PRIMARY KEY(partition_id,principal_id))""",
+        "CREATE INDEX world_reader_access ON world_readers(principal_id,partition_id)",
+        """CREATE TABLE world_evidence (state_id TEXT NOT NULL REFERENCES world_states(state_id),
+            observation_id TEXT NOT NULL REFERENCES observations(observation_id),
+            PRIMARY KEY(state_id,observation_id))""",
+        """CREATE TABLE world_expirations (observation_id TEXT PRIMARY KEY
+            REFERENCES observations(observation_id))""",
+        """CREATE TRIGGER world_state_cas BEFORE UPDATE ON world_states
+            WHEN NEW.revision != OLD.revision+1 OR NEW.state_id != OLD.state_id
+              OR NEW.partition_id != OLD.partition_id OR NEW.entity_id != OLD.entity_id
+              OR NEW.attribute != OLD.attribute
+            BEGIN SELECT RAISE(ABORT, 'world_revision_conflict'); END""",
+        *(
+            f"""CREATE TRIGGER observations_no_{op.lower()} BEFORE {op} ON observations
+            BEGIN SELECT RAISE(ABORT, 'immutable_evidence'); END"""
+            for op in ("UPDATE", "DELETE")
+        ),
     ),
 }
 

@@ -21,6 +21,7 @@ from jarvis.models import ModelError
 from jarvis.observability import AuditWriteError, write_audit
 from jarvis.storage.errors import StorageError
 from jarvis.tasks import TaskConflictError
+from jarvis.world_state import describe_world, is_world_question
 
 
 class ProposalSource(Protocol):
@@ -65,6 +66,28 @@ class CognitiveCoordinator:
         available_memories = {m.memory_id for m in request.memories}
         if not set(decision.memory_ids) <= available_memories:
             raise ModelError("memory_reference_invalid")
+        if not set(decision.world_ids) <= {s.state_id for s in request.world_states}:
+            raise ModelError("world_reference_invalid")
+        # Render environmental replies from verified state, never arbitrary model claims.
+        if request.world_states and decision.action is None and decision.kind != "failure":
+            decision = CognitiveDecision(
+                kind="world_grounded",
+                text=describe_world(request.world_states),
+                world_ids=tuple(s.state_id for s in request.world_states),
+            )
+        elif (
+            self.context.world is not None
+            and is_world_question(request.messages[-1].content)
+            and decision.action is None
+            and decision.kind != "failure"
+        ):
+            decision = CognitiveDecision(
+                kind="clarification",
+                text=(
+                    "Authorized environmental evidence is unavailable; "
+                    "the current state is unknown."
+                ),
+            )
         if decision.action:
             action = decision.action
             if (
@@ -91,7 +114,9 @@ class CognitiveCoordinator:
                     conversation_id, request_id, text, session_token=session_token
                 )
                 if turn.response is not None:
-                    self.context.ensure_current(turn.memory_ids, session_token=session_token)
+                    self.context.ensure_current(
+                        turn.memory_ids, session_token=session_token, world_refs=turn.world_refs
+                    )
                     return turn.response  # Request replay cannot repeat any model call or action.
                 if not fresh and turn.state == "RECEIVED":
                     raise ModelError("interrupted_model_request")
@@ -116,6 +141,7 @@ class CognitiveCoordinator:
                             built.request,
                             session_token=session_token,
                             contains_memory=bool(built.memory_ids),
+                            contains_world=bool(built.world_refs),
                         )
                     except asyncio.CancelledError:
                         response = self._response(
@@ -137,7 +163,9 @@ class CognitiveCoordinator:
                         turn = turn.model_copy(update={"provenance": provenance})
                         raise
                     turn = turn.model_copy(update={"provenance": provenance})
-                    self.context.ensure_current(built.memory_ids, session_token=session_token)
+                    self.context.ensure_current(
+                        built.memory_ids, session_token=session_token, world_refs=built.world_refs
+                    )
                     decision = self._validate(raw, built.request)
                     turn = self.conversations._save(
                         turn,
@@ -146,8 +174,11 @@ class CognitiveCoordinator:
                         decision=decision,
                         provenance=provenance,
                         memory_ids=built.memory_ids,
+                        world_refs=built.world_refs,
                     )
-                self.context.ensure_current(turn.memory_ids, session_token=session_token)
+                self.context.ensure_current(
+                    turn.memory_ids, session_token=session_token, world_refs=turn.world_refs
+                )
                 if turn.decision.action is None:
                     decision = turn.decision
                     response = self._response(
@@ -155,6 +186,7 @@ class CognitiveCoordinator:
                         kind=decision.kind,
                         text=decision.text,
                         memory_ids=decision.memory_ids,
+                        world_refs=turn.world_refs,
                         error=decision.error,
                         audit_ids=self._refs(turn.correlation_id),
                     )

@@ -16,8 +16,9 @@ and actual separate-process verification (`jarvis memory-demo`). See docs/PHASE4
 and ADR-T05. Phase 5 implements bounded cognition/context building, fake/local
 model adapters, isolated persistent conversations and text CLI (docs/PHASE5.md,
 provisional ADR-T06). Offline and protocol checks are implemented; genuine model
-inference here remains unverified because weight downloads are blocked. Production
-exposure still requires trusted authentication/provisioning and collection policies.
+inference here remains unverified because weight downloads are blocked. Phase 6 now adds a persistent evidence-based world model, simulated sensors,
+scoped cognitive world context and a two-process world-demo (docs/PHASE6.md, ADR-T07).
+Production exposure still requires trusted authentication/provisioning and collection policies.
 
 ## Phase 0 — Repository and Specification Baseline
 
@@ -209,6 +210,16 @@ Production authentication/public transport and final model/policy choices stay O
 ---
 
 ## Phase 6 — Observation and World Model
+
+**Implementation status:** Complete for the scoped simulated/local milestone.
+Trusted ingestion, explicit v2 evidence, durable events/projections, deterministic
+confidence/conflict/TTL, private/shared isolation, current-policy retrieval and
+bounded verified cognitive world context are implemented. `jarvis world-demo`
+uses two real processes and real SQLite/policy services. Numeric metrics report
+only measured or provider-reported values. See docs/PHASE6.md and provisional
+ADR-T07. Physical adapters, production device auth, retention policy and initiative
+remain deferred; WORLD-004 stays PROPOSED. Genuine-model acceptance remains an
+existing Phase 5 gap in this environment.
 
 **Goal:** represent changing reality with evidence and uncertainty.
 

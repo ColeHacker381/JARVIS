@@ -663,3 +663,17 @@ private conversation state. Offline and protocol-server checks do not establish
 genuine model connectivity: weight downloads are blocked by this environment's
 network policy, leaving real-model acceptance unverified. ADR-T06 is provisional;
 all prior OPEN decisions, including production auth/model choice, remain OPEN.
+
+
+Phase 6 implements trusted observation ingestion, immutable ObservationRecord v2,
+versioned observation/state events, persistent structured world projections and
+explicit evidence/inference/conflict/staleness. Existing policy and scoped ownership
+filter observations/state/events before model context; current revocation applies.
+WORLD-001/002/003, EVT-001, ARCH-004, IAM-001, PER-001, MEM-002/003, SEC-001/003,
+REL-001/002 and DEV-003 coverage is mapped in docs/PHASE6.md. WORLD-004 simulated
+adapters are implemented provisionally without changing PROPOSED status. Migration
+5 preserves existing authority, memory, tasks and conversations. Bounded cognitive
+context/verified world replies and separate default-deny world egress extend COG-001
+and SEC-002. Numeric performance instrumentation does not ratify REL-003 targets.
+ADR-T07 remains provisional; real device auth/hardware, collection/retention rules,
+autonomous initiative and all prior OPEN decisions remain unresolved.

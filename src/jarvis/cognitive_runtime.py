@@ -11,6 +11,7 @@ from jarvis.context import ContextBuilder
 from jarvis.conversations import ConversationService
 from jarvis.core.contracts import Provenance
 from jarvis.core.memory_records import MemoryDraft
+from jarvis.core.time import utc_now
 from jarvis.development import (
     BRIGHTNESS_PERMISSION,
     ECHO_PERMISSION,
@@ -18,11 +19,14 @@ from jarvis.development import (
 )
 from jarvis.memory import MemoryService
 from jarvis.models import FakeModel, ModelRouter, OpenAILocalModel
+from jarvis.observability import InMemoryMetrics
 from jarvis.storage.conversations import SQLiteConversationStore
 from jarvis.storage.memory import SQLiteMemoryStore
 from jarvis.storage.security import SQLiteDevelopmentIdentityService, SQLitePermissionStore
 from jarvis.storage.sqlite import SQLiteAuditSink, SQLiteDatabase, SQLiteTaskStore
+from jarvis.storage.world import SQLiteWorldStore
 from jarvis.task_manager import TaskManager
+from jarvis.world_state import WorldModel
 
 FRIEND_ID = UUID("e3c4b46a-f7fb-43e6-a1be-000000000005")
 GUEST_ID = UUID("e3c4b46a-f7fb-43e6-a1be-000000000006")
@@ -39,6 +43,8 @@ class DevelopmentCognitiveRuntime:
     coordinator: CognitiveCoordinator
     lighting: object
     audit: SQLiteAuditSink
+    world: WorldModel
+    metrics: InMemoryMetrics
 
     def credentials(self, name):
         principal_id = {"owner": self.identities.owner_id, "friend": FRIEND_ID, "guest": GUEST_ID}[
@@ -57,12 +63,17 @@ def development_runtime(
     timeout=60.0,
     fake=None,
     defer_actions=False,
+    clock=utc_now,
 ) -> DevelopmentCognitiveRuntime:
     database = SQLiteDatabase(path)
     database.initialize()
     identities = SQLiteDevelopmentIdentityService(database)
     audit = SQLiteAuditSink(database)
     permissions = SQLitePermissionStore(identities, audit)
+    metrics = InMemoryMetrics()
+    world = WorldModel(
+        SQLiteWorldStore(database, identities, audit), permissions, clock=clock, metrics=metrics
+    )
     memory = MemoryService(SQLiteMemoryStore(database, identities, audit), permissions)
     if bootstrap:
         owner = identities.bootstrap_owner_for_testing("Cognition development owner")
@@ -74,11 +85,18 @@ def development_runtime(
         )
         credentials = identities.establish_session_for_testing(owner.principal_id)
         for principal_id in (owner.principal_id, FRIEND_ID, GUEST_ID):
-            for permission in ("memory.read", ECHO_PERMISSION):
+            for permission in ("memory.read", "world.read", ECHO_PERMISSION):
                 permissions.grant(
                     credentials.token, principal_id, permission, correlation_id=uuid4()
                 )
-        for permission in ("memory.write", "memory.share", "memory.history", BRIGHTNESS_PERMISSION):
+        for permission in (
+            "memory.write",
+            "memory.share",
+            "memory.history",
+            "world.sources.manage",
+            "world.history",
+            BRIGHTNESS_PERMISSION,
+        ):
             permissions.grant(
                 credentials.token, owner.principal_id, permission, correlation_id=uuid4()
             )
@@ -113,14 +131,19 @@ def development_runtime(
         registry=registry,
         policy=policy,
         tasks=tasks,
+        world=world,
+        metrics=metrics,
     )
     models = ModelRouter(
         {
             "fake": fake or FakeModel(),
-            "local": OpenAILocalModel(endpoint=endpoint, model=model, timeout=timeout),
+            "local": OpenAILocalModel(
+                endpoint=endpoint, model=model, timeout=timeout, metrics=metrics
+            ),
         },
         selected=provider,
         timeout=timeout,
+        metrics=metrics,
     )
     coordinator = CognitiveCoordinator(
         conversations=conversations,
@@ -140,4 +163,6 @@ def development_runtime(
         coordinator,
         lighting,
         audit,
+        world,
+        metrics,
     )

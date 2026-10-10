@@ -362,7 +362,8 @@ adapters and a host-wide reentrant security claim around checks/invocation and
 permission changes. Task claims precede authorization waiting and remain exclusive
 while active. Default durable identity wiring denies without a trusted authenticator
 and refuses development authority/session records. Only the explicit development
-subclass bootstraps fixtures; startup never infers authority from saved task IDs. No production authentication, world-state inference, or continuous initiative is implemented.
+subclass bootstraps fixtures; startup never infers authority from saved task IDs. Production authentication and continuous initiative remain unimplemented;
+Phase 6 now adds the scoped world model described below.
 ADR-T01/T02/T03/T04/T05 document provisional choices. See `docs/FOUNDATION.md`,
 `docs/PHASE2.md`, `docs/PHASE3.md`, and `docs/PHASE3_VERIFICATION.md` for coverage,
 operations and trust boundaries.
@@ -401,3 +402,30 @@ No cloud implementation/fallback is installed. Development chat identities/boots
 are explicitly fixture-only; a conversation UUID never authenticates a caller.
 COG-002 is provisional, and final auth/model/routing/data-classification decisions
 remain OPEN. See docs/PHASE5.md and provisional ADR-T06 for validation limits.
+
+
+Phase 6 extends Observation v1 explicitly as ObservationRecord v2. WorldModel
+resolves trusted source credentials/current ingestion grants, validates pinned
+routes and structured boolean payloads, and derives deterministic beliefs from
+immutable evidence. WorldState v1 distinguishes observed/inferred/unknown/conflict/
+stale/unavailable with source IDs, confidence strength, TTL, evidence and revisions.
+Private/shared policy partitions are projected separately; current authorization
+filters SQL before decoding, ordering or bounded context selection.
+
+Migration 5 adds sources/entities/observations/projections/evidence/readers and
+expiration checkpoints in the existing journal. Observation acceptance, event
+publication, resulting projections and success audit share one transaction.
+Queries/ingestion reevaluate freshness; no new broker or scheduler is added.
+The existing security claim and revision checks prevent stale local writes.
+WorldStore remains a replaceable private adapter interface, not a final DB choice.
+
+ContextBuilder optionally includes bounded authorized world state as untrusted data,
+separate from memory. The coordinator renders environmental replies from verified
+structured state and revalidates state/revision dependencies before output/history/
+reply replay. Models cannot fabricate evidence references or authorize tools.
+Future cloud calls need separate explicit world-egress permission, including
+world-derived history; cloud remains off. Numeric telemetry omits all content and
+reports unavailable provider measurements explicitly. Three fake sensor adapters
+and a real two-process world-demo verify this slice. See docs/PHASE6.md and
+provisional ADR-T07; WORLD-004 remains PROPOSED and hardware/auth/retention/initiative
+choices remain OPEN.
