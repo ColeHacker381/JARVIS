@@ -145,7 +145,7 @@ class MemoryService:
             raise MemoryError(exc.code) from None
 
     @staticmethod
-    def _record(session, action, outcome, reason, *, refs=(), decision=None):
+    def _record(session, action, outcome, reason, *, refs=(), decision=None, memory_ids=()):
         return AuditRecord(
             principal_id=session.principal_id if session else None,
             session_id=session.session_id if session else None,
@@ -155,7 +155,9 @@ class MemoryService:
             action=action,
             outcome=outcome,
             reason_code=reason,
-            policy_refs=decision.policy_refs if decision else refs,
+            policy_refs=(decision.policy_refs if decision else ())
+            + refs
+            + tuple(f"scope:memory:{memory_id}" for memory_id in memory_ids),
         )
 
     def _authorize(self, session, token, action, required, scope=None, *, hidden=False):
@@ -223,7 +225,14 @@ class MemoryService:
             )
             self._store._commit(
                 ((record, None),),
-                self._record(session, "memory.create", "succeeded", "created", decision=decision),
+                self._record(
+                    session,
+                    "memory.create",
+                    "succeeded",
+                    "created",
+                    decision=decision,
+                    memory_ids=(record.memory_id,),
+                ),
                 access=self._access,
             )
             # Acknowledges only the submitted new data; later retrieval still needs read access.
@@ -356,7 +365,12 @@ class MemoryService:
             self._store._commit(
                 ((prior, old.revision), (new, None)),
                 self._record(
-                    session, "memory.supersede", "succeeded", "superseded", decision=decision
+                    session,
+                    "memory.supersede",
+                    "succeeded",
+                    "superseded",
+                    decision=decision,
+                    memory_ids=(old.memory_id, new.memory_id),
                 ),
                 access=self._access,
             )
@@ -385,7 +399,12 @@ class MemoryService:
             self._store._commit(
                 ((record, old.revision),),
                 self._record(
-                    session, "memory.delete", "succeeded", "tombstoned", decision=decision
+                    session,
+                    "memory.delete",
+                    "succeeded",
+                    "tombstoned",
+                    decision=decision,
+                    memory_ids=(record.memory_id,),
                 ),
                 access=self._access,
             )
@@ -427,6 +446,8 @@ class MemoryService:
                     "succeeded",
                     "access_revoked",
                     decision=decision,
+                    memory_ids=(record.memory_id,),
+                    refs=(f"principal:{principal_id}",),
                 ),
                 access=self._access,
             )
@@ -464,7 +485,12 @@ class MemoryService:
             self._store._commit(
                 ((record, old.revision),),
                 self._record(
-                    session, "memory.retention", "succeeded", "retention_changed", decision=decision
+                    session,
+                    "memory.retention",
+                    "succeeded",
+                    "retention_changed",
+                    decision=decision,
+                    memory_ids=(record.memory_id,),
                 ),
                 access=self._access,
             )

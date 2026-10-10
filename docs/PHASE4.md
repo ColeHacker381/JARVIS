@@ -27,7 +27,8 @@ credentials through the existing executor; no privileged provider path changes.
 
 Policy uses the existing DeterministicPolicy with fixed action metadata, no
 query/content arguments. Read decisions persist before returning content. Mutation
-success audits link to the allow decision, actor/session/proposal/correlation IDs;
+success audits link to the allow decision, actor/session/proposal/correlation IDs
+and opaque memory-scope references (plus recipient ID on access revocation);
 row/index changes and successful mutation audit commit together. Errors contain
 stable `MemoryError.code` and a serializable `ErrorDetail` in `.detail`; no private
 payload appears in logs, audits or exception messages. ID lookup filters SQL scope

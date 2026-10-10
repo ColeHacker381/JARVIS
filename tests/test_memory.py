@@ -140,6 +140,16 @@ def test_revoke_record_recipient_does_not_require_deleting_record(runtime):
         == "private"
     )
 
+    changes = [
+        r
+        for r in runtime[4].records()
+        if r.action == "memory.revoke_access" and r.outcome == "succeeded"
+    ]
+    assert len(changes) == 2
+    assert all(f"scope:memory:{record.memory_id}" in r.policy_refs for r in changes)
+    assert f"principal:{users['a'].principal_id}" in changes[0].policy_refs
+    assert f"principal:{users['b'].principal_id}" in changes[1].policy_refs
+
 
 def test_household_is_explicit_membership_plus_current_established_policy(runtime):
     _, _, users, sessions, _, permissions, _, service = runtime
@@ -644,6 +654,7 @@ def test_permission_changes_and_deletion_audits_link_to_current_policy_decision(
         r for r in audit if r.action.startswith("memory.") and r.outcome == "succeeded"
     ):
         assert outcome.decision_id is not None and outcome.proposal_id is not None
+        assert f"scope:memory:{record.memory_id}" in outcome.policy_refs
         policy = next(
             r for r in audit if r.decision_id == outcome.decision_id and r.outcome == "allowed"
         )
