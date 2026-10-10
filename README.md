@@ -2,9 +2,10 @@
 
 A local Python development foundation for the permission-governed JARVIS kernel.
 This implements Phase 0/1 contracts, the Phase 2 identity/authorization/execution
-boundary, Phase 3 durable authority/events/tasks/audits, and Phase 4 persistent
-permission-scoped memory. It is not yet the continuously
-running assistant described in the product specification.
+boundary, Phase 3 durable authority/events/tasks/audits, Phase 4 persistent
+permission-scoped memory, and Phase 5 bounded cognitive coordination with persisted
+text conversations and replaceable fake/local models. Production authentication
+and continuous initiative remain future work.
 
 ## Setup
 
@@ -20,6 +21,7 @@ uv run --no-sync jarvis smoke
 uv run --no-sync jarvis demo
 uv run --no-sync jarvis recovery-demo
 uv run --no-sync jarvis memory-demo
+uv run --no-sync jarvis cognition-demo
 ```
 
 The smoke command builds local principal/session/proposal contracts, registers a
@@ -54,6 +56,32 @@ provenance, correction to the current Slipstream fact, authorized historical
 retrieval and tombstones before and after restart. Each run uses a fresh ignored
 fixture directory; it preserves the ordinary database and never prints tokens.
 See [docs/PHASE4.md](docs/PHASE4.md) for grants, API, migration and limits.
+
+The `cognition-demo` command runs the real coordinator, authorized memory retrieval,
+policy/executor, durable tasks and conversation store with a deterministic fake
+model. It answers an owner-private Slipstream question, executes simulated lighting,
+denies a hostile guest proposal and private-memory request, then reopens in another
+process and replays the completed request without another action.
+
+For interactive development: `uv run jarvis chat --model-provider fake`. Fake mode
+is explicitly **not AI reasoning**. Chat defaults to a real local model:
+
+```sh
+# With Ollama already installed, run `ollama serve` in another terminal.
+ollama pull qwen2.5:3b
+export JARVIS_LOCAL_MODEL_ENDPOINT=http://127.0.0.1:11434/v1
+export JARVIS_LOCAL_MODEL_NAME=qwen2.5:3b
+uv run jarvis chat
+```
+
+Compatible loopback OpenAI chat endpoints also work with `--local-endpoint` and
+`--local-model`. Unavailable models return a structured error; no cloud fallback
+is enabled. Conversations use `.jarvis/chat/journal.sqlite3` by default. Resume
+the printed ID with `--conversation <uuid>`; `--identity owner|friend|guest` is
+**development-only trusted host selection**, never production authentication.
+See [docs/PHASE5.md](docs/PHASE5.md) for contracts, setup, context/security rules,
+examples and validation limits. Genuine inference in this cloud environment is
+still unverified because the network policy blocks model-weight downloads.
 
 `uv.lock` pins the dependency graph; `uv sync --locked` refuses an outdated lock.
 Use `uv lock` deliberately when changing dependencies, and commit both the manifest
@@ -91,11 +119,15 @@ or identifier fields. Arbitrary extras and exception messages are omitted.
 | `memory.py` | Scoped memory domain service, current policy, supersession, retention, deletion |
 | `memory_demo.py` | Real two-process SQLite memory/privacy demonstration |
 | `world_state.py` | Observation adapter protocol; no world model engine |
-| `cognition.py`, `initiative.py` | Proposal-only adapter protocols |
+| `cognition.py`, `context.py` | Bounded coordinator and authorized context building |
+| `models.py`, `egress.py` | Fake/local model adapters, routing and separate trusted egress policy |
+| `conversations.py`, `storage/conversations.py` | Authenticated private history and durable turn/task links |
+| `cognitive_runtime.py`, `chat.py`, `cognition_demo.py` | Explicit development CLI composition and two-process cognition demo |
+| `initiative.py` | Proposal-only initiative adapter protocol |
 | `observability.py` | JSON logging, audit interface, and in-memory audit sink (SQLite adapter in storage/) |
 | `config.py`, `__main__.py` | Local configuration, smoke/demo/recovery/memory and database operation commands |
 | `tests/` | Contracts, policy/execution, durability, recovery, concurrency, corruption and CLI tests |
-| `.github/workflows/ci.yml` | Frozen install, lint, formatting, tests, build, smoke, demo, recovery-demo, memory-demo |
+| `.github/workflows/ci.yml` | Frozen install, lint, formatting, tests, build and all five readiness demos |
 
 Read [docs/FOUNDATION.md](docs/FOUNDATION.md) for the architectural review,
 requirement coverage, temporary choices, and remaining decisions.
@@ -109,8 +141,9 @@ provisional decisions distinct from accepted decisions. When a final decision is
 accepted, update `DECISIONS.md`, affected requirements/architecture, migration
 notes, and acceptance tests together.
 
-The next milestone is Phase 5 fake-first cognitive coordination and a bounded
-context builder using authorized memory and validated action proposals. Production authentication,
+The recommended next milestone is Phase 6 scoped observations/world-state evidence,
+uncertainty and staleness with fake sensors. Complete real-model validation against
+an available local server before declaring all Phase 5 acceptance complete. Production authentication,
 production owner provisioning, tamper-resistant auditing, real integrations and the continuous
 assistant remain unfinished. SQLite is a provisional reversible local choice, not
 a final storage or distributed scheduling decision.
@@ -118,7 +151,9 @@ a final storage or distributed scheduling decision.
 The Phase 3 verification pass adds durable current grants/revocations/principals/
 sessions, atomic permission/audit changes and cross-process security exclusion.
 The default durable identity repository denies without a trusted authenticator;
-fixture credentials remain explicitly isolated from production. Run `uv run jarvis db-init` explicitly to migrate existing schema 1/2 development databases to schema
-3; this never provisions identity or restores old task approvals. See
+fixture credentials remain explicitly isolated from production. Run `uv run jarvis db-init`
+explicitly to migrate existing schema 1–3 development databases to schema 4;
+this never provisions identity or restores old task approvals. Back up existing
+state before migration. See
 [docs/PHASE3_VERIFICATION.md](docs/PHASE3_VERIFICATION.md) for findings, real-process
 race/crash tests, supported local guarantees and Phase 4 prerequisites.

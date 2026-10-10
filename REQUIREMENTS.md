@@ -650,3 +650,16 @@ coverage/tests/limits are mapped in `docs/PHASE4.md`. Migration 3 preserves Phas
 2/3 authority, tasks/events/history/audits. Retention periods, physical purge,
 verified consent/source authenticity, production authentication and final policy/
 storage remain OPEN; no requirement status is silently changed.
+
+Phase 5 implements bounded CognitiveCoordinator/context, provider-neutral model
+contracts, a deterministic fake and async loopback OpenAI-compatible local adapter,
+current-policy capability discovery/execution through TaskManager, isolated local
+conversations, provenance, restart/replay and default-deny cloud egress. Coverage
+for ARCH-001–004, COG-001, IAM-004/007, PER-001, CAP-001–003, TASK-001/002,
+MEM-001–004/006, SEC-001–003, REL-001/002 and DEV-003 is mapped in docs/PHASE5.md.
+COG-002 direct responses are implemented provisionally; its PROPOSED status is
+unchanged. Migration 4 preserves existing authority/memory/tasks/journals and adds
+private conversation state. Offline and protocol-server checks do not establish
+genuine model connectivity: weight downloads are blocked by this environment's
+network policy, leaving real-model acceptance unverified. ADR-T06 is provisional;
+all prior OPEN decisions, including production auth/model choice, remain OPEN.

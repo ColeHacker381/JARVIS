@@ -13,7 +13,10 @@ sequential execution and real subprocess recovery (`jarvis recovery-demo`).
 See `docs/PHASE3.md` and ADR-T03. Phase 4 now implements persistent permission-scoped
 memory, explicit supersession/history, bounded scoped search, retention/deletion
 and actual separate-process verification (`jarvis memory-demo`). See docs/PHASE4.md
-and ADR-T05. Phase 5 can begin with fake-first cognition/context building; production
+and ADR-T05. Phase 5 implements bounded cognition/context building, fake/local
+model adapters, isolated persistent conversations and text CLI (docs/PHASE5.md,
+provisional ADR-T06). Offline and protocol checks are implemented; genuine model
+inference here remains unverified because weight downloads are blocked. Production
 exposure still requires trusted authentication/provisioning and collection policies.
 
 ## Phase 0 — Repository and Specification Baseline
@@ -175,11 +178,21 @@ policy, physical purge and final retention durations remain OPEN.
 
 ## Phase 5 — Cognitive Coordinator and Model Adapters
 
+**Implementation status:** Offline workflow and local OpenAI-compatible adapter
+implemented. Persistent conversations, current scoped memory context, validated
+one-action decisions, established task/executor integration, provenance, bounded
+history, failures and trusted default-deny cloud egress are tested. `jarvis
+cognition-demo` uses two real processes; `jarvis chat` offers explicit fake mode
+and configured local inference. Genuine-model connectivity remains an acceptance
+gap in this environment until weights/endpoint are available; protocol test-server
+success is not genuine AI. COG-002 stays PROPOSED, implemented provisionally.
+Production authentication/public transport and final model/policy choices stay OPEN.
+
 **Goal:** add intelligence without weakening the kernel.
 
 ### Implement
 - model-provider interface;
-- at least one local model adapter or development fake;
+- local OpenAI-compatible adapter plus deterministic development fake;
 - optional cloud adapter interface;
 - prompt/context builder;
 - action-proposal parser;

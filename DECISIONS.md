@@ -508,3 +508,55 @@ The real two-process memory-demo and domain/migration/process tests verify scope
 restart retrieval, provenance, current/history correction, revocation/deletion/
 expiry, private error/search isolation, audit rollback and synchronized conflicting
 updates. See docs/PHASE4.md for actual scope, operations and Phase 5 prerequisites.
+
+---
+
+## ADR-T06 — Provisional Bounded Cognition and Private Text Conversations
+
+**Status:** Provisional implementation choices authorized for Phase 5; not final
+model, authentication, scheduler, public API or data-classification decisions
+**Date:** 2026-10-10
+
+### Choice and constraints
+ARCH-001–004, COG-001, IAM-004, PER-001, CAP-001–003, TASK-001/002,
+MEM-001–004/006, SEC-001–003, REL-001/002 and DEV-003 require a working cognitive
+slice with stable trust boundaries. Extend existing cognition with one asynchronous
+model call and at most one existing ActionProposal per turn. Strict versioned
+decisions reject identity/approval imports; models never invoke handlers or modify
+grants. Authorized registry discovery reuses deterministic policy; all actual
+invocation remains TaskManager -> CapabilityExecutor with fresh authorization.
+
+Use normalized provider-neutral request/output contracts, deterministic fake and
+an async OpenAI-compatible loopback HTTP adapter (httpx for cancellation/deadlines).
+Provider provenance is trusted configuration, not model output. Context uses
+bounded Phase 4 keyword retrieval, current memory validity/access and recent private
+history. Revalidate memory dependencies before history reuse/model-output use.
+COG-002 direct replies are implemented provisionally without changing PROPOSED status.
+
+Reuse SQLite with migration 4 for owner-indexed conversations and versioned turns.
+Persist accepted intent before task submission; scoped stable submission keys bridge
+crashes before task linking. Local POSIX conversation claims and CAS/event/audit
+transactions preserve isolation and observable state, without holding a security
+lock over model awaits. Existing recovery semantics govern effects. The CLI uses
+an explicit separate development store and fresh fixture credentials, bootstraps/
+grants only for new stores, and never treats conversation IDs as authentication.
+
+Cloud remains disabled. A future trusted cloud adapter additionally needs a trusted
+EgressPolicy with enabled destination/provider and current per-data-class grants;
+conversation/identity are always private, and memory-derived history is classified
+as memory. No automatic fallback or production cloud backend is added.
+
+### Migration, validation and limits
+Migration preserves schema 1–3 memory/authority/tasks/history/events/audits. Tests
+cover actual enforcement, adapter-call egress denial, private history/context,
+contract versions, provider errors, cancellation, concurrent users, current
+revocation and real-process accepted-intent/completed/ambiguous crash recovery.
+The two-process offline demo calls real core services. A real HTTP protocol server
+validates the CLI/adapter path; genuine model weights are unavailable here due to
+the environment network policy, so real inference acceptance remains unverified.
+
+All confirmed ADRs are preserved. Final storage/schemas, model stack/provider,
+authentication/provisioning, data classification/retention, public transport,
+scheduler and failure semantics remain OPEN. This adds no real hardware, autonomous
+loops, multi-agent reasoning, extraction/consolidation/profiling, physical purge,
+untrusted-code sandbox or arbitrary external exactly-once guarantee. See PHASE5.md.

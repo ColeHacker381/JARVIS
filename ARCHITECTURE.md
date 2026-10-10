@@ -377,3 +377,27 @@ expiry and deletion; sensitive writes/index mutations and outcome audits are ato
 with expected revisions. Existing capability invocation remains through the executor.
 The two-process memory-demo verifies real persistence and privacy. See docs/PHASE4.md
 for temporary permissions, trust boundaries and remaining production policies.
+
+Phase 5 extends cognition with a bounded coordinator, ContextBuilder and replaceable
+asynchronous model providers. ModelRequest/CognitiveDecision/Conversation/Turn/
+Response v1 use explicit nested wire versions and existing ActionProposal and
+ExecutionResult semantics. Context includes only bounded current authorized memory,
+permitted recent history and capability metadata discovered through current policy.
+Retrieved content is data, never instruction/authority. Memory dependencies are
+rechecked before history reuse and before accepting model output.
+
+One model call yields at most one proposed action. Validated intent is persisted
+before TaskManager submission with a stable owner-scoped key; the existing executor
+revalidates arguments/current authority, and observed task/results determine action
+responses. Conversation claims and revision-checked SQL/event/audit commits preserve
+accepted intent, isolated history and task links across restart. Completed request
+replays skip invocation; ambiguous effects retain NEEDS_REVIEW. Migration 4 adds
+conversation tables without changing existing authority or memory/task contracts.
+
+The local adapter uses a pinned loopback OpenAI-compatible endpoint; the deterministic
+fake keeps core tests/demo fully offline. Cloud boundaries require trusted enablement,
+provider/destination and per-data-class current egress grants before adapter invocation.
+No cloud implementation/fallback is installed. Development chat identities/bootstrap
+are explicitly fixture-only; a conversation UUID never authenticates a caller.
+COG-002 is provisional, and final auth/model/routing/data-classification decisions
+remain OPEN. See docs/PHASE5.md and provisional ADR-T06 for validation limits.

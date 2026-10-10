@@ -29,6 +29,13 @@ _JSON_OBJECT = TypeAdapter(
 )
 
 
+def validate_capability_arguments(capability, arguments) -> None:
+    """Shared pure schema check. This proves shape only, never authorization."""
+    Draft202012Validator(capability.input_schema, format_checker=FormatChecker()).validate(
+        arguments
+    )
+
+
 @dataclass(frozen=True)
 class ReplayProfile:
     fingerprint: str
@@ -251,10 +258,7 @@ class CapabilityExecutor:
                 return finish("denied", decision.reason_code)
 
             try:
-                validator = Draft202012Validator(
-                    capability.input_schema, format_checker=FormatChecker()
-                )
-                validator.validate(proposal.arguments)
+                validate_capability_arguments(capability, proposal.arguments)
             except Exception:
                 return finish("validation_failure", "input_invalid")
             try:

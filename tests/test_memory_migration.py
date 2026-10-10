@@ -153,7 +153,7 @@ def test_real_schema_two_migration_preserves_principals_sessions_grants_tasks_ev
         for table in tables:
             assert [tuple(r) for r in connection.execute(f"SELECT * FROM {table}")] == before[table]
         assert connection.execute("SELECT count(*) FROM memories").fetchone()[0] == 0
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 3
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
     identities = SQLiteDevelopmentIdentityService(database)
     sink = SQLiteAuditSink(database)
     permissions = SQLitePermissionStore(identities, sink)
