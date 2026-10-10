@@ -362,8 +362,18 @@ adapters and a host-wide reentrant security claim around checks/invocation and
 permission changes. Task claims precede authorization waiting and remain exclusive
 while active. Default durable identity wiring denies without a trusted authenticator
 and refuses development authority/session records. Only the explicit development
-subclass bootstraps fixtures; startup never infers authority from saved task IDs. No production authentication, scoped memory
-backend, world-state inference, or continuous initiative is implemented.
-ADR-T01/T02/T03/T04 document provisional choices. See `docs/FOUNDATION.md`,
+subclass bootstraps fixtures; startup never infers authority from saved task IDs. No production authentication, world-state inference, or continuous initiative is implemented.
+ADR-T01/T02/T03/T04/T05 document provisional choices. See `docs/FOUNDATION.md`,
 `docs/PHASE2.md`, `docs/PHASE3.md`, and `docs/PHASE3_VERIFICATION.md` for coverage,
 operations and trust boundaries.
+
+Phase 4 adds MemoryService domain logic behind trusted token/current-policy checks
+and private MemoryStore internals, using the same SQLite journal/authority/audits.
+Explicit MemoryRecord v2 extends readable Memory v1; migration 3 adds memory/readers/
+subjects and indexed transactional persistence. Scoped selection precedes decoding
+and search ordering/pagination. Corrections preserve immutable source/content in
+linked historical records. Current/history/date reads enforce current grants,
+expiry and deletion; sensitive writes/index mutations and outcome audits are atomic
+with expected revisions. Existing capability invocation remains through the executor.
+The two-process memory-demo verifies real persistence and privacy. See docs/PHASE4.md
+for temporary permissions, trust boundaries and remaining production policies.

@@ -24,8 +24,9 @@ uv run --no-sync jarvis recovery-demo
 ```
 
 Initialization is explicit, repeatable and runs numbered migrations under a
-schema lock. `PRAGMA user_version=2` is the current schema; migration 2 adds durable security
-state without changing existing journal/task records. It is independent of contract
+schema lock. `PRAGMA user_version=3` is the current schema; migration 2 adds durable security
+and migration 3 adds scoped memory, preserving existing journal/task/authority records.
+See [PHASE4.md](PHASE4.md) for memory operations and migration verification. It is independent of contract
 versions. See [PHASE3_VERIFICATION.md](PHASE3_VERIFICATION.md). Future database versions are refused without migration or
 reset. Each connection enforces foreign keys, a five-second busy timeout, and
 `synchronous=FULL`; initialization enables WAL. Connections are scoped to short
@@ -239,7 +240,7 @@ History snapshots include plans/results and grow with task size and attempts;
 there is no compaction, encryption, retention/deletion service, per-user public
 storage API, production authentication, distributed scheduler, actual deadlines,
 reconciliation endpoint, or manual review resolution. Durable audit is local and
-append-only by convention, not tamper-resistant. No later-phase integration is
-implemented. Recommended Phase 4 is scoped local memory storage/retrieval with
-provenance, consent, retention/deletion and multi-user isolation tests, using the
-current policy boundary and durable journal. Model/voice/device work remains later.
+append-only by convention, not tamper-resistant. Phase 4 now adds scoped memory storage/retrieval through the current policy boundary
+and journal; see PHASE4.md for that separate domain's retention/deletion operations.
+The task limitations above remain. Phase 5 fake-first cognition/context building is
+next; real model/voice/device work remains separately gated.

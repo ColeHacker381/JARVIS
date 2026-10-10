@@ -451,3 +451,60 @@ fixture isolation, atomic permission/audit rollback, deterministic process races
 actual SIGKILL claim release, safe provider deduplication, ambiguous review and
 completed-checkpoint preservation. See `docs/PHASE3_VERIFICATION.md` for exact
 findings, tested guarantees and prerequisites for Phase 4.
+
+---
+
+## ADR-T05 — Provisional Persistent Scoped Memory v0
+
+**Status:** Provisional implementation choices authorized for Phase 4;
+not a final schema, collection/retention policy, authentication or storage decision
+**Date:** 2026-10-10
+
+### Context and choice
+MEM-001–006, SEC-001/003/004, IAM-001 and SOC-001 need an actual persistent,
+permission-scoped memory service before cognition can safely consume context.
+Reuse the verified Phase 3 journal, durable identity/grants, deterministic policy
+and host-wide security claim. Keep domain policy/lifecycle in MemoryService and
+SQL in replaceable private MemoryStore internals, without public unscoped reads.
+
+MemoryRecord v2 extends readable Memory v1 with named extensible kinds, trusted
+creator, explicit ownership, revisions and expiry/deletion/supersession metadata.
+A draft cannot establish authentication; all service operations accept separately
+verified credentials and current exact read/write/history/share grants. Private
+scope is the default; subjects/creators and administrative ownership of the system
+do not imply record-read authority. Only the pinned owner with an explicit
+write_others grant may create another owner's record; it acquires no read bypass.
+Household scope uses explicit members and a separate current household-read grant,
+not inferred group/relationship authority. These permission names/policies are
+reversible v0 choices, not a resolution of PER-004 or IAM-005.
+
+Scoped SQL filters precede decoding, ordering and bounded keyset pagination. Keep
+search deterministic and local: literal case-folded substring filters plus indexed
+owner/recipient/type/subject/project, no external embeddings/vector infrastructure.
+Correction atomically links a new record and preserves old immutable evidence;
+current retrieval excludes superseded/invalid facts, while date/history queries
+require current history access. Expiry/deletion apply even to historical reads.
+Logical tombstones remove ordinary search/read access, not the retained bytes.
+Explicit per-record expiry is configurable; no guest/biometric retention period
+or verified consent policy is invented. Opaque evidence/consent references are
+metadata, never proof of authenticity or security authority.
+
+### Migration, validation and limits
+Migration 3 adds memory/readers/subjects/indexes and mutation guards, preserving
+schema 2 authority, sessions/grants, events/audits, tasks and history. Expected
+revision comparisons, short transactions and the existing security claim prevent
+stale overwrites and authorization/mutation gaps. All memory/index mutations and
+success audits commit atomically; unavailable policy audits deny reads/writes.
+No automatic v1 memory import guesses missing creator/consent metadata.
+
+This does not select permanent storage, final public APIs, authentication/owner
+provisioning, consent verification, source resolution, physical erasure, retention
+periods, anti-rollback/encryption, distributed locking, automated extraction,
+profiling/consolidation or cloud retrieval. Trusted Python internals/database
+owners can bypass application interfaces and must not be exposed as user endpoints.
+Confirmed ADRs remain unchanged; all prior OPEN choices remain OPEN.
+
+The real two-process memory-demo and domain/migration/process tests verify scoped
+restart retrieval, provenance, current/history correction, revocation/deletion/
+expiry, private error/search isolation, audit rollback and synchronized conflicting
+updates. See docs/PHASE4.md for actual scope, operations and Phase 5 prerequisites.

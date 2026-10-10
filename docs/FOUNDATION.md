@@ -47,8 +47,8 @@ These are implementation choices for this milestone, not final architecture:
   data, valid UUIDs, role labels, authentication references, and policy decisions
   are not security credentials. Trusted adapters must establish their provenance.
 - Private scope defaults to a required owner ID; sharing requires explicit
-  recipient IDs. These labels do not enforce access. There is no memory backend
-  or unscoped retrieval operation in this milestone.
+  recipient IDs. Phase 4 MemoryService now enforces these labels through current
+  authority, with explicit household policy/membership and no public unscoped backend API.
 - The legacy Task v1 remains readable. TaskRecord v2 explicitly extends its
   envelope with eight states, ordered steps, revision-checked checkpoints, results
   and attempt/replay history. Final contract/scheduler choices remain open.
@@ -83,21 +83,21 @@ approvals cannot re-establish privileges. Production authentication remains OPEN
 | ARCH-004 | Primary v1 contracts plus explicit task v2; missing/invalid outer/nested versions and corrupt records rejected | Future version migrations |
 | DEV-001 | Locked local install, lint, format, pytest, packaged smoke command | Running the eventual kernel |
 | CAP-001 | Metadata/provider registration/discovery with schemas and declared permissions; real fake-provider policy/executor integration | Real integration adapters |
-| MEM-002 | Source category/reference, derived evidence references, optional model reference | Storage and retrieval integration |
-| MEM-006 | Record time separate from validity interval; invalid intervals rejected | Temporal retrieval behavior |
+| MEM-001/002 | Durable MemoryRecord v2, source/evidence/creator/time/confidence, flexible types and real-process scoped retrieval | Source authenticity and verified evidence resolution |
+| MEM-006 | Distinct record/effective times, explicit supersession/current/history/date retrieval and preserved evidence | Automated contradiction/invalidation policy |
 | IAM-001 | Durable local principals/session references and exact grants, explicit fixture namespace | Production authentication/provisioning |
 | IAM-002/003/004/007, PER-001 | Owner grant/revoke, guest allow/deny, forged-identity rejection, fresh policy enforcement and effective revocation | Production authentication/administration; see PHASE3_VERIFICATION.md |
 | PER-002/003 | Declared permissions checked before invocation; linked allow/deny/outcome audits | Production policy design and tamper resistance |
 | CAP-002/003, REL-001 | Actual fake-provider input/output validation, correlated structured failures and JSON logs | Real deadlines/provider cancellation and production failure policy |
-| SEC-003/004 | Private/shared capability-result isolation, audited privilege decisions and grant/revoke | Full scoped memory retrieval, audit tamper resistance and future cloud egress |
-| MEM-003/004/005, SOC-001 | Explicit private/shared labels, subjects, consent, retention, tombstone fields | Authorized storage/retrieval and revocation |
+| SEC-001/003/004 | Local private/shared/household memory isolation, current grants, bounded search, atomic content-free mutation audits | Production auth, tamper resistance, future cloud egress |
+| MEM-003/004/005, SOC-001 | Enforced scopes/subjects, consent metadata, current revocation, configurable expiry, tombstones and hidden inactive history | Verified consent/collection policies, retention durations and physical purge |
 | WORLD-001/002/003 | Source/time, evidence-vs-inference labels, derived provenance, confidence validation | World-state beliefs and staleness policy |
 | DEV-003, ARCH-003 | Fake capability/model/observation adapter paths used in tests | Production adapters and provider provenance integration |
 | EVT-001, TASK-001/002, REL-002 | Durable ordered events, atomic task/history/audit checkpoints, explicit states/cancellation/CAS, safe idempotent retry, real subprocess recovery and ambiguous review | Distributed scheduling, real provider guarantees, manual review resolution and retention |
 
 Tests demonstrate contracts, the Phase 2 security boundary, local durable
 events/tasks/audits and actual-process recovery. They do not prove production
-authentication, full memory isolation, distributed recovery,
+authentication, all future context/egress isolation, distributed recovery,
 continuous initiative or a complete v0.1 kernel. Phase 3 preserves current-policy
 enforcement and tests revocation and owner isolation, including denial without
 returning another principal's task payload.
@@ -113,9 +113,9 @@ retention periods, profiling rules, initiative thresholds and SLOs remain open.
 
 ## Next smallest milestone
 
-Phase 4 scoped local memory storage/retrieval with provenance, consent, retention/
-deletion and multi-user isolation tests. Reuse the current policy boundary and
-durable journal. Keep models/voice/devices and production identity separate.
+Phase 5 fake-first cognitive coordination/context building using bounded authorized
+memory and validated action proposals. Preserve evidence/uncertainty and add explicit
+cloud-egress policy before any optional external model receives protected context.
 
 ## Validation performed
 
@@ -153,3 +153,15 @@ smoke, demo, recovery-demo and whitespace checks passed on Python 3.12.14.
 The updated wheel was separately installed and imported from site-packages outside
 the checkout; all three CLI demos, repeated schema 2 initialization, inspection,
 and backup/backup inspection passed. Hosted CI results are reported with the PR.
+
+Phase 4 started from **291 passing tests** and adds 66 cases: 51 domain/storage/
+security, 3 migration/legacy/version and 12 real-process memory tests. The demo
+uses two independent processes and current persistent grants, proving private/
+shared denial, correction/current-history, provenance and tombstones after restart.
+See PHASE4.md and provisional ADR-T05 for the complete file/requirement mapping,
+local guarantees and production limitations. The full suite passed **357 tests**
+on Python 3.12.14; frozen install, Ruff lint/format, source/wheel build, whitespace,
+smoke, demo, recovery-demo and memory-demo checks passed. A separately installed
+wheel imported from site-packages outside the checkout passed all four demos plus
+repeat schema 3 initialization, inspection and backup. Hosted Python 3.12/3.13 CI
+results are attached to the PR; no Phase 5 feature or production auth is claimed.
