@@ -26,3 +26,11 @@ protocols to adapters; individual services do not import HTTP framework classes.
 Runtime data under `.jarvis`, credentials, WAL/SHM/claim files, caches and build
 outputs are ignored. Never commit them. Historical Phase documents remain useful
 for contract/adapter details; the v0.9 guides describe current integration.
+
+## Audio extension
+
+`core/audio_records.py` and `audio_ports.py` define provisional v1 contracts/ports.
+`audio_frontend.py`, `ambient.py`, `speech.py` and `voice.py` implement bounded local
+processing around shared services. `storage/audio.py` persists only source/session
+metadata. `voice_cli.py` is the explicit authenticated API client; `voice_demo.py`
+executes offline scenarios. [Phase 10](../PHASE10.md) maps requirements and limits.

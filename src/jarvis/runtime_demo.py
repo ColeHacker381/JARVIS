@@ -36,57 +36,131 @@ def _wait(check, *, timeout=30):
     raise RuntimeError("runtime_demo_deadline")
 
 
+def api_data(reply, *, status=200):
+    """Diagnose status and stable error code without printing private HTTP bodies."""
+    try:
+        body = reply.json()
+    except ValueError:
+        raise AssertionError(f"HTTP {reply.status_code}; error=invalid_json") from None
+    if reply.status_code != status:
+        code = body.get("error", {}).get("code", "missing_error_code")
+        raise AssertionError(f"HTTP {reply.status_code}; expected={status}; error={code}")
+    if status == 200 and "data" not in body:
+        raise AssertionError(f"HTTP {reply.status_code}; error=missing_data")
+    return body.get("data", body)
+
+
 @contextmanager
 def running_runtime(
     config, port, log_path, *, expected_exit_codes=(0, -signal.SIGTERM), require_graceful=True
 ):
-    with log_path.open("a") as log:
-        process = subprocess.Popen(
-            [sys.executable, "-m", "jarvis", "serve", "--config", str(config)],
-            stdout=log,
-            stderr=log,
-            env=_environment(),
-        )
-        try:
-            with httpx.Client(
-                base_url=f"http://127.0.0.1:{port}",
-                timeout=10,
-                trust_env=False,
-                follow_redirects=False,
-            ) as client:
+    # POSIX listener inheritance eliminates close/rebind races. None selects an OS port.
+    # Readiness acknowledgement travels over an owned socketpair, never public HTTP.
+    with socket.socket() as listener, _ready_pair() as pair:
+        parent, child = pair
+        listener.bind(("127.0.0.1", port or 0))
+        listener.listen(32)
+        bound_port = listener.getsockname()[1]
+        with log_path.open("a") as log:
+            log_start = log.tell()
+            process = subprocess.Popen(
+                [
+                    sys.executable,
+                    "-m",
+                    "jarvis.runtime_demo",
+                    "--child",
+                    str(config),
+                    str(listener.fileno()),
+                    str(child.fileno()),
+                ],
+                pass_fds=(listener.fileno(), child.fileno()),
+                stdout=log,
+                stderr=log,
+                env=_environment(),
+            )
+            child.close()
+            primary = None
+            started = False
+            try:
+                parent.settimeout(0.05)
 
-                def ready():
+                def acknowledged():
                     if process.poll() is not None:
-                        raise RuntimeError("runtime_demo_startup_failed")
+                        raise RuntimeError(
+                            f"runtime_demo_startup_failed: exit={process.returncode}"
+                        )
                     try:
-                        r = client.get("/health/ready")
-                        return r.status_code == 200 and r.json()["ready"]
-                    except httpx.HTTPError:
+                        return parent.recv(1) == b"R"
+                    except TimeoutError:
                         return False
 
-                _wait(ready)
-                yield client, process
-        finally:
-            if process.poll() is None:
-                process.terminate()
-                try:
-                    process.wait(timeout=20)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait(timeout=10)
-                    raise RuntimeError("runtime_demo_shutdown_timeout") from None
-            if process.returncode not in expected_exit_codes:
-                raise RuntimeError("runtime_demo_process_failed")
-            if require_graceful and "Application shutdown complete" not in log_path.read_text():
-                raise RuntimeError("runtime_demo_shutdown_incomplete")
+                _wait(acknowledged)
+                started = True
+                with httpx.Client(
+                    base_url=f"http://127.0.0.1:{bound_port}",
+                    timeout=10,
+                    trust_env=False,
+                    follow_redirects=False,
+                ) as client:
+
+                    def ready():
+                        if process.poll() is not None:
+                            raise RuntimeError("runtime_demo_startup_failed")
+                        reply = client.get("/health/ready")
+                        return reply.status_code == 200 and reply.json().get("ready") is True
+
+                    _wait(ready)
+                    yield client, process
+            except BaseException as exc:
+                primary = exc
+                raise
+            finally:
+                cleanup = None
+                if process.poll() is None:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=20)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait(timeout=10)
+                        cleanup = "runtime_demo_shutdown_timeout"
+                if cleanup is None and process.returncode not in expected_exit_codes:
+                    cleanup = f"runtime_demo_process_failed: exit={process.returncode}"
+                if cleanup is None and started and require_graceful:
+                    with log_path.open() as current_log:
+                        current_log.seek(log_start)
+                        if "Application shutdown complete" not in current_log.read():
+                            cleanup = "runtime_demo_shutdown_incomplete"
+                if cleanup:
+                    if primary is not None:
+                        primary.add_note("Owned child cleanup: " + cleanup)
+                    else:
+                        raise RuntimeError(cleanup)
+
+
+@contextmanager
+def _ready_pair():
+    parent, child = socket.socketpair()
+    try:
+        yield parent, child
+    finally:
+        parent.close()
+        child.close()
+
+
+def _run_owned_child(config, listener_fd, ready_fd):
+    from jarvis.runtime_cli import serve_runtime
+
+    with socket.socket(fileno=listener_fd) as listener, socket.socket(fileno=ready_fd) as ready:
+        settings = RuntimeSettings.load(Path(config)).model_copy(
+            update={"runtime_host": "127.0.0.1", "runtime_port": listener.getsockname()[1]}
+        )
+        serve_runtime(settings, sockets=[listener], ready_callback=lambda: ready.sendall(b"R"))
 
 
 def run_quickstart(directory, *, verbose=False):
     directory = Path(directory).resolve()
     directory.mkdir(parents=True, exist_ok=False, mode=0o700)
-    with socket.socket() as reserve:
-        reserve.bind(("127.0.0.1", 0))
-        port = reserve.getsockname()[1]
     command = [
         sys.executable,
         "-m",
@@ -97,8 +171,6 @@ def run_quickstart(directory, *, verbose=False):
         "--model-provider",
         "fake",
         "--demo-fixtures",
-        "--port",
-        str(port),
     ]
     initialized = subprocess.run(
         command, capture_output=True, text=True, timeout=30, check=True, env=_environment()
@@ -125,11 +197,9 @@ def run_quickstart(directory, *, verbose=False):
 
     def request(client, method, path, body=None, *, auth=headers, status=200):
         reply = client.request(method, "/api/v1" + path, json=body, headers=auth)
-        if reply.status_code != status:
-            raise RuntimeError("runtime_demo_api_failure")
-        return reply.json().get("data", reply.json())
+        return api_data(reply, status=status)
 
-    with running_runtime(config, port, log_path) as (client, first_process):
+    with running_runtime(config, None, log_path) as (client, first_process):
         assert client.get("/api/v1/tasks").status_code == 401
         conversation = request(client, "POST", "/conversations", {"schema_version": 1})
         conversation_id = conversation["conversation_id"]
@@ -220,7 +290,7 @@ def run_quickstart(directory, *, verbose=False):
         assert initial_status["simulated_invocations"]["notice"] == 0
         first_pid = first_process.pid
 
-    with running_runtime(config, port, log_path) as (client, second_process):
+    with running_runtime(config, None, log_path) as (client, second_process):
         assert second_process.pid != first_pid
         history = request(client, "GET", f"/conversations/{conversation_id}/history")
         assert len(history) == 2
@@ -277,3 +347,9 @@ def run_quickstart(directory, *, verbose=False):
 
 def run_runtime_demo(*, verbose=False):
     return run_quickstart(Path.cwd() / ".jarvis" / "runtime-demo" / str(uuid4()), verbose=verbose)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 5 or sys.argv[1] != "--child":
+        raise SystemExit("internal_owned_runtime_arguments_required")
+    _run_owned_child(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]))

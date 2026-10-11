@@ -58,6 +58,7 @@ class Application:
     policy: DeterministicPolicy
     models: ModelRouter
     executor: object
+    audio: object = None
 
     def credentials(self, name):
         if not isinstance(self.identities, SQLiteDevelopmentIdentityService):
@@ -215,7 +216,7 @@ def build_application(
         audit=audit,
         defer_actions=defer_actions,
     )
-    return Application(
+    application = Application(
         database,
         identities,
         permissions,
@@ -235,3 +236,8 @@ def build_application(
         models,
         executor,
     )
+
+    from jarvis.voice import VoiceService
+
+    application.audio = VoiceService(application, clock=clock)
+    return application

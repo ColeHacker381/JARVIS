@@ -134,7 +134,15 @@ CLI aliases: `--data-dir` → data_dir; `--database` → database_path;
 `--worker-credentials` → worker_credentials_file;
 `--model-provider` → model_provider; `--local-endpoint` → local_model_endpoint;
 `--local-model` → local_model_name. Other values use the explicit JSON file or
-environment. `--config` selects that file. `--identity` is a trusted host
+environment. `--config` selects that file.
+
+Voice configuration is explicit in the separate `voice`/`audio` CLI: source ID,
+location/consent, selected input/output devices, capture duration <=10 seconds,
+local STT binary/model/language, TTS voice/rate, and owned conversation ID. Source
+activation/continuous/candidate eligibility and ephemeral transcript TTL (1–300s)
+are stored as versioned source metadata. No microphone is enabled by runtime
+settings. See [Phase 10](../PHASE10.md) and the generated voice CLI reference.
+`--identity` is a trusted host
 provisioning/legacy fixture selector, never runtime authentication or configuration.
 """
     )
@@ -158,6 +166,10 @@ parser below. An accepted option still needs an applicable operation.
 | initiative-demo | Phase 7 simulated approval/autonomy |
 | notification-demo | Phase 8 durable simulated notifications |
 | runtime-demo | Phase 9 two-process integrated HTTP runtime; `--verbose` for details |
+| voice | Explicit local push-to-talk client of authenticated conversation API |
+| audio | Trusted local source/device/STT/TTS/session diagnostics and consent controls |
+| voice-demo | Offline speech pipeline plus real authenticated HTTP and restart |
+| ambient-demo | Offline multi-source attention, isolated context and unconfirmed candidates |
 | runtime-init | Explicit new development fixture store only; never reset an existing store |
 | serve | Foreground loopback runtime, explicit config/current credentials |
 | doctor | Read-only storage/authority/model/worker diagnosis |
@@ -196,6 +208,10 @@ Raw secrets/provider exceptions are excluded from operator error output.
         + root
         + "\n```\n\n## Runtime operator help\n\n```text\n"
         + operator
+        + "\n```\n\n## Voice client and audio controls\n\n```text\n"
+        + cli_help("voice")
+        + "\n```\n\n```text\n"
+        + cli_help("audio")
         + "\n```\n"
     )
     return {
@@ -236,6 +252,7 @@ def check_documentation(root):
         "docs/development/testing.md",
         "docs/reference/api-reference.md",
         "docs/releases/v0.9.md",
+        "docs/PHASE10.md",
     ]
     failures.extend("document_missing:" + p for p in required if not (root / p).is_file())
     if failures:

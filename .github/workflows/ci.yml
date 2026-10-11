@@ -36,3 +36,5 @@ jobs:
       - run: uv run --no-sync jarvis initiative-demo
       - run: uv run --no-sync jarvis notification-demo
       - run: uv run --no-sync jarvis runtime-demo
+      - run: uv run --no-sync jarvis voice-demo
+      - run: uv run --no-sync jarvis ambient-demo

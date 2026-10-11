@@ -42,9 +42,15 @@ RUNTIME_COMMANDS = {
 
 
 class LocalServer(uvicorn.Server):
-    def __init__(self, config, runtime):
+    def __init__(self, config, runtime, *, ready_callback=None):
         super().__init__(config)
         self.runtime = runtime
+        self.ready_callback = ready_callback
+
+    async def startup(self, sockets=None):
+        await super().startup(sockets=sockets)
+        if self.started and self.ready_callback is not None:
+            self.ready_callback()
 
     def handle_exit(self, sig, frame):
         # Stop job/request admission at the signal, before Uvicorn drains HTTP.
@@ -221,6 +227,32 @@ async def doctor(settings):
     return result
 
 
+def serve_runtime(settings, *, sockets=None, ready_callback=None):
+    """Shared foreground host; owned test/demo listeners use the same lifecycle."""
+    configure_logging(settings.log_level)
+    runtime = RuntimeService(settings)
+    server_config = uvicorn.Config(
+        create_api(runtime),
+        host=settings.runtime_host,
+        port=settings.runtime_port,
+        access_log=False,
+        proxy_headers=False,
+        server_header=False,
+        timeout_graceful_shutdown=int(settings.shutdown_timeout_seconds),
+        limit_concurrency=settings.max_requests + 8,
+        backlog=32,
+        h11_max_incomplete_event_size=16384,
+    )
+    server = LocalServer(server_config, runtime, ready_callback=ready_callback)
+    server.run(sockets=sockets)
+    if runtime.drain_timed_out or server.force_exit:
+        # A thread/provider cannot be killed safely. Actual exit releases OS claims;
+        # persisted RUNNING attempts recover under the existing unknown-effect rules.
+        os._exit(2)
+    if runtime.state == "FAILED":
+        raise SystemExit(1)
+
+
 def run_runtime_cli(argv):
     args = parser().parse_args(argv)
     try:
@@ -331,28 +363,7 @@ def run_runtime_cli(argv):
             else:
                 raise ValueError("credential_operation_required")
         else:
-            configure_logging(settings.log_level)
-            runtime = RuntimeService(settings)
-            server_config = uvicorn.Config(
-                create_api(runtime),
-                host=settings.runtime_host,
-                port=settings.runtime_port,
-                access_log=False,
-                proxy_headers=False,
-                server_header=False,
-                timeout_graceful_shutdown=int(settings.shutdown_timeout_seconds),
-                limit_concurrency=settings.max_requests + 8,
-                backlog=32,
-                h11_max_incomplete_event_size=16384,
-            )
-            server = LocalServer(server_config, runtime)
-            server.run()
-            if runtime.drain_timed_out or server.force_exit:
-                # A thread/provider cannot be killed safely. Actual exit releases OS claims;
-                # persisted RUNNING attempts recover under the existing unknown-effect rules.
-                os._exit(2)
-            if runtime.state == "FAILED":
-                raise SystemExit(1)
+            serve_runtime(settings)
     except (StorageError, IdentityError, ValidationError, ValueError, OSError) as exc:
         code = (
             exc.code

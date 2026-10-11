@@ -2,7 +2,8 @@
 
 A self-hosted permission-governed JARVIS kernel with durable tasks, private memory,
 text cognition, evidence-based world state, scoped initiative and simulated
-notifications. Phase 9 integrates these services into one always-on development
+notifications. Phase 10 adds explicit local push-to-talk, offline speech adapters and bounded
+ambient simulation. Phase 9 integrates these services into one always-on development
 runtime with authenticated loopback HTTP, bounded scheduling and restart recovery.
 Production authentication, real integrations and public deployment remain OPEN.
 
@@ -178,7 +179,7 @@ provisional decisions distinct from accepted decisions. When a final decision is
 accepted, update `DECISIONS.md`, affected requirements/architecture, migration
 notes, and acceptance tests together.
 
-Phase 9 now integrates the local development runtime. Recommended Phase 10:
+Phase 9 now integrates the local development runtime. Earlier Phase 10 recommendation (deployment work remains deferred):
 production authentication/provisioning and genuine local-model acceptance before
 privileged real integrations. Real sensors still need explicit enrollment,
 collection and retention decisions. Production security, tamper-resistant auditing
@@ -189,7 +190,7 @@ The Phase 3 verification pass adds durable current grants/revocations/principals
 sessions, atomic permission/audit changes and cross-process security exclusion.
 The default durable identity repository denies without a trusted authenticator;
 fixture credentials remain explicitly isolated from production. Run `uv run jarvis db-init`
-explicitly to migrate existing schema 1–7 development databases to schema 8;
+explicitly to migrate existing schema 1–8 development databases to schema 9;
 this never provisions identity or restores old task approvals. Back up existing
 state before migration. See
 [docs/PHASE3_VERIFICATION.md](docs/PHASE3_VERIFICATION.md) for findings, real-process
@@ -213,7 +214,7 @@ uv run jarvis chat --database <demo-database> --model-provider fake
 ```
 
 Development host identities are fixtures; observe-only and cloud default-deny
-remain the legacy defaults. Current databases migrate explicitly to schema 8 without
+remain the legacy defaults. Current databases migrate explicitly to schema 9 without
 new grants. See [docs/PHASE7.md](docs/PHASE7.md) for policy configuration, risk,
 approval/execution guards, bounded processing, all files/requirements, verified
 results and deferred production choices. Real devices/messaging are unavailable.
@@ -242,3 +243,14 @@ links use only the existing Phase 7 trusted workflow. New development stores see
 basic rights once, with no routing policy; old stores never receive automatic grants.
 Current schema is 7. See [docs/PHASE8.md](docs/PHASE8.md) for routing/configuration,
 channels, retries, DST-aware preferences, migration, actual validation and limits.
+
+
+## Voice and ambient development
+
+See [Phase 10 setup and limitations](docs/PHASE10.md). Audio never starts automatically.
+Run `uv run jarvis voice-demo` or `uv run jarvis ambient-demo` entirely offline.
+For a real microphone use `uv sync --locked --extra voice`, explicitly enroll and
+activate a source, configure whisper.cpp and an installed offline TTS voice, then
+run `uv run jarvis voice --help`. Real hardware and model inference remain unverified
+in the cloud environment. Runtime integration tests select owned ephemeral ports,
+so an existing development server on port 8765 can remain running.

@@ -16,6 +16,10 @@ parser below. An accepted option still needs an applicable operation.
 | initiative-demo | Phase 7 simulated approval/autonomy |
 | notification-demo | Phase 8 durable simulated notifications |
 | runtime-demo | Phase 9 two-process integrated HTTP runtime; `--verbose` for details |
+| voice | Explicit local push-to-talk client of authenticated conversation API |
+| audio | Trusted local source/device/STT/TTS/session diagnostics and consent controls |
+| voice-demo | Offline speech pipeline plus real authenticated HTTP and restart |
+| ambient-demo | Offline multi-source attention, isolated context and unconfirmed candidates |
 | runtime-init | Explicit new development fixture store only; never reset an existing store |
 | serve | Foreground loopback runtime, explicit config/current credentials |
 | doctor | Read-only storage/authority/model/worker diagnosis |
@@ -59,14 +63,14 @@ usage: jarvis [-h] [--json] [--after AFTER] [--text TEXT]
                    [--model-provider {local,fake}]
                    [--local-endpoint LOCAL_ENDPOINT]
                    [--local-model LOCAL_MODEL]
-                   {credentials,docs-check,doctor,permissions,runtime-demo,runtime-init,serve,smoke,demo,recovery-demo,memory-demo,cognition-demo,world-demo,initiative-demo,notification-demo,notifications,initiatives,chat,db-init,db-inspect,db-backup,db-verify}
+                   {credentials,docs-check,doctor,permissions,runtime-demo,runtime-init,serve,ambient-demo,audio,voice,voice-demo,smoke,demo,recovery-demo,memory-demo,cognition-demo,world-demo,initiative-demo,notification-demo,notifications,initiatives,chat,db-init,db-inspect,db-backup,db-verify}
                    [{list,show,approve,deny,cancel,execute,process,recover,configure,policies,pause,read,unread,acknowledge,dismiss,expire,preferences,set-preferences,bridge}]
                    [initiative_id]
 
 JARVIS development foundation
 
 positional arguments:
-  {credentials,docs-check,doctor,permissions,runtime-demo,runtime-init,serve,smoke,demo,recovery-demo,memory-demo,cognition-demo,world-demo,initiative-demo,notification-demo,notifications,initiatives,chat,db-init,db-inspect,db-backup,db-verify}
+  {credentials,docs-check,doctor,permissions,runtime-demo,runtime-init,serve,ambient-demo,audio,voice,voice-demo,smoke,demo,recovery-demo,memory-demo,cognition-demo,world-demo,initiative-demo,notification-demo,notifications,initiatives,chat,db-init,db-inspect,db-backup,db-verify}
   {list,show,approve,deny,cancel,execute,process,recover,configure,policies,pause,read,unread,acknowledge,dismiss,expire,preferences,set-preferences,bridge}
   initiative_id
 
@@ -142,4 +146,92 @@ options:
   --output OUTPUT       new private credential file
   --credential-id CREDENTIAL_ID
   --verbose             structured runtime-demo diagnostics
+```
+
+## Voice client and audio controls
+
+```text
+usage: jarvis [-h] [--config CONFIG] [--credential-file CREDENTIAL_FILE]
+                   [--source SOURCE] [--location LOCATION]
+                   [--consent-ref CONSENT_REF] [--continuous]
+                   [--memory-candidates] [--device DEVICE]
+                   [--output-device OUTPUT_DEVICE] [--seconds SECONDS]
+                   [--stt-binary STT_BINARY] [--stt-model STT_MODEL]
+                   [--language LANGUAGE] [--tts-voice TTS_VOICE]
+                   [--tts-rate TTS_RATE] [--conversation CONVERSATION]
+                   [--fake] [--text TEXT] [--wav WAV] [--no-playback]
+                   {ambient-demo,audio,voice,voice-demo}
+                   [{devices,register,mute,sessions,mic-test,stt-test,tts-test}]
+
+JARVIS local voice; explicit microphone consent only
+
+positional arguments:
+  {ambient-demo,audio,voice,voice-demo}
+  {devices,register,mute,sessions,mic-test,stt-test,tts-test}
+
+options:
+  -h, --help            show this help message and exit
+  --config CONFIG
+  --credential-file CREDENTIAL_FILE
+  --source SOURCE
+  --location LOCATION
+  --consent-ref CONSENT_REF
+  --continuous
+  --memory-candidates
+  --device DEVICE       explicit input device index (voice/mic-test)
+  --output-device OUTPUT_DEVICE
+  --seconds SECONDS
+  --stt-binary STT_BINARY
+  --stt-model STT_MODEL
+  --language LANGUAGE
+  --tts-voice TTS_VOICE
+  --tts-rate TTS_RATE
+  --conversation CONVERSATION
+  --fake                DEVELOPMENT simulation, no real speech reasoning
+  --text TEXT           literal fake transcript or standalone TTS text
+  --wav WAV             local mono PCM WAV for stt-test
+  --no-playback
+```
+
+```text
+usage: jarvis [-h] [--config CONFIG] [--credential-file CREDENTIAL_FILE]
+                   [--source SOURCE] [--location LOCATION]
+                   [--consent-ref CONSENT_REF] [--continuous]
+                   [--memory-candidates] [--device DEVICE]
+                   [--output-device OUTPUT_DEVICE] [--seconds SECONDS]
+                   [--stt-binary STT_BINARY] [--stt-model STT_MODEL]
+                   [--language LANGUAGE] [--tts-voice TTS_VOICE]
+                   [--tts-rate TTS_RATE] [--conversation CONVERSATION]
+                   [--fake] [--text TEXT] [--wav WAV] [--no-playback]
+                   {ambient-demo,audio,voice,voice-demo}
+                   [{devices,register,mute,sessions,mic-test,stt-test,tts-test}]
+
+JARVIS local voice; explicit microphone consent only
+
+positional arguments:
+  {ambient-demo,audio,voice,voice-demo}
+  {devices,register,mute,sessions,mic-test,stt-test,tts-test}
+
+options:
+  -h, --help            show this help message and exit
+  --config CONFIG
+  --credential-file CREDENTIAL_FILE
+  --source SOURCE
+  --location LOCATION
+  --consent-ref CONSENT_REF
+  --continuous
+  --memory-candidates
+  --device DEVICE       explicit input device index (voice/mic-test)
+  --output-device OUTPUT_DEVICE
+  --seconds SECONDS
+  --stt-binary STT_BINARY
+  --stt-model STT_MODEL
+  --language LANGUAGE
+  --tts-voice TTS_VOICE
+  --tts-rate TTS_RATE
+  --conversation CONVERSATION
+  --fake                DEVELOPMENT simulation, no real speech reasoning
+  --text TEXT           literal fake transcript or standalone TTS text
+  --wav WAV             local mono PCM WAV for stt-test
+  --no-playback
 ```

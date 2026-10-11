@@ -17,7 +17,7 @@ from jarvis.identity import IdentityError
 from jarvis.storage.errors import StorageError
 from jarvis.tasks import TaskBusyError, TaskConflictError
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 
 class DuplicateEventError(StorageError):
@@ -304,6 +304,17 @@ MIGRATIONS[8] = (
     "OR NEW.session_id IS NOT OLD.session_id OR NEW.kind IS NOT OLD.kind "
     "OR NEW.created_at IS NOT OLD.created_at OR OLD.revoked_at IS NOT NULL "
     "BEGIN SELECT RAISE(ABORT,'credential binding is immutable'); END",
+)
+
+
+# Metadata only: activation remains explicit; migrations never enroll sources or grant authority.
+MIGRATIONS[9] = (
+    "CREATE TABLE audio_sources(source_id TEXT PRIMARY KEY, owner_id TEXT NOT NULL "
+    "REFERENCES security_principals(principal_id), data TEXT NOT NULL)",
+    "CREATE INDEX audio_source_owner ON audio_sources(owner_id,source_id)",
+    "CREATE TABLE voice_sessions(voice_session_id TEXT PRIMARY KEY, owner_id TEXT NOT NULL "
+    "REFERENCES security_principals(principal_id), data TEXT NOT NULL)",
+    "CREATE INDEX voice_session_owner ON voice_sessions(owner_id,voice_session_id)",
 )
 
 

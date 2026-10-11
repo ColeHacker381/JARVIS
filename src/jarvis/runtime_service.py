@@ -145,6 +145,8 @@ class RuntimeService:
             raise
 
     def _release(self):
+        if self.application is not None:
+            self.application.audio.stop()
         if self._claim is not None:
             claim, self._claim = self._claim, None
             claim.__exit__(None, None, None)
@@ -256,6 +258,8 @@ class RuntimeService:
         # Validate authoritative storage every pass. Fail closed if it is unavailable.
         with app.database.transaction():
             _ = app.identities.owner_id
+        if name == "maintenance":
+            app.audio.expire()
         failures = []
         for token in self.worker_tokens:
             if self.state in {"STOPPING", "FAILED"}:

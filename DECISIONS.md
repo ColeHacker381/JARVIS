@@ -731,3 +731,36 @@ two-process runtime-demo exercises real local services/persistence with simulati
 No real model inference, external messaging/hardware, public listener, distributed
 leases, production systemd containment, physical retention or universal exactly-once
 guarantee is inferred. All previous ACCEPTED, PROPOSED and OPEN statuses are preserved.
+
+
+## ADR-T11 — Provisional Local Voice and Ephemeral Ambient Awareness
+
+**Status:** Provisional implementation choice, authorized Phase 10 scope;
+not accepted production speech, biometric, retention or satellite architecture
+**Date:** 2026-10-11
+
+Use strict v1 bounded mono PCM contracts, explicit owned source consent/activation,
+local energy VAD and replaceable whisper.cpp/system offline TTS adapters. Optional
+PortAudio clients send authenticated text through existing conversation HTTP v1;
+shared host audio services use existing cognition, policy/tasks/memory/notifications.
+Source and unverified session-local speaker labels are evidence, never identity.
+Separately trusted interaction credentials are mandatory before ambient cognition.
+
+Keep short-lived room/session contexts, two-second bounded transcript-hash deduplication,
+rule-based attention and narrow unconfirmed project candidates. No automatic durable
+memory, unsolicited audible participation, cloud speech or voice authentication.
+Explicit candidate review uses existing current-authorized memory writes as expiring
+unverified records, without superseding facts. Provider children are bounded/cancelled
+and waited on; no microphone/weights initialize on core startup.
+
+Migration 9 adds only source/session metadata; preserves authority and durable state;
+no grants or enrollment. Context/raw buffers/candidates intentionally disappear after
+restart; authorized interactive conversations/tasks persist. Existing HTTP/CLI defaults
+remain, including port 8765. POSIX test/demo listener inheritance and an owned startup
+acknowledgement eliminate port/readiness races without weakening runtime claims.
+
+INT-002 remains PROPOSED, INT-003 LEGACY; final schemas, production authentication,
+participant consent, physical purge, hardware/model selection, actual diarization,
+acoustic deduplication, satellite transport and latency SLOs remain OPEN. Offline
+fixtures and executable protocol tests do not establish real speech intelligence.
+See docs/PHASE10.md and tests/test_audio.py for exercised scope and remaining limits.

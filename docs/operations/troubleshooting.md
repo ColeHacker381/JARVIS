@@ -36,3 +36,21 @@ printing secret values. Startup never resets data. If `runtime-init` partially
 fails, its new store may remain: inspect it and explicitly provision missing
 credentials/configuration, or preserve/archive it and choose a new directory.
 Do not rerun fixture bootstrap or overwrite an existing store to hide the failure.
+
+## Voice and process-test diagnostics
+
+`audio_dependency_or_portaudio_missing`: install optional voice extra and local PortAudio.
+`microphone_unavailable_or_permission_denied`: check selected device and OS microphone permission.
+`local_stt_model_or_binary_missing`: install/pin whisper.cpp and verify local weights.
+`local_tts_binary_missing`: use an installed offline macOS voice or Linux espeak-ng.
+`audio_processing_disabled`: check explicit source consent/activation/availability and session.
+`audio_permission_denied`: use current owner administration to grant the exact permission.
+`trusted_confirmation_required`: a speaker/source is unverified; do not substitute owner authority.
+`audio_backpressure`: processing or stream limit reached; reduce sources and drain/expire buffers.
+No provider error permits cloud fallback. [Phase 10](../PHASE10.md) has manual diagnostics.
+
+The three former real-process runtime failures on occupied port 8765 were caused by
+public readiness reaching another server and foreign credentials returning an error
+without `data`. Tests/demo now inherit continuously reserved ephemeral listeners and
+require an owned startup acknowledgement. HTTP assertions expose actual status/error
+codes; cleanup preserves the primary failure and touches only its owned subprocess.

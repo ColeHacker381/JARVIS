@@ -1,3 +1,3 @@
-"""JARVIS v0.9 integrated development runtime."""
+"""JARVIS v0.10 voice and ambient development runtime."""
 
-__version__ = "0.9.0"
+__version__ = "0.10.0"

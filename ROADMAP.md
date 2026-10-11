@@ -342,7 +342,16 @@ by this roadmap entry.
 
 ---
 
-## Phase 10 recommendation — Deployment Identity and Genuine Local-Model Acceptance
+## Phase 10 — Local Voice and Ambient Awareness
+
+User-authorized local voice milestone: explicit push-to-talk HTTP client,
+whisper.cpp and system offline TTS adapters, bounded PCM/VAD/multi-source simulation,
+ephemeral room contexts, attention and unconfirmed project-memory candidates.
+No source/label authenticates a person; existing policy/tasks/memory remain authoritative.
+See [PHASE10.md](docs/PHASE10.md) for implemented scope and unverified hardware/inference.
+INT-002 remains provisional; no production ambient intelligence is claimed.
+
+## Deferred recommendation — Deployment Identity and Genuine Local-Model Acceptance
 
 Validate an available real local model end to end; decide production owner
 provisioning/session authentication, deployment threat model, credential rotation

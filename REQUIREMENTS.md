@@ -729,3 +729,15 @@ PROPOSED; IAM-005/PER-004/TASK-003/004 and final auth/API/storage/scheduler/
 retention/reconciliation/SLO choices remain OPEN. Genuine model inference,
 homelab scale-out DEV-002, real hardware/messaging and public deployment are
 not established. No requirement ID/status is invented or promoted.
+
+## Phase 10 implementation coverage
+
+INT-001 and provisional INT-002 gain a local push-to-talk API client and offline
+voice/ambient demos. ARCH-001–004, COG-001, IAM-004/007, PER-001–003, CAP-002/003,
+TASK-001/002, EVT-001, MEM-001–006, WORLD-001–003, AUTO-003, COM-001 integration,
+SEC-001–004, REL-001/002 and DEV-001/003 retain existing boundaries with explicit
+audio contracts, source consent/current grants, private context, model egress refusal,
+unconfirmed provenance-aware candidates and local metadata/history recovery.
+See [PHASE10.md](docs/PHASE10.md) for exact files, tests and limitations. Schema 9
+migrates metadata only and grants nothing. INT-002 remains PROPOSED, INT-003 LEGACY,
+and final authentication/biometrics/retention/hardware/schema/provider decisions OPEN.

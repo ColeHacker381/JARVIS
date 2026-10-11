@@ -49,6 +49,11 @@ def _main() -> None:
     import sys
 
     from jarvis.runtime_cli import RUNTIME_COMMANDS, run_runtime_cli
+    from jarvis.voice_cli import VOICE_COMMANDS, run_voice_cli
+
+    if len(sys.argv) > 1 and sys.argv[1] in VOICE_COMMANDS:
+        run_voice_cli(sys.argv[1:])
+        return
 
     if len(sys.argv) > 1 and sys.argv[1] in RUNTIME_COMMANDS:
         run_runtime_cli(sys.argv[1:])
@@ -58,6 +63,7 @@ def _main() -> None:
         "command",
         choices=[
             *sorted(RUNTIME_COMMANDS),
+            *sorted(VOICE_COMMANDS),
             "smoke",
             "demo",
             "recovery-demo",

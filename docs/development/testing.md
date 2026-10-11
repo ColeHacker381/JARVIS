@@ -59,3 +59,12 @@ run its `jarvis` executable through all nine demos. Also run private runtime ini
 doctor and schema inspect/verify/online backup. Documentation checking requires
 the documentation-bearing checkout; runtime and demos do not. Confirm no token,
 database, model weight or generated runtime log enters Git.
+
+## Audio and occupied-port regressions
+
+`uv run pytest tests/test_audio.py tests/test_runtime.py` runs offline enforcement,
+provider protocol subprocesses, source/context isolation, revocation, candidate policy,
+resource cleanup, actual voice-client HTTP and restart demos. Runtime signal/recovery
+regressions occupy 8765 with an unrelated process while testing owned ephemeral sockets.
+Existing listeners are left untouched. Fakes do not establish real inference/hardware.
+See [Phase 10](../PHASE10.md) for baseline, boundaries and manual acceptance.

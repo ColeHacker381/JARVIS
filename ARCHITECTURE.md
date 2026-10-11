@@ -479,3 +479,12 @@ exit preserves uncertain attempts. Public health excludes private metadata;
 current owner status adds numeric sampled backlogs/latencies. Shared composition,
 trust and recovery diagrams are in docs/development/architecture.md. ADR-T10 is
 provisional; production identity/API/runtime/storage/distributed choices remain OPEN.
+
+## Phase 10 local voice extension
+
+The shared composition root now exposes explicitly activated audio source/session
+controls, bounded PCM/VAD, replaceable offline speech ports, session-local turns,
+scoped ephemeral ambient attention and unconfirmed memory candidates. A separately
+authenticated interaction reaches existing cognition/tasks/executor; capture credentials
+and diarization never confer speaker authority. The voice client uses existing HTTP v1.
+See [PHASE10.md](docs/PHASE10.md) and provisional ADR-T11; no device starts on serve.

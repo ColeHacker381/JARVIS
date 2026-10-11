@@ -118,7 +118,7 @@ retention periods, profiling rules, initiative thresholds and SLOs remain open.
 
 ## Next smallest milestone
 
-Phase 9 integrates the local runtime/API and documentation. Recommended Phase 10:
+Phase 9 integrates the local runtime/API and documentation. Its earlier Phase 10 recommendation:
 production authentication/provisioning plus genuine local-model validation before
 privileged real integrations. Real sensors require explicit enrollment, collection
 and retention decisions; offline/protocol checks cannot establish real inference.
@@ -250,3 +250,10 @@ on Python 3.12.14, frozen install, Ruff lint/format (102 files), source/wheel bu
 whitespace checks, all eight demos and notification CLI/chat/database operations.
 The wheel was independently installed outside the checkout and runtime source
 matched the checkout. CI includes Python 3.12/3.13 and notification-demo.
+
+## Phase 10 extension
+
+See [PHASE10.md](PHASE10.md) for the local voice/ambient contracts, consent and separate
+interaction boundary, offline adapters, ephemeral candidates, schema 9 metadata-only
+migration, demos, runtime port isolation fix and actual validation limits. Production
+identity/retention/hardware and genuine speech inference remain separately unverified.
