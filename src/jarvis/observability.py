@@ -80,6 +80,11 @@ class Metrics(Protocol):
 
 METRIC_NAMES = frozenset(
     {
+        "runtime.request_ms",
+        "runtime.startup_ms",
+        "runtime.scheduler_pass_ms",
+        "notification.process_ms",
+        "memory.query_ms",
         "observation.ingest_ms",
         "world.project_ms",
         "world.query_ms",

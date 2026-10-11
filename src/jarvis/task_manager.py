@@ -267,11 +267,46 @@ class TaskManager:
             )
             return RunResult(task_id=task_id, status="storage_failure", error=_error(exc.code))
 
-    def recover(self, *, session_token: str) -> tuple[RunResult, ...]:
+    def get(self, task_id, *, session_token):
+        with self.identities.transaction():
+            session = self._owner_session(session_token)
+            if hasattr(self.store, "get_owned"):
+                task = self.store.get_owned(task_id, session.principal_id)
+            else:
+                task = self.store.get(task_id)
+                if task and task.owner_id != session.principal_id:
+                    task = None
+            if task is None:
+                raise IdentityError("task_unavailable")
+            return task
+
+    def list(self, *, session_token, limit=20, after=None, unfinished=False):
+        if type(limit) is not int or not 1 <= limit <= 100:
+            raise ValueError("task_limit_invalid")
+        with self.identities.transaction():
+            session = self._owner_session(session_token)
+            if hasattr(self.store, "list_owned"):
+                return self.store.list_owned(
+                    session.principal_id, limit=limit, after=after, unfinished=unfinished
+                )
+            records = self.store.unfinished() if unfinished else self.store.all()
+            return tuple(
+                t
+                for t in records
+                if t.owner_id == session.principal_id
+                and (after is None or str(t.task_id) > str(after))
+            )[:limit]
+
+    def recover(self, *, session_token: str, limit=None) -> tuple[RunResult, ...]:
         session = self._owner_session(session_token)
+        records = (
+            self.list(session_token=session_token, limit=limit, unfinished=True)
+            if limit is not None
+            else self.store.unfinished()
+        )
         return tuple(
             self.run(task.task_id, session_token=session_token, recovery=True)
-            for task in self.store.unfinished()
+            for task in records
             if task.owner_id == session.principal_id
         )
 

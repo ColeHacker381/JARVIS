@@ -704,11 +704,15 @@ class InitiativeEngine:
             return self.execute(initiative_id, session_token=session_token)
         return record
 
-    def approve(self, initiative_id, *, session_token):
+    def approve(self, initiative_id, *, session_token, expected_revision=None):
         with self._store._claim(initiative_id, access=self._access):
             with self._request(session_token, "initiative.approve") as session:
                 self._require(session, session_token, ("initiatives.approve",), uuid4())
                 record = self._load(initiative_id, session)
+                if expected_revision is not None and (
+                    type(expected_revision) is not int or record.revision != expected_revision
+                ):
+                    raise InitiativeError("initiative_revision_conflict")
                 if record.state != "AWAITING_APPROVAL" or record.approval.state != "PENDING":
                     raise InitiativeError("approval_replay_rejected")
                 try:
@@ -742,14 +746,23 @@ class InitiativeEngine:
                     record, session, "APPROVED", "approved_exact_proposal", approval=approval
                 )
 
-    def deny(self, initiative_id, *, session_token):
-        return self.cancel(initiative_id, session_token=session_token, denied=True)
+    def deny(self, initiative_id, *, session_token, expected_revision=None):
+        return self.cancel(
+            initiative_id,
+            session_token=session_token,
+            denied=True,
+            expected_revision=expected_revision,
+        )
 
-    def cancel(self, initiative_id, *, session_token, denied=False):
+    def cancel(self, initiative_id, *, session_token, denied=False, expected_revision=None):
         with self._store._claim(initiative_id, access=self._access):
             with self._request(session_token, "initiative.cancel") as session:
                 self._require(session, session_token, ("initiatives.approve",), uuid4())
                 record = self._load(initiative_id, session)
+                if expected_revision is not None and (
+                    type(expected_revision) is not int or record.revision != expected_revision
+                ):
+                    raise InitiativeError("initiative_revision_conflict")
                 if record.state in TERMINAL:
                     return record
                 if record.execution:

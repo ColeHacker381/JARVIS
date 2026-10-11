@@ -118,9 +118,10 @@ retention periods, profiling rules, initiative thresholds and SLOs remain open.
 
 ## Next smallest milestone
 
-Phase 9 one explicitly authorized real sensor adapter after enrollment, collection
-and retention decisions. Complete genuine local-model validation against
-available weights/endpoint; Phase 5 offline/protocol checks cannot establish that.
+Phase 9 integrates the local runtime/API and documentation. Recommended Phase 10:
+production authentication/provisioning plus genuine local-model validation before
+privileged real integrations. Real sensors require explicit enrollment, collection
+and retention decisions; offline/protocol checks cannot establish real inference.
 
 ## Validation performed
 

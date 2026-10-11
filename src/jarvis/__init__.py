@@ -1,1 +1,3 @@
-"""JARVIS Phase 0/1 development foundation; no privileged execution."""
+"""JARVIS v0.9 integrated development runtime."""
+
+__version__ = "0.9.0"

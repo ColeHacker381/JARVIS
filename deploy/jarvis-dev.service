@@ -1,0 +1,24 @@
+[Unit]
+Description=JARVIS v0.9 local development runtime
+After=network.target
+
+[Service]
+Type=simple
+User=jarvis
+Group=jarvis
+WorkingDirectory=/opt/jarvis/JARVIS
+ExecStart=/opt/jarvis/JARVIS/.venv/bin/jarvis serve --config /var/lib/jarvis/runtime.json
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/opt/jarvis/JARVIS
+ReadWritePaths=/var/lib/jarvis
+
+[Install]
+WantedBy=multi-user.target

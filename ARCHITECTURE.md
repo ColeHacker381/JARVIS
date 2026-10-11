@@ -461,3 +461,21 @@ concurrent workers. Bounded cognitive summaries reference current notification A
 source revisions, and future cloud use needs separate notification/source egress.
 No new general scheduler, public transport, real messaging or production auth is
 selected. See docs/PHASE8.md and provisional ADR-T09.
+
+Phase 9 moves the existing development assembly to application.build_application;
+all CLI/API/scheduler operations share identity, current policy, registry/executor,
+task guard resolvers, audit and domain stores. RuntimeService adds single-host
+startup validation/recovery, explicit optional degradation, bounded serial finite
+jobs and owned request threads. HTTP delegates to existing services with actual
+credentials, never a role/identity selector or direct capability handler path.
+Migration 8 adds immutable hash/session/kind bindings and irreversible revocation;
+serve never bootstraps, re-grants or migrates an existing store.
+
+LocalBoundary validates loopback/Host/origin/body/admission before transport
+contracts. The local authenticator rechecks persisted credential/session/principal
+state; scoped domain reads and execution remain authoritative. Signals stop
+admission immediately and drain tracked work under one deadline; actual process
+exit preserves uncertain attempts. Public health excludes private metadata;
+current owner status adds numeric sampled backlogs/latencies. Shared composition,
+trust and recovery diagrams are in docs/development/architecture.md. ADR-T10 is
+provisional; production identity/API/runtime/storage/distributed choices remain OPEN.

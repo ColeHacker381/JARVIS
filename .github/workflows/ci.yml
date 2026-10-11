@@ -25,6 +25,7 @@ jobs:
       - run: uv run --no-sync ruff check .
       - run: uv run --no-sync ruff format --check .
       - run: uv run --no-sync pytest
+      - run: uv run --no-sync jarvis docs-check
       - run: uv build
       - run: uv run --no-sync jarvis smoke
       - run: uv run --no-sync jarvis demo
@@ -34,3 +35,4 @@ jobs:
       - run: uv run --no-sync jarvis world-demo
       - run: uv run --no-sync jarvis initiative-demo
       - run: uv run --no-sync jarvis notification-demo
+      - run: uv run --no-sync jarvis runtime-demo

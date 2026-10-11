@@ -46,10 +46,18 @@ def smoke() -> dict[str, object]:
 
 
 def _main() -> None:
+    import sys
+
+    from jarvis.runtime_cli import RUNTIME_COMMANDS, run_runtime_cli
+
+    if len(sys.argv) > 1 and sys.argv[1] in RUNTIME_COMMANDS:
+        run_runtime_cli(sys.argv[1:])
+        return
     parser = argparse.ArgumentParser(description="JARVIS development foundation")
     parser.add_argument(
         "command",
         choices=[
+            *sorted(RUNTIME_COMMANDS),
             "smoke",
             "demo",
             "recovery-demo",
@@ -64,6 +72,7 @@ def _main() -> None:
             "db-init",
             "db-inspect",
             "db-backup",
+            "db-verify",
         ],
     )
     parser.add_argument(
@@ -172,7 +181,9 @@ def _main() -> None:
     elif args.command.startswith("db-"):
         from jarvis.storage.sqlite import SCHEMA_VERSION, SQLiteDatabase, SQLiteTaskStore
 
-        database = SQLiteDatabase(Settings.from_environment().resolved_database_path)
+        database = SQLiteDatabase(
+            args.database or Settings.from_environment().resolved_database_path
+        )
         if args.command == "db-init":
             database.initialize()
             result = {
@@ -180,6 +191,9 @@ def _main() -> None:
                 "database_path": str(database.path),
                 "schema_version": SCHEMA_VERSION,
             }
+        elif args.command == "db-verify":
+            database.verify()
+            result = {"status": "ok", "schema_version": SCHEMA_VERSION}
         elif args.command == "db-backup":
             if args.destination is None:
                 parser.error("db-backup requires --destination pointing to a new file")

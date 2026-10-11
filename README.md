@@ -1,12 +1,29 @@
-# JARVIS kernel foundation
+# JARVIS v0.9 — integrated local development runtime
 
-A local Python development foundation for the permission-governed JARVIS kernel.
-This implements Phase 0/1 contracts, the Phase 2 identity/authorization/execution
-boundary, Phase 3 durable authority/events/tasks/audits, Phase 4 persistent
-permission-scoped memory, and Phase 5 bounded cognitive coordination with persisted
-text conversations and replaceable fake/local models, plus Phase 6 persistent scoped
-observations and deterministic world beliefs. Production authentication
-and continuous initiative remain future work.
+A self-hosted permission-governed JARVIS kernel with durable tasks, private memory,
+text cognition, evidence-based world state, scoped initiative and simulated
+notifications. Phase 9 integrates these services into one always-on development
+runtime with authenticated loopback HTTP, bounded scheduling and restart recovery.
+Production authentication, real integrations and public deployment remain OPEN.
+
+Start with the [documentation index](docs/README.md) and
+[quickstart](docs/getting-started/quickstart.md). Read the
+[v0.9 release report](docs/releases/v0.9.md) for acceptance results and limits.
+
+```sh
+uv sync --locked --python 3.12
+# Explicit NEW private development store only; preserves existing work by refusing reuse.
+uv run jarvis runtime-init --data-dir .jarvis/dev --model-provider fake
+uv run jarvis doctor --config .jarvis/dev/runtime.json
+uv run jarvis serve --config .jarvis/dev/runtime.json
+```
+
+The CLI writes separate private client/worker credential files and prints paths,
+never tokens. HTTP accepts no owner/friend/guest selector. See the quickstart for
+authenticated curl without token arguments. `fake` is deterministic simulation;
+configure an available [local model](docs/getting-started/local-models.md) for AI.
+Cloud is disabled with no silent fallback. `uv run jarvis runtime-demo` executes
+the full two-process offline workflow through real core services.
 
 ## Setup
 
@@ -24,6 +41,10 @@ uv run --no-sync jarvis recovery-demo
 uv run --no-sync jarvis memory-demo
 uv run --no-sync jarvis cognition-demo
 uv run --no-sync jarvis world-demo
+uv run --no-sync jarvis initiative-demo
+uv run --no-sync jarvis notification-demo
+uv run --no-sync jarvis runtime-demo
+uv run --no-sync jarvis docs-check
 ```
 
 The smoke command builds local principal/session/proposal contracts, registers a
@@ -139,7 +160,9 @@ or identifier fields. Arbitrary extras and exception messages are omitted.
 | `observability.py` | JSON logging, audit interface, and in-memory audit sink (SQLite adapter in storage/) |
 | `config.py`, `__main__.py` | Local configuration, smoke/demo/recovery/memory and database operation commands |
 | `tests/` | Contracts, policy/execution, durability, recovery, concurrency, corruption and CLI tests |
-| `.github/workflows/ci.yml` | Frozen install, lint, formatting, tests, build and all eight readiness demos |
+| `.github/workflows/ci.yml` | Frozen install, lint, formatting, tests, docs, build and all nine demos |
+| `application.py`, `runtime_service.py`, `runtime_cli.py` | Shared composition, finite scheduler/lifecycle and trusted host operations |
+| `local_api.py`, `local_credentials.py`, `api_contracts.py` | Loopback HTTP v1, current persisted credentials and typed transport contracts |
 
 Read [docs/FOUNDATION.md](docs/FOUNDATION.md) for the architectural review,
 requirement coverage, temporary choices, and remaining decisions.
@@ -153,18 +176,18 @@ provisional decisions distinct from accepted decisions. When a final decision is
 accepted, update `DECISIONS.md`, affected requirements/architecture, migration
 notes, and acceptance tests together.
 
-The recommended next milestone is Phase 9, one authorized real sensor adapter with
-explicit enrollment, collection and retention decisions. Complete real-model validation against
-an available local server before declaring all Phase 5 acceptance complete. Production authentication,
-production owner provisioning, tamper-resistant auditing, real integrations and the continuous
-assistant remain unfinished. SQLite is a provisional reversible local choice, not
-a final storage or distributed scheduling decision.
+Phase 9 now integrates the local development runtime. Recommended Phase 10:
+production authentication/provisioning and genuine local-model acceptance before
+privileged real integrations. Real sensors still need explicit enrollment,
+collection and retention decisions. Production security, tamper-resistant auditing
+and real integrations remain unfinished. SQLite, local auth and scheduling are
+provisional reversible choices, not final production decisions.
 
 The Phase 3 verification pass adds durable current grants/revocations/principals/
 sessions, atomic permission/audit changes and cross-process security exclusion.
 The default durable identity repository denies without a trusted authenticator;
 fixture credentials remain explicitly isolated from production. Run `uv run jarvis db-init`
-explicitly to migrate existing schema 1–6 development databases to schema 7;
+explicitly to migrate existing schema 1–7 development databases to schema 8;
 this never provisions identity or restores old task approvals. Back up existing
 state before migration. See
 [docs/PHASE3_VERIFICATION.md](docs/PHASE3_VERIFICATION.md) for findings, real-process
@@ -188,7 +211,7 @@ uv run jarvis chat --database <demo-database> --model-provider fake
 ```
 
 Development host identities are fixtures; observe-only and cloud default-deny
-remain the defaults. Current databases migrate explicitly to schema 7 without
+remain the legacy defaults. Current databases migrate explicitly to schema 8 without
 new grants. See [docs/PHASE7.md](docs/PHASE7.md) for policy configuration, risk,
 approval/execution guards, bounded processing, all files/requirements, verified
 results and deferred production choices. Real devices/messaging are unavailable.

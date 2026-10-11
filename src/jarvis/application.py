@@ -1,0 +1,237 @@
+"""Single kernel composition root; HTTP authentication is supplied by the host."""
+
+from dataclasses import dataclass
+from pathlib import Path
+from uuid import UUID, uuid4
+
+from jarvis.authorization import DeterministicPolicy
+from jarvis.capabilities import InMemoryCapabilityRegistry
+from jarvis.cognition import CognitiveCoordinator
+from jarvis.context import ContextBuilder
+from jarvis.conversations import ConversationService
+from jarvis.core.contracts import Provenance
+from jarvis.core.memory_records import MemoryDraft
+from jarvis.core.time import utc_now
+from jarvis.development import (
+    BRIGHTNESS_PERMISSION,
+    ECHO_PERMISSION,
+    register_development_capabilities,
+)
+from jarvis.initiative import InitiativeEngine
+from jarvis.initiative_development import register_initiative_capability
+from jarvis.memory import MemoryService
+from jarvis.models import FakeModel, ModelRouter, OpenAILocalModel
+from jarvis.notification_channels import SimulatedPushChannel, SimulatedUnreliableChannel
+from jarvis.notifications import NotificationService
+from jarvis.observability import InMemoryMetrics
+from jarvis.storage.conversations import SQLiteConversationStore
+from jarvis.storage.initiatives import SQLiteInitiativeStore
+from jarvis.storage.memory import SQLiteMemoryStore
+from jarvis.storage.notifications import SQLiteNotificationStore
+from jarvis.storage.security import SQLiteDevelopmentIdentityService, SQLitePermissionStore
+from jarvis.storage.sqlite import SQLiteAuditSink, SQLiteDatabase, SQLiteTaskStore
+from jarvis.storage.world import SQLiteWorldStore
+from jarvis.task_manager import TaskManager
+from jarvis.world_state import WorldModel
+
+FRIEND_ID = UUID("e3c4b46a-f7fb-43e6-a1be-000000000005")
+GUEST_ID = UUID("e3c4b46a-f7fb-43e6-a1be-000000000006")
+
+
+@dataclass
+class Application:
+    database: SQLiteDatabase
+    identities: SQLiteDevelopmentIdentityService
+    permissions: SQLitePermissionStore
+    memory: MemoryService
+    conversations: ConversationService
+    tasks: TaskManager
+    coordinator: CognitiveCoordinator
+    lighting: object
+    audit: SQLiteAuditSink
+    world: WorldModel
+    metrics: InMemoryMetrics
+    initiatives: InitiativeEngine
+    notices: object
+    notifications: NotificationService
+    registry: InMemoryCapabilityRegistry
+    policy: DeterministicPolicy
+    models: ModelRouter
+    executor: object
+
+    def credentials(self, name):
+        if not isinstance(self.identities, SQLiteDevelopmentIdentityService):
+            raise ValueError("fixture_identity_selection_forbidden")
+        principal_id = {"owner": self.identities.owner_id, "friend": FRIEND_ID, "guest": GUEST_ID}[
+            name
+        ]
+        return self.identities.establish_session_for_testing(principal_id)
+
+
+def build_application(
+    path: Path,
+    *,
+    bootstrap=False,
+    provider="fake",
+    endpoint="http://127.0.0.1:11434/v1",
+    model="qwen2.5:3b",
+    timeout=60.0,
+    fake=None,
+    defer_actions=False,
+    clock=utc_now,
+    notification_channels=None,
+    identities_factory=SQLiteDevelopmentIdentityService,
+    initialize=True,
+) -> Application:
+    database = SQLiteDatabase(path)
+    if initialize:
+        database.initialize()
+    identities = identities_factory(database)
+    audit = SQLiteAuditSink(database)
+    permissions = SQLitePermissionStore(identities, audit)
+    metrics = InMemoryMetrics()
+    world = WorldModel(
+        SQLiteWorldStore(database, identities, audit), permissions, clock=clock, metrics=metrics
+    )
+    memory = MemoryService(SQLiteMemoryStore(database, identities, audit), permissions)
+    if bootstrap:
+        owner = identities.bootstrap_owner_for_testing("Cognition development owner")
+        identities.create_principal_for_testing(
+            "Development trusted friend", principal_id=FRIEND_ID
+        )
+        identities.create_principal_for_testing(
+            "Development guest", kind="guest", principal_id=GUEST_ID
+        )
+        credentials = identities.establish_session_for_testing(owner.principal_id)
+        for principal_id in (owner.principal_id, FRIEND_ID, GUEST_ID):
+            for permission in (
+                "memory.read",
+                "world.read",
+                ECHO_PERMISSION,
+                "notifications.read",
+                "notifications.interact",
+                "notifications.preferences",
+                "notifications.deliver",
+                "notifications.publish",
+            ):
+                permissions.grant(
+                    credentials.token, principal_id, permission, correlation_id=uuid4()
+                )
+        for permission in (
+            "memory.write",
+            "memory.share",
+            "memory.history",
+            "world.sources.manage",
+            "world.history",
+            "notifications.manage",
+            "initiatives.manage",
+            "initiatives.read",
+            "initiatives.evaluate",
+            "initiatives.approve",
+            "initiatives.execute",
+            "development.simulated_notice.invoke",
+            BRIGHTNESS_PERMISSION,
+        ):
+            permissions.grant(
+                credentials.token, owner.principal_id, permission, correlation_id=uuid4()
+            )
+        permissions.grant(
+            credentials.token, FRIEND_ID, BRIGHTNESS_PERMISSION, correlation_id=uuid4()
+        )
+        memory.create(
+            MemoryDraft(
+                kind="semantic",
+                content={"text": "Slipstream uses microcontroller B"},
+                project_ref="project:slipstream",
+                source=Provenance(
+                    category="user_statement", source_ref="development.cognition.fixture"
+                ),
+                consent_ref="consent:offline_fixture",
+            ),
+            session_token=credentials.token,
+        )
+        identities.close_session_for_testing(credentials.token)
+    registry = InMemoryCapabilityRegistry()
+    lighting = register_development_capabilities(registry)
+    notices = register_initiative_capability(registry)
+    policy = DeterministicPolicy(identities, permissions, audit)
+    from jarvis.execution import CapabilityExecutor
+
+    executor = CapabilityExecutor(identities, registry, policy, audit)
+    tasks = TaskManager(SQLiteTaskStore(database), identities, executor, audit)
+    initiatives = InitiativeEngine(
+        SQLiteInitiativeStore(database, identities, audit),
+        permissions=permissions,
+        world=world,
+        memory=memory,
+        registry=registry,
+        policy=policy,
+        tasks=tasks,
+        clock=clock,
+    )
+    notifications = NotificationService(
+        SQLiteNotificationStore(database, identities, audit),
+        permissions=permissions,
+        policy=policy,
+        tasks=tasks,
+        registry=registry,
+        initiatives=initiatives,
+        memory=memory,
+        world=world,
+        clock=clock,
+        channels=notification_channels
+        if notification_channels is not None
+        else (SimulatedPushChannel(database), SimulatedUnreliableChannel(database)),
+    )
+    conversations = ConversationService(SQLiteConversationStore(database, identities, audit))
+    context = ContextBuilder(
+        identities=identities,
+        memory=memory,
+        conversations=conversations,
+        registry=registry,
+        policy=policy,
+        tasks=tasks,
+        world=world,
+        initiatives=initiatives,
+        notifications=notifications,
+        metrics=metrics,
+    )
+    models = ModelRouter(
+        {
+            "fake": fake or FakeModel(),
+            "local": OpenAILocalModel(
+                endpoint=endpoint, model=model, timeout=timeout, metrics=metrics
+            ),
+        },
+        selected=provider,
+        timeout=timeout,
+        metrics=metrics,
+    )
+    coordinator = CognitiveCoordinator(
+        conversations=conversations,
+        context=context,
+        models=models,
+        tasks=tasks,
+        audit=audit,
+        defer_actions=defer_actions,
+    )
+    return Application(
+        database,
+        identities,
+        permissions,
+        memory,
+        conversations,
+        tasks,
+        coordinator,
+        lighting,
+        audit,
+        world,
+        metrics,
+        initiatives,
+        notices,
+        notifications,
+        registry,
+        policy,
+        models,
+        executor,
+    )

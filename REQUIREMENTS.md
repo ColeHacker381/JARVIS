@@ -708,3 +708,24 @@ DEV-001/003 retain local replaceable offline fakes. No notification-specific IDs
 were invented. Real phone/text acceptance and ADR-P04's proposed routing details
 remain deferred; all final auth/policy/storage/scheduler/classification/retention
 choices remain OPEN. See docs/PHASE8.md and provisional ADR-T09 for tests and limits.
+
+## Phase 9 implementation coverage
+
+ARCH-001–004 and DEV-001/003 gain one shared composition root and an integrated
+offline-simulated local runtime/API demonstration. IAM-001/003/004/007, PER-001–003,
+CAP-001–003 and SEC-001–004 retain current independent authorization with explicit
+private development credential files, hash-only bindings, session expiry/revocation,
+client/worker separation, no HTTP role/identity issuer, scoped bounded responses,
+browser/Host defenses and default-deny cloud egress. TASK-001/002, EVT-001 and
+REL-001/002 gain finite scheduled safe recovery, domain-guard preservation, bounded
+admission/shutdown and actual killed-process restart tests. MEM-001–004/006,
+WORLD-001–003, COG-001, AUTO-001–003 and COM-001 are integrated through existing
+services, never a second executor/store. Current private history/source checks,
+owner diagnostics, read-only doctor, online backup/restore, generated references
+and executable quickstart extend verification, not production claims.
+
+See docs/releases/v0.9.md and provisional ADR-T10. COG-002/WORLD-004 remain
+PROPOSED; IAM-005/PER-004/TASK-003/004 and final auth/API/storage/scheduler/
+retention/reconciliation/SLO choices remain OPEN. Genuine model inference,
+homelab scale-out DEV-002, real hardware/messaging and public deployment are
+not established. No requirement ID/status is invented or promoted.

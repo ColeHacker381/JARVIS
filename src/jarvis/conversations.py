@@ -99,7 +99,9 @@ class ConversationService:
     def begin(self, conversation_id, request_id, text, *, session_token):
         if not isinstance(text, str) or not text.strip() or len(text) > 4096:
             raise ConversationError("request_text_invalid")
-        if contains_secret(text):
+        if contains_secret(text) or getattr(
+            self.identities, "contains_credential", lambda _: False
+        )(text):
             raise ConversationError("sensitive_input_rejected")
         with self._authenticated(session_token) as session:
             self._owned(conversation_id, session)
