@@ -70,3 +70,55 @@ def configure_logging(level: str = "INFO", stream: TextIO | None = None) -> logg
     handler._jarvis_owned = True  # type: ignore[attr-defined]
     logger.addHandler(handler)
     return logger
+
+
+class Metrics(Protocol):
+    """Content-free numeric telemetry; missing provider metrics use None."""
+
+    def record(self, name: str, value: float | None) -> None: ...
+
+
+METRIC_NAMES = frozenset(
+    {
+        "observation.ingest_ms",
+        "world.project_ms",
+        "world.query_ms",
+        "context.build_ms",
+        "model.invoke_ms",
+        "model.input_tokens",
+        "model.output_tokens",
+        "model.load_ms",
+        "model.prompt_ms",
+        "model.generation_ms",
+        "model.tokens_per_second",
+    }
+)
+
+
+class NullMetrics:
+    def record(self, name, value):
+        pass
+
+
+class InMemoryMetrics:
+    """Lightweight development sink; no free-form labels, IDs, prompts or sensor payloads."""
+
+    def __init__(self):
+        from collections import deque
+
+        self._samples = deque(maxlen=1024)
+
+    def record(self, name, value):
+        import math
+
+        if name not in METRIC_NAMES:
+            raise ValueError("unsupported metric")
+        if value is not None and (
+            type(value) not in (int, float) or not math.isfinite(value) or value < 0
+        ):
+            raise ValueError("invalid numeric metric")
+        self._samples.append((name, value))
+
+    @property
+    def samples(self):
+        return list(self._samples)

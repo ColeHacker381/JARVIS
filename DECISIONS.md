@@ -560,3 +560,57 @@ authentication/provisioning, data classification/retention, public transport,
 scheduler and failure semantics remain OPEN. This adds no real hardware, autonomous
 loops, multi-agent reasoning, extraction/consolidation/profiling, physical purge,
 untrusted-code sandbox or arbitrary external exactly-once guarantee. See PHASE5.md.
+
+
+---
+
+## ADR-T07 — Provisional Local Evidence and Scoped World Projections
+
+**Status:** Provisional implementation choices authorized for Phase 6; not final
+sensor/authentication, confidence/fusion, storage, retention or initiative decisions
+**Date:** 2026-10-10
+
+### Choice and constraints
+WORLD-001–003, EVT-001, ARCH-004, PER-001, SEC-001/003 and REL-001/002 require
+durable evidence distinct from uncertainty-aware beliefs. Extend Observation v1
+explicitly as v2; retain legacy decoding. Trusted source registrations pin current
+principal credentials, owner/scope, logical routes, types, TTL and reliability.
+Existing policy/grants/security claims authorize ingestion and scoped retrieval.
+Device/model identity or approval fields in incoming payloads never establish authority.
+
+Reuse SQLite migration 5 and the Phase 3 event journal. Immutable observations,
+entities, projection/evidence links and revisions are persisted; ingestion/event/
+projection/success audit are atomic, with no second broker/outbox. Projection
+updates use expected revisions and immediate transactions. Query/ingestion refresh
+reevaluates TTL after restart and emits deduplicated state/expiry events. This is
+lazy local reevaluation, not a timer scheduler or initiative engine.
+
+Keep privacy partitions separate, even where one caller could read both. Use the
+latest per-source timestamp including contradictory ties; retain older historical
+arrivals. Camera person evidence supports only inferred possible occupancy; absence
+of camera detections/disconnection never establishes an empty room. Opposing fresh
+nonzero-strength reports remain explicit conflict. Agreeing evidence uses maximum
+confidence × source reliability without corroboration boost or probability claims.
+These conservative rules are replaceable and do not establish universal sensor fusion.
+
+Extend the existing ContextBuilder/models with bounded scoped world state, separately
+from memory. Current revisions/access are revalidated before output/history/reply
+replay. Environmental replies render verified state and uncertainty; models cannot
+invent evidence or recognized people. Tool invocation remains TaskManager/executor/
+policy. A separate explicit world-egress grant also covers world-derived history.
+Numeric allowlisted telemetry excludes prompt/sensor/memory content; missing model
+measurements remain unavailable. Simulated adapters use this same ingestion boundary.
+
+### Migration, validation and limits
+Migration preserves schema 1–4 records, never bootstraps authority or re-grants
+permissions. Tests cover old data, current scopes, real-process concurrency/crash
+rollback, replay, TTL/conflict/disconnection, corruption, hostile source/model claims,
+context revalidation and cloud-adapter non-invocation. world-demo uses two actual
+processes. Trusted Python/database operators remain outside this application API
+boundary; locking is local POSIX, not distributed or tamper-resistant storage.
+
+WORLD-004 remains PROPOSED. WORLD-005, IAM-005, PER-004, final schemas/storage,
+source enrollment/consent/retention, real hardware, calibrated confidence, initiative
+thresholds and all previous OPEN decisions remain OPEN. No raw media processing,
+biometrics/person profiling, physical devices, autonomous initiative, distributed
+broker, cloud perception or genuine-model verification is claimed. See PHASE6.md.

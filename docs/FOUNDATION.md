@@ -93,7 +93,7 @@ approvals cannot re-establish privileges. Production authentication remains OPEN
 | CAP-002/003, REL-001 | Actual fake-provider input/output validation, correlated structured failures and JSON logs | Real deadlines/provider cancellation and production failure policy |
 | SEC-001/003/004 | Local private/shared/household memory isolation, current grants, bounded search, atomic content-free mutation audits | Production auth, tamper resistance, future cloud egress |
 | MEM-003/004/005, SOC-001 | Enforced scopes/subjects, consent metadata, current revocation, configurable expiry, tombstones and hidden inactive history | Verified consent/collection policies, retention durations and physical purge |
-| WORLD-001/002/003 | Source/time, evidence-vs-inference labels, derived provenance, confidence validation | World-state beliefs and staleness policy |
+| WORLD-001/002/003 | Durable scoped evidence/projections, direct/inferred/unknown/conflict/stale labels, TTL/disconnection, source strength and real-process replay | Real hardware, final fusion/retention policy; see PHASE6.md |
 | DEV-003, ARCH-003 | Fake capability/model/observation adapter paths used in tests | Production adapters and provider provenance integration |
 | COG-001, ARCH-002/003/004 | Bounded coordinator, fake/local models, versioned decisions/provenance, private conversations and task submission | Genuine model validation here; final models/production auth |
 | COG-002 (PROPOSED) | Provisional direct/grounded reply path without invoking tools | Binding adoption remains proposed |
@@ -118,8 +118,8 @@ retention periods, profiling rules, initiative thresholds and SLOs remain open.
 
 ## Next smallest milestone
 
-Phase 6 scoped observation persistence and world-state evidence with fake sensors,
-uncertainty and staleness. First complete genuine local-model validation against
+Phase 7 scoped world-event suggestions with explicit enable/pause controls, bounded
+intent and existing task/policy execution. Complete genuine local-model validation against
 available weights/endpoint; Phase 5 offline/protocol checks cannot establish that.
 
 ## Validation performed
@@ -189,3 +189,24 @@ demo, recovery-demo, memory-demo and cognition-demo passed from both the checkou
 and a separately installed wheel outside it, with verified site-packages import.
 Wheel fake chat, repeated schema 4 initialization, inspection and online backup
 passed. Hosted Python 3.12/3.13 CI results are reported with the PR.
+
+
+Phase 6 started from the passing **477-test** merged Phase 5 baseline. It implements
+trusted ingestion and ObservationRecord v2, scoped durable structured projections,
+separate observed/inferred/unknown/conflict/stale states, injectable-clock TTL,
+registered source confidence, three simulated adapter types, scoped world events,
+bounded cognitive context with current dependency checks and verified environmental
+replies. Migration 5 preserves existing records. Numeric telemetry contains no
+private content. Tests and the two-process world-demo exercise actual security,
+SQLite/policy, crash/concurrency/replay and cloud-egress non-invocation boundaries.
+See docs/PHASE6.md for actual validation, files, rules and limitations. Provisional
+ADR-T07 preserves WORLD-004 PROPOSED and all OPEN authentication/hardware/retention/
+initiative/storage decisions. Genuine local-model acceptance remains unverified.
+
+
+Final local Phase 6 validation passed **563 tests** (86 added) on Python 3.12.14,
+Ruff lint/format, frozen install, source/wheel build and whitespace checks. All six
+readiness demos, persisted-world fake chat, repeated schema 5 initialization,
+inspection and online backup passed from the checkout and a separately installed
+wheel outside it, with verified site-packages import. Hosted Python 3.12/3.13 CI
+results are reported on the PR; genuine inference remains separately unverified.

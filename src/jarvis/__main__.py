@@ -55,6 +55,7 @@ def _main() -> None:
             "recovery-demo",
             "memory-demo",
             "cognition-demo",
+            "world-demo",
             "chat",
             "db-init",
             "db-inspect",
@@ -78,6 +79,10 @@ def _main() -> None:
         from jarvis.chat import run_chat
 
         run_chat(args)
+    elif args.command == "world-demo":
+        from jarvis.world_demo import run_world_demo
+
+        print(json.dumps(run_world_demo()))
     elif args.command == "cognition-demo":
         from jarvis.cognition_demo import run_cognition_demo
 

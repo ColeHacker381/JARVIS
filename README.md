@@ -4,7 +4,8 @@ A local Python development foundation for the permission-governed JARVIS kernel.
 This implements Phase 0/1 contracts, the Phase 2 identity/authorization/execution
 boundary, Phase 3 durable authority/events/tasks/audits, Phase 4 persistent
 permission-scoped memory, and Phase 5 bounded cognitive coordination with persisted
-text conversations and replaceable fake/local models. Production authentication
+text conversations and replaceable fake/local models, plus Phase 6 persistent scoped
+observations and deterministic world beliefs. Production authentication
 and continuous initiative remain future work.
 
 ## Setup
@@ -22,6 +23,7 @@ uv run --no-sync jarvis demo
 uv run --no-sync jarvis recovery-demo
 uv run --no-sync jarvis memory-demo
 uv run --no-sync jarvis cognition-demo
+uv run --no-sync jarvis world-demo
 ```
 
 The smoke command builds local principal/session/proposal contracts, registers a
@@ -83,6 +85,14 @@ See [docs/PHASE5.md](docs/PHASE5.md) for contracts, setup, context/security rule
 examples and validation limits. Genuine inference in this cloud environment is
 still unverified because the network policy blocks model-weight downloads.
 
+The `world-demo` command runs real ingestion/policy/SQLite world projections in two
+processes. It shows camera evidence versus inferred occupancy, corroboration,
+disconnection, conflict, stale evidence, guest isolation, replay and continued
+world-grounded conversation. Numeric telemetry contains no payloads. Use its printed
+development database path with `jarvis chat --database <path>` to query the simulated
+world through the existing fake/local model interface. See [docs/PHASE6.md](docs/PHASE6.md)
+for trusted source registration, TTL/conflict rules, scope isolation and migration 5.
+
 `uv.lock` pins the dependency graph; `uv sync --locked` refuses an outdated lock.
 Use `uv lock` deliberately when changing dependencies, and commit both the manifest
 and lockfile. Formatting changes use `uv run --no-sync ruff format .`.
@@ -118,7 +128,8 @@ or identifier fields. Arbitrary extras and exception messages are omitted.
 | `recovery_demo.py` | Actual subprocess crash/restart harness and simulated idempotent provider |
 | `memory.py` | Scoped memory domain service, current policy, supersession, retention, deletion |
 | `memory_demo.py` | Real two-process SQLite memory/privacy demonstration |
-| `world_state.py` | Observation adapter protocol; no world model engine |
+| `world_state.py`, `storage/world.py` | Trusted source ingestion, scoped evidence and deterministic persistent world projections |
+| `sensors.py`, `world_demo.py` | Three simulated sensor types and real two-process world/cognition demonstration |
 | `cognition.py`, `context.py` | Bounded coordinator and authorized context building |
 | `models.py`, `egress.py` | Fake/local model adapters, routing and separate trusted egress policy |
 | `conversations.py`, `storage/conversations.py` | Authenticated private history and durable turn/task links |
@@ -127,7 +138,7 @@ or identifier fields. Arbitrary extras and exception messages are omitted.
 | `observability.py` | JSON logging, audit interface, and in-memory audit sink (SQLite adapter in storage/) |
 | `config.py`, `__main__.py` | Local configuration, smoke/demo/recovery/memory and database operation commands |
 | `tests/` | Contracts, policy/execution, durability, recovery, concurrency, corruption and CLI tests |
-| `.github/workflows/ci.yml` | Frozen install, lint, formatting, tests, build and all five readiness demos |
+| `.github/workflows/ci.yml` | Frozen install, lint, formatting, tests, build and all six readiness demos |
 
 Read [docs/FOUNDATION.md](docs/FOUNDATION.md) for the architectural review,
 requirement coverage, temporary choices, and remaining decisions.
@@ -141,8 +152,8 @@ provisional decisions distinct from accepted decisions. When a final decision is
 accepted, update `DECISIONS.md`, affected requirements/architecture, migration
 notes, and acceptance tests together.
 
-The recommended next milestone is Phase 6 scoped observations/world-state evidence,
-uncertainty and staleness with fake sensors. Complete real-model validation against
+The recommended next milestone is Phase 7 bounded, scoped event-driven suggestions
+with explicit initiative controls and existing policy/task execution. Complete real-model validation against
 an available local server before declaring all Phase 5 acceptance complete. Production authentication,
 production owner provisioning, tamper-resistant auditing, real integrations and the continuous
 assistant remain unfinished. SQLite is a provisional reversible local choice, not
@@ -152,7 +163,7 @@ The Phase 3 verification pass adds durable current grants/revocations/principals
 sessions, atomic permission/audit changes and cross-process security exclusion.
 The default durable identity repository denies without a trusted authenticator;
 fixture credentials remain explicitly isolated from production. Run `uv run jarvis db-init`
-explicitly to migrate existing schema 1–3 development databases to schema 4;
+explicitly to migrate existing schema 1–4 development databases to schema 5;
 this never provisions identity or restores old task approvals. Back up existing
 state before migration. See
 [docs/PHASE3_VERIFICATION.md](docs/PHASE3_VERIFICATION.md) for findings, real-process

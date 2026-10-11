@@ -52,7 +52,7 @@ def test_schema3_upgrade_preserves_memory_authority_tasks_and_journals(tmp_path)
     database.initialize()
     database.initialize()
     with database.transaction() as upgraded:
-        assert upgraded.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 4
+        assert upgraded.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
         for table in tables:
             assert [tuple(row) for row in upgraded.execute(f"SELECT * FROM {table}")] == before[
                 table

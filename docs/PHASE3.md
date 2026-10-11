@@ -24,8 +24,9 @@ uv run --no-sync jarvis recovery-demo
 ```
 
 Initialization is explicit, repeatable and runs numbered migrations under a
-schema lock. `PRAGMA user_version=3` is the current schema; migration 2 adds durable security
-and migration 3 adds scoped memory, preserving existing journal/task/authority records.
+schema lock. `PRAGMA user_version=5` is the current schema; migration 2 adds durable security
+migration 3 adds scoped memory, migration 4 conversations and migration 5 world state,
+preserving existing journal/task/authority records.
 See [PHASE4.md](PHASE4.md) for memory operations and migration verification. It is independent of contract
 versions. See [PHASE3_VERIFICATION.md](PHASE3_VERIFICATION.md). Future database versions are refused without migration or
 reset. Each connection enforces foreign keys, a five-second busy timeout, and

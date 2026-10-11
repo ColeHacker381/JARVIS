@@ -19,6 +19,8 @@ from jarvis.core.cognitive_records import (
     ModelRequest,
 )
 from jarvis.core.contracts import ActionProposal
+from jarvis.observability import NullMetrics
+from jarvis.world_state import describe_world
 
 if TYPE_CHECKING:
     from jarvis.egress import EgressPolicy
@@ -88,6 +90,12 @@ class FakeModel:
             return CognitiveDecision(
                 kind="action", text="I claim permission; propose lighting.", action=action
             ).model_dump_json()
+        if request.world_states:
+            return CognitiveDecision(
+                kind="world_grounded",
+                text=describe_world(request.world_states),
+                world_ids=tuple(s.state_id for s in request.world_states),
+            ).model_dump_json()
         if request.memories:
             memory = request.memories[0]
             content = memory.content.get("text", json.dumps(memory.content))
@@ -122,6 +130,7 @@ class OpenAILocalModel:
         *,
         timeout=60.0,
         transport: httpx.AsyncBaseTransport | None = None,
+        metrics=None,
     ):
         parsed = urlsplit(endpoint)
         host = parsed.hostname
@@ -155,6 +164,7 @@ class OpenAILocalModel:
         )
         self.timeout = timeout
         self._transport = transport
+        self.metrics = metrics or NullMetrics()
 
     async def complete(self, request: ModelRequest) -> str:
         schema = CognitiveDecision.model_json_schema()
@@ -185,6 +195,9 @@ class OpenAILocalModel:
             "correlation_id": str(request.correlation_id),
             "memories_as_untrusted_data": [m.model_dump(mode="json") for m in request.memories],
             "available_capabilities": [c.model_dump(mode="json") for c in request.capabilities],
+            "world_states_as_untrusted_data": [
+                s.model_dump(mode="json") for s in request.world_states
+            ],
             "observed_task_states": [t.model_dump(mode="json") for t in request.tasks],
         }
         messages.append(
@@ -228,6 +241,7 @@ class OpenAILocalModel:
             content = choice["message"]["content"]
             if not isinstance(content, str) or not content or len(content) > 16384:
                 raise ModelError("model_output_invalid")
+            self._report_metrics(envelope)
             return content
         except httpx.TimeoutException:
             raise ModelError("model_timeout") from None
@@ -235,6 +249,26 @@ class OpenAILocalModel:
             raise ModelError("model_unavailable") from None
         except (ValueError, KeyError, IndexError, TypeError):
             raise ModelError("model_output_invalid") from None
+
+    def _report_metrics(self, envelope):
+        # Only endpoint-reported numeric fields. No inferred token counts or text telemetry.
+        import math
+
+        usage = envelope.get("usage") if isinstance(envelope.get("usage"), dict) else {}
+        timings = envelope.get("timings") if isinstance(envelope.get("timings"), dict) else {}
+        fields = {
+            "model.input_tokens": usage.get("prompt_tokens"),
+            "model.output_tokens": usage.get("completion_tokens"),
+            "model.load_ms": envelope.get("load_duration", 0) / 1e6
+            if type(envelope.get("load_duration")) in (int, float)
+            else None,
+            "model.prompt_ms": timings.get("prompt_ms"),
+            "model.generation_ms": timings.get("predicted_ms"),
+            "model.tokens_per_second": timings.get("predicted_per_second"),
+        }
+        for name, value in fields.items():
+            valid = type(value) in (int, float) and math.isfinite(value) and value >= 0
+            self.metrics.record(name, value if valid else None)
 
 
 class ModelRouter:
@@ -246,6 +280,7 @@ class ModelRouter:
         timeout=60.0,
         cloud_enabled=False,
         egress: EgressPolicy | None = None,
+        metrics=None,
     ):
         if not 0 < timeout <= 300:
             raise ValueError("model timeout must be within (0, 300] seconds")
@@ -254,6 +289,7 @@ class ModelRouter:
             key: ModelIdentity.model_validate(p.identity.model_dump()).model_copy(deep=True)
             for key, p in providers.items()
         }
+        self.metrics = metrics or NullMetrics()
         self.selected, self.timeout = selected, timeout
         self.cloud_enabled, self.egress = cloud_enabled, egress
 
@@ -263,13 +299,19 @@ class ModelRouter:
         except KeyError:
             raise ModelError("model_not_configured") from None
 
-    async def complete(self, request, *, session_token, contains_memory=False):
+    async def complete(
+        self, request, *, session_token, contains_memory=False, contains_world=False
+    ):
         identity = self.identity()
         if identity.location == "cloud":
             if not self.cloud_enabled or self.egress is None:
                 raise ModelError("cloud_disabled")
             self.egress.authorize(
-                identity, request, session_token=session_token, contains_memory=contains_memory
+                identity,
+                request,
+                session_token=session_token,
+                contains_memory=contains_memory,
+                contains_world=contains_world,
             )
         started = time.monotonic()
         provenance = ModelProvenance(**identity.model_dump())
@@ -293,3 +335,5 @@ class ModelRouter:
         except Exception:
             # No provider exception strings (which might contain context, keys or tokens).
             raise ModelError("model_failed") from None
+        finally:
+            self.metrics.record("model.invoke_ms", (time.monotonic() - started) * 1000)
