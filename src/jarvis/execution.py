@@ -48,6 +48,7 @@ class InvocationContext:
     step_id: str
     attempt_id: UUID
     idempotency_key: str
+    execution_guard_ref: str | None = None
 
 
 def _profile(registered) -> ReplayProfile:
@@ -58,6 +59,8 @@ def _profile(registered) -> ReplayProfile:
         else None,
         "idempotent": registered.supports_idempotency,
     }
+    if registered.execution_guard_family is not None:
+        metadata["execution_guard_family"] = registered.execution_guard_family
     return ReplayProfile(
         hashlib.sha256(json.dumps(metadata, sort_keys=True).encode()).hexdigest(),
         registered.capability.side_effect == "none" or registered.supports_idempotency,
@@ -279,6 +282,13 @@ class CapabilityExecutor:
                 or decision.correlation_id != proposal.correlation_id
             ):
                 return finish("execution_failure", "policy_decision_mismatch")
+            if registered.execution_guard_family is not None and (
+                context is None
+                or before_invoke is None
+                or context.execution_guard_ref is None
+                or context.execution_guard_ref.split(":", 1)[0] != registered.execution_guard_family
+            ):
+                return finish("denied", "task_guard_required")
             if registered.provider is None:
                 return finish("execution_failure", "provider_unavailable")
             if before_invoke is not None:

@@ -428,7 +428,9 @@ class TaskManager:
             result = self.executor.execute(
                 proposal,
                 session_token=token,
-                context=InvocationContext(task.task_id, step.step_id, attempt_id, key),
+                context=InvocationContext(
+                    task.task_id, step.step_id, attempt_id, key, task.execution_guard_ref
+                ),
                 before_invoke=checkpoint,
             )
             if checkpoint_error is not None:

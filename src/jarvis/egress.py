@@ -29,6 +29,7 @@ class EgressPolicy:
         contains_memory=False,
         contains_world=False,
         contains_initiatives=False,
+        contains_notifications=False,
     ):
         with self.identities.transaction():
             session = self.identities.resolve_session(session_token)
@@ -39,6 +40,13 @@ class EgressPolicy:
                 classes.append("world")
             if request.initiatives or contains_initiatives:
                 classes.append("initiatives")
+            if request.notifications or contains_notifications:
+                # Conservative until final classifications: source-derived history is protected too.
+                classes.extend(
+                    c
+                    for c in ("notifications", "memory", "world", "initiatives")
+                    if c not in classes
+                )
             if request.capabilities or request.tasks:
                 classes.append("capabilities")
             required = tuple(f"model.egress:{identity.provider_id}:{c}" for c in classes)

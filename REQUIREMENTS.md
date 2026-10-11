@@ -692,3 +692,19 @@ SEC-001–004 and REL-001/002 retain their enforcement boundaries and gain initi
 regressions. ARCH-004/DEV-003 cover explicit contracts and offline fixtures.
 See docs/PHASE7.md for precise evidence, files and limits. No requirement IDs or
 OPEN/PROPOSED statuses are promoted; final risk/policy/auth/scheduler choices remain OPEN.
+
+
+## Phase 8 implementation coverage
+
+COM-001 gains the local urgency/channel-policy slice with explicit recipient access,
+durable inbox/preferences/interactions and simulated transports. Event/task/initiative
+references preserve provenance; actual delivery outcomes are separate from human
+read/acknowledgement and Phase 7 approval. Current independent policy, guards and
+source checks extend IAM-001/003/004/007, PER-001–003, CAP-002/003, SEC-001–004;
+atomic receipt/cursor/admission, CAS attempts and safe existing task recovery extend
+EVT-001, ARCH-004, TASK-001/002, REL-001/002. COG-001 gains bounded private notification
+inspection with revalidated current source/history dependencies. ARCH-001/003 and
+DEV-001/003 retain local replaceable offline fakes. No notification-specific IDs
+were invented. Real phone/text acceptance and ADR-P04's proposed routing details
+remain deferred; all final auth/policy/storage/scheduler/classification/retention
+choices remain OPEN. See docs/PHASE8.md and provisional ADR-T09 for tests and limits.

@@ -17,6 +17,7 @@ from jarvis.core.contracts import (
     Name,
 )
 from jarvis.core.initiative_records import InitiativeContext, InitiativeReference
+from jarvis.core.notification_records import NotificationContext, NotificationReference
 from jarvis.core.task_records import TaskState
 from jarvis.core.time import utc_now
 from jarvis.core.world_records import WorldContext, WorldReference
@@ -52,6 +53,7 @@ class ModelRequest(Contract):
     tasks: Annotated[tuple["TaskContext", ...], Field(max_length=3)] = ()
     world_states: Annotated[tuple[WorldContext, ...], Field(max_length=5)] = ()
     initiatives: Annotated[tuple[InitiativeContext, ...], Field(max_length=3)] = ()
+    notifications: Annotated[tuple[NotificationContext, ...], Field(max_length=3)] = ()
     max_output_tokens: Annotated[int, Field(ge=64, le=4096)] = 1024
 
 
@@ -130,6 +132,7 @@ class CognitiveResponse(Contract):
     memory_ids: tuple[UUID, ...] = ()
     world_refs: Annotated[tuple[WorldReference, ...], Field(max_length=105)] = ()
     initiative_refs: Annotated[tuple[InitiativeReference, ...], Field(max_length=63)] = ()
+    notification_refs: Annotated[tuple[NotificationReference, ...], Field(max_length=63)] = ()
     task_id: UUID | None = None
     task_state: Name | None = None
     # ExecutionResult is the existing authoritative result envelope, not model text.
@@ -183,6 +186,7 @@ class ConversationTurn(Contract):
     memory_ids: tuple[UUID, ...] = ()
     world_refs: Annotated[tuple[WorldReference, ...], Field(max_length=105)] = ()
     initiative_refs: Annotated[tuple[InitiativeReference, ...], Field(max_length=63)] = ()
+    notification_refs: Annotated[tuple[NotificationReference, ...], Field(max_length=63)] = ()
     task_id: UUID | None = None
     response: CognitiveResponse | None = None
 
@@ -208,6 +212,7 @@ class ConversationTurn(Contract):
             or not set(self.response.memory_ids) <= set(self.memory_ids)
             or not set(self.response.world_refs) <= set(self.world_refs)
             or not set(self.response.initiative_refs) <= set(self.initiative_refs)
+            or not set(self.response.notification_refs) <= set(self.notification_refs)
         ):
             raise ValueError("turn outcome/provenance binding mismatch")
         return self

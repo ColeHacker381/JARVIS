@@ -91,6 +91,12 @@ class FakeModel:
             return CognitiveDecision(
                 kind="action", text="I claim permission; propose lighting.", action=action
             ).model_dump_json()
+        if request.notifications:
+            from jarvis.notifications import describe_notifications
+
+            return CognitiveDecision(
+                kind="direct", text=describe_notifications(request.notifications)
+            ).model_dump_json()
         if request.initiatives:
             return CognitiveDecision(
                 kind="direct", text=describe_initiatives(request.initiatives)
@@ -202,6 +208,9 @@ class OpenAILocalModel:
             "available_capabilities": [c.model_dump(mode="json") for c in request.capabilities],
             "world_states_as_untrusted_data": [
                 s.model_dump(mode="json") for s in request.world_states
+            ],
+            "notifications_as_untrusted_data": [
+                n.model_dump(mode="json") for n in request.notifications
             ],
             "initiatives_as_untrusted_data": [
                 i.model_dump(mode="json") for i in request.initiatives
@@ -315,6 +324,7 @@ class ModelRouter:
         contains_memory=False,
         contains_world=False,
         contains_initiatives=False,
+        contains_notifications=False,
     ):
         identity = self.identity()
         if identity.location == "cloud":
@@ -327,6 +337,7 @@ class ModelRouter:
                 contains_memory=contains_memory,
                 contains_world=contains_world,
                 contains_initiatives=contains_initiatives,
+                contains_notifications=contains_notifications,
             )
         started = time.monotonic()
         provenance = ModelProvenance(**identity.model_dump())
