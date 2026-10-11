@@ -66,8 +66,9 @@ The system owner cannot read someone else's private inbox by supplying its ID.
 Every retrieval and send reads current authority again, including source memory
 validity/tombstone/supersession, world scope and initiative evidence access. Source
 permission revocation hides stored copies on subsequent reads and prevents sends.
-SQL filters recipient ownership before decoding, search, order and pagination;
-there are no global counts or recipient-discovery endpoints. Missing, foreign and
+SQL filters recipient ownership before decoding, search, order and pagination.
+Pagination positions are recipient-local; other users' insertions cannot change
+them. There are no global counts or recipient-discovery endpoints. Missing, foreign and
 inaccessible notification IDs use `notification_unavailable`. Delivery claim
 contention uses the same public unavailable code, revealing no private busy state.
 Local database/Python internals remain trusted infrastructure, not a plugin sandbox.
@@ -298,8 +299,8 @@ Independent workers cover active-claim races and death before effect, after effe
 and after known result, including durable idempotent ledger recovery and conservative
 non-idempotent review. The demo/CLI exercise installed entry points.
 
-Final local validation on Python **3.12.14**: **723 passed in 149.30s**,
-including **81 new Phase 8 cases** and the original 642 regressions. Frozen uv
+Final local validation on Python **3.12.14**: **724 passed in 152.26s**,
+including **82 new Phase 8 cases** and the original 642 regressions. Frozen uv
 installation, Ruff lint, Ruff format (**102 files**), whitespace checks, source
 distribution and wheel build passed. All eight demos, notification list/show/
 preferences/recover, guest denial, persisted fake chat, repeated schema 7

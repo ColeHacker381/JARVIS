@@ -175,13 +175,15 @@ class SQLiteNotificationStore:
         self._guard(access)
         with self.database.transaction() as c:
             rows = c.execute(
-                "SELECT * FROM notifications WHERE recipient_id=? AND sequence>? "
+                "WITH owned AS (SELECT *,ROW_NUMBER() OVER (ORDER BY sequence) "
+                "AS recipient_cursor FROM notifications WHERE recipient_id=?) "
+                "SELECT * FROM owned WHERE recipient_cursor>? "
                 "AND (? IS NULL OR instr(lower(json_extract(data,'$.content.text')),?)>0 "
                 "OR instr(lower(json_extract(data,'$.content.title')),?)>0) ORDER "
                 "BY sequence LIMIT ?",
                 (str(recipient_id), after or 0, text, text, text, limit),
             ).fetchall()
-            return tuple((r["sequence"], self._decode(r, Notification)) for r in rows)
+            return tuple((r["recipient_cursor"], self._decode(r, Notification)) for r in rows)
 
     def _context(self, recipient_id, *, terms=(), unread=False, access):
         self._guard(access)

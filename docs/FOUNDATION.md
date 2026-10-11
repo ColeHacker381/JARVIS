@@ -244,7 +244,7 @@ Production auth, real channels, final priority/retention/reconciliation and perm
 scheduling remain OPEN; genuine model inference is separately unverified.
 
 
-Final Phase 8 local validation passed **723 tests (81 added)** in 149.30 seconds
+Final Phase 8 local validation passed **724 tests (82 added)** in 152.26 seconds
 on Python 3.12.14, frozen install, Ruff lint/format (102 files), source/wheel build,
 whitespace checks, all eight demos and notification CLI/chat/database operations.
 The wheel was independently installed outside the checkout and runtime source

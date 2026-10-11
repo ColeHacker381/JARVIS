@@ -1086,3 +1086,18 @@ def test_cognition_inspects_pending_approval_and_resolution_without_action(rt):
         == "UNREAD"
     )
     assert not rt.notices.calls
+
+
+def test_recipient_cursor_does_not_expose_other_users_activity(rt):
+    owner_policy = policy(rt)
+    friend_policy = policy(rt, name="friend-updates", recipient=FRIEND_ID, origin=FRIEND_ID)
+    first = notify(rt, owner_policy)
+    for _ in range(3):
+        notify(rt, friend_policy, token=rt.friend.token)
+    second = notify(rt, owner_policy)
+    records, cursor = rt.notifications.list(session_token=rt.owner.token, limit=1)
+    assert [n.notification_id for n in records] == [first.notification_id] and cursor == 1
+    records, cursor = rt.notifications.list(session_token=rt.owner.token, after=cursor, limit=1)
+    assert [n.notification_id for n in records] == [second.notification_id] and cursor == 2
+    _, friend_cursor = rt.notifications.list(session_token=rt.friend.token)
+    assert friend_cursor == 3
