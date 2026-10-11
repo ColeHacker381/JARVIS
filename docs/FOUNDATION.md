@@ -256,4 +256,7 @@ matched the checkout. CI includes Python 3.12/3.13 and notification-demo.
 See [PHASE10.md](PHASE10.md) for the local voice/ambient contracts, consent and separate
 interaction boundary, offline adapters, ephemeral candidates, schema 9 metadata-only
 migration, demos, runtime port isolation fix and actual validation limits. Production
-identity/retention/hardware and genuine speech inference remain separately unverified.
+identity/retention/hardware remain unverified. Follow-on Linux validation exercised
+real verified whisper.cpp and eSpeak NG through existing authenticated services;
+Gemma and physical microphone/speaker acceptance remain unverified. See the
+[operator checklist](VOICE_ACCEPTANCE.md) and measured report linked in Phase 10.

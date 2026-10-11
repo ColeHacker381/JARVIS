@@ -351,6 +351,12 @@ No source/label authenticates a person; existing policy/tasks/memory remain auth
 See [PHASE10.md](docs/PHASE10.md) for implemented scope and unverified hardware/inference.
 INT-002 remains provisional; no production ambient intelligence is claimed.
 
+Follow-on real speech validation verifies Linux whisper.cpp tiny.en/base.en and
+eSpeak NG plus authenticated audio-file interaction. MacBook microphone, Gemma and
+speaker acceptance remains the next operator gate; use
+[the acceptance checklist](docs/VOICE_ACCEPTANCE.md). Do not advance to automatic
+ambient capture/profiling or claim real diarization from the heuristic simulations.
+
 ## Deferred recommendation — Deployment Identity and Genuine Local-Model Acceptance
 
 Validate an available real local model end to end; decide production owner

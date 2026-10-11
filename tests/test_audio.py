@@ -756,6 +756,168 @@ with wave.open(sys.argv[sys.argv.index('-w')+1], 'wb') as f:
     assert result.provider == "local.espeak-ng" and validate_wave(result.wav)[0] == 22050
 
 
+@pytest.mark.parametrize("text", ["", "   ", "\n\t", "\0", "hello\x1b", "text\x7f", 123])
+def test_invalid_tts_text_never_starts_a_provider(text, monkeypatch):
+    async def forbidden(*args, **kwargs):
+        pytest.fail("Invalid text reached the speech provider")
+
+    monkeypatch.setattr("jarvis.speech.local_process", forbidden)
+    with pytest.raises(AudioError, match="tts_text_invalid"):
+        asyncio.run(SystemSpeechSynthesizer(executable="explicit-unused-binary").synthesize(text))
+
+
+@pytest.mark.parametrize("data", [pcm_wave(b""), pcm_wave(b"\0\0" * 1600)[:-2]])
+def test_empty_or_truncated_wave_is_rejected(data):
+    with pytest.raises(AudioError, match="speech_output_format_invalid"):
+        validate_wave(data)
+
+
+@pytest.mark.parametrize("text", ["[BLANK_AUDIO]", " [silence] ", "(silence)", "You"])
+def test_whisper_non_speech_markers_are_rejected_before_cognition(audio, tmp_path, text):
+    executable = tmp_path / "whisper-cli"
+    executable.write_text(f"""#!{sys.executable}
+import json, sys
+from pathlib import Path
+Path(sys.argv[sys.argv.index('-of')+1]+'.json').write_text(
+ json.dumps({{"transcription":[{{"text":{text!r}}}]}}))
+""")
+    executable.chmod(0o700)
+    model = tmp_path / "fixture-model"
+    model.touch()
+    audio.voice.recognizer = WhisperCppRecognizer(executable, model)
+    speech = (
+        segment_from_pcm(b"\0\0" * 1600, "living", audio.session.voice_session_id)
+        if text == "You"
+        else segment(audio)
+    )
+    with pytest.raises(AudioError, match="stt_no_speech"):
+        asyncio.run(
+            audio.voice.process(
+                speech,
+                session_token=audio.owner.token,
+                interaction_token=audio.owner.token,
+            )
+        )
+    assert audio.app.lighting.calls == []
+    assert (
+        audio.app.conversations.recent(
+            audio.session.conversation_id, session_token=audio.owner.token
+        )
+        == ()
+    )
+
+
+def test_one_shot_wav_uses_authenticated_http_and_cleans_session(tmp_path, monkeypatch, capsys):
+    import jarvis.voice_cli as cli
+    from jarvis.local_credentials import read_private_json, write_private_json
+    from jarvis.runtime_cli import initialize_development
+    from jarvis.runtime_config import RuntimeSettings
+    from jarvis.runtime_demo import api_data, running_runtime
+
+    manifest = initialize_development(
+        RuntimeSettings(data_dir=tmp_path / "dev", model_provider="fake")
+    )
+    config = Path(manifest["config"])
+    credential = Path(manifest["credentials"]["owner"]["path"])
+    token = read_private_json(credential)["token"]
+    control = cli.host_control(RuntimeSettings.load(config))
+    owner = control.identities.resolve_session(token).principal_id
+    for permission in ("audio.process", "audio.sources.manage"):
+        control.permissions.grant(token, owner, permission, correlation_id=uuid4())
+    control.register(
+        AudioSource(
+            source_id="fixture",
+            owner_id=owner,
+            device_type="simulated",
+            location="test",
+            consent_ref="consent:fixture",
+            enabled=True,
+        ),
+        session_token=token,
+    )
+    wav = tmp_path / "speech.wav"
+    wav.write_bytes(pcm_wave(b"\0\0" * 1600))
+    # Explicit simulation isolates HTTP wiring; genuine inference is the optional probe.
+    monkeypatch.setattr(
+        cli,
+        "providers",
+        lambda args: (
+            FakeSpeechRecognizer(["Set lights to 25"]),
+            FakeSpeechSynthesizer(),
+            FakeAudioPlayback(),
+        ),
+    )
+    monkeypatch.setattr(cli, "LocalMicrophone", lambda *a, **k: pytest.fail("WAV opened a mic"))
+    with running_runtime(config, None, tmp_path / "runtime.log") as (client, _):
+        client_config = tmp_path / "client.json"
+        settings = RuntimeSettings.load(config).model_copy(
+            update={"runtime_port": client.base_url.port}
+        )
+        write_private_json(client_config, settings.model_dump(mode="json"))
+        args = cli.parser().parse_args(
+            [
+                "voice",
+                "--config",
+                str(client_config),
+                "--credential-file",
+                str(credential),
+                "--source",
+                "fixture",
+                "--wav",
+                str(wav),
+                "--no-playback",
+            ]
+        )
+        asyncio.run(cli.voice_client(args))
+        output = capsys.readouterr().out
+        assert '"mode": "local_audio_file"' in output
+        assert '"task_state": "COMPLETED"' in output
+        assert '"playback": "disabled"' in output
+        status = api_data(
+            client.get("/api/v1/status", headers={"Authorization": "Bearer " + token})
+        )
+        assert status["simulated_invocations"]["lighting"] == 1
+        assert control.sessions(session_token=token) == ()
+
+
+def test_one_shot_rejects_fake_real_conflict_before_http(tmp_path):
+    from jarvis.voice_cli import parser, voice_client
+
+    args = parser().parse_args(
+        [
+            "voice",
+            "--config",
+            str(tmp_path / "not-read"),
+            "--credential-file",
+            str(tmp_path / "not-read"),
+            "--fake",
+            "--wav",
+            "not-read.wav",
+        ]
+    )
+    with pytest.raises(AudioError, match="fake_and_real_wav_conflict"):
+        asyncio.run(voice_client(args))
+
+
+def test_device_listing_exposes_actual_indices_without_opening_streams(monkeypatch, capsys):
+    import jarvis.voice_cli as cli
+
+    monkeypatch.setattr(
+        cli,
+        "sounddevice_module",
+        lambda: SimpleNamespace(
+            query_devices=lambda: [
+                {"name": "input", "max_input_channels": 1, "max_output_channels": 0},
+                {"name": "output", "max_input_channels": 0, "max_output_channels": 2},
+            ]
+        ),
+    )
+    cli.run_voice_cli(["audio", "devices"])
+    devices = json.loads(capsys.readouterr().out)["devices"]
+    assert devices[0]["index"] == 0 and devices[0]["max_input_channels"] == 1
+    assert devices[1]["index"] == 1 and devices[1]["max_output_channels"] == 2
+
+
 def test_microphone_release_level_and_playback_cancel_with_device_fixture(monkeypatch):
     import jarvis.speech as module
 

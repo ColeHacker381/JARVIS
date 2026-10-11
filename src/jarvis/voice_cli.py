@@ -65,7 +65,7 @@ def parser():
         "--fake", action="store_true", help="DEVELOPMENT simulation, no real speech reasoning"
     )
     p.add_argument("--text", help="literal fake transcript or standalone TTS text")
-    p.add_argument("--wav", type=Path, help="local mono PCM WAV for stt-test")
+    p.add_argument("--wav", type=Path, help="<=10s mono PCM WAV for stt-test or one-shot voice")
     p.add_argument("--no-playback", action="store_true")
     return p
 
@@ -126,10 +126,22 @@ def providers(args):
     )
 
 
+def read_stt_wav(path):
+    if path is None or path.stat().st_size > 320044:
+        raise AudioError("bounded_stt_wav_required")
+    rate, pcm = validate_wave(path.read_bytes())
+    if rate != 16000 or len(pcm) > 320000:
+        raise AudioError("stt_requires_mono_16khz_pcm16")
+    return pcm
+
+
 async def voice_client(args):
     if args.config is None or args.credential_file is None:
         raise AudioError("runtime_config_and_client_credential_required")
-    if not args.fake and args.device is None:
+    if args.fake and args.wav is not None:
+        raise AudioError("fake_and_real_wav_conflict")
+    fixture_pcm = read_stt_wav(args.wav) if args.wav is not None else None
+    if not args.fake and fixture_pcm is None and args.device is None:
         raise AudioError("explicit_microphone_device_required")
     settings = RuntimeSettings.load(args.config)
     token = read_private_json(args.credential_file)["token"]
@@ -157,18 +169,26 @@ async def voice_client(args):
             json.dumps(
                 {
                     "conversation_id": str(conversation_id),
-                    "mode": "DEVELOPMENT_FAKE" if args.fake else "local_push_to_talk",
+                    "mode": "DEVELOPMENT_FAKE"
+                    if args.fake
+                    else "local_audio_file"
+                    if fixture_pcm is not None
+                    else "local_push_to_talk",
                 }
             )
         )
         session = control.start((args.source,), conversation_id, session_token=token)
         microphone = (
-            LocalMicrophone(args.device, max_seconds=args.seconds) if not args.fake else None
+            LocalMicrophone(args.device, max_seconds=args.seconds)
+            if not args.fake and fixture_pcm is None
+            else None
         )
         try:
             while True:
                 if args.fake:
                     pcm = b"\0\0" * 1600
+                elif fixture_pcm is not None:
+                    pcm = fixture_pcm
                 else:
                     answer = await read_line("Enter to speak; /exit to quit: ")
                     if answer.strip() == "/exit":
@@ -200,6 +220,16 @@ async def voice_client(args):
                     control.validate(args.source, session.voice_session_id, token)
                     result = await stt.transcribe(segment)
                     print("You: " + result.text)
+                    print(
+                        json.dumps(
+                            {
+                                "transcription_provider": result.provider,
+                                "transcription_model": result.model,
+                                "transcription_ms": result.duration_ms,
+                                "simulated_transcription": result.simulated,
+                            }
+                        )
+                    )
                     # The existing authenticated API performs all current memory/action checks.
                     control.validate(args.source, session.voice_session_id, token)
                     response = api_data(
@@ -218,13 +248,29 @@ async def voice_client(args):
                             {
                                 "kind": response["kind"],
                                 "task_state": response.get("task_state"),
+                                "task_id": response.get("task_id"),
                                 "request_id": str(segment.segment_id),
+                                "correlation_id": response.get("correlation_id"),
+                                "audit_ids": response.get("audit_ids", []),
                                 "model": response.get("provenance"),
                             }
                         )
                     )
                     audio = await tts.synthesize(response["text"])
                     control.validate(args.source, session.voice_session_id, token)
+                    rate, generated_pcm = validate_wave(audio.wav)
+                    print(
+                        json.dumps(
+                            {
+                                "speech_provider": audio.provider,
+                                "simulated_speech": audio.simulated,
+                                "synthesis_ms": audio.duration_ms,
+                                "speech_rate_hz": rate,
+                                "speech_duration_ms": len(generated_pcm) / rate * 500,
+                                "playback": "disabled" if args.no_playback else "requested",
+                            }
+                        )
+                    )
                     if not args.no_playback:
                         # Enter cancels playback; stdin worker is polled, never left blocked.
                         import select
@@ -243,7 +289,7 @@ async def voice_client(args):
                 except (AudioError, AssertionError, httpx.HTTPError) as exc:
                     code = exc.code if isinstance(exc, AudioError) else "voice_api_unavailable"
                     print(json.dumps({"status": "failed", "error": {"code": code}}))
-                if args.fake:
+                if args.fake or fixture_pcm is not None:
                     break
                 # Reopen a short-lived capture session without changing the durable conversation.
                 control.close(session.voice_session_id, session_token=token, delete=True)
@@ -267,7 +313,16 @@ def run_voice_cli(argv):
             asyncio.run(voice_client(args))
             return
         if args.operation == "devices":
-            print(json.dumps({"devices": [dict(x) for x in sounddevice_module().query_devices()]}))
+            print(
+                json.dumps(
+                    {
+                        "devices": [
+                            {"index": i, **dict(x)}
+                            for i, x in enumerate(sounddevice_module().query_devices())
+                        ]
+                    }
+                )
+            )
         elif args.operation == "mic-test":
             if args.device is None or not args.consent_ref:
                 raise AudioError("explicit_device_and_consent_required")
@@ -293,11 +348,7 @@ def run_voice_cli(argv):
 
             asyncio.run(speak())
         elif args.operation == "stt-test":
-            if args.wav is None or args.wav.stat().st_size > 320044:
-                raise AudioError("bounded_stt_wav_required")
-            rate, pcm = validate_wave(args.wav.read_bytes())
-            if rate != 16000:
-                raise AudioError("stt_requires_mono_16khz_pcm16")
+            pcm = read_stt_wav(args.wav)
             stt, _, _ = providers(args)
             result = asyncio.run(stt.transcribe(segment_from_pcm(pcm, args.source, uuid4())))
             print(result.model_dump_json())

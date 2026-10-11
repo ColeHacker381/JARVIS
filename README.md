@@ -91,10 +91,11 @@ For interactive development: `uv run jarvis chat --model-provider fake`. Fake mo
 is explicitly **not AI reasoning**. Chat defaults to a real local model:
 
 ```sh
-# With Ollama already installed, run `ollama serve` in another terminal.
-ollama pull qwen2.5:3b
+# With Ollama already running, select an existing local model; no new download:
+ollama list
+printf 'Exact installed model tag: '; IFS= read -r JARVIS_LOCAL_MODEL_NAME
+export JARVIS_LOCAL_MODEL_NAME
 export JARVIS_LOCAL_MODEL_ENDPOINT=http://127.0.0.1:11434/v1
-export JARVIS_LOCAL_MODEL_NAME=qwen2.5:3b
 uv run jarvis chat
 ```
 
@@ -251,6 +252,7 @@ See [Phase 10 setup and limitations](docs/PHASE10.md). Audio never starts automa
 Run `uv run jarvis voice-demo` or `uv run jarvis ambient-demo` entirely offline.
 For a real microphone use `uv sync --locked --extra voice`, explicitly enroll and
 activate a source, configure whisper.cpp and an installed offline TTS voice, then
-run `uv run jarvis voice --help`. Real hardware and model inference remain unverified
-in the cloud environment. Runtime integration tests select owned ephemeral ports,
+run `uv run jarvis voice --help`. [MacBook acceptance and real-model results](docs/VOICE_ACCEPTANCE.md)
+cover verified Linux whisper.cpp/eSpeak NG inference and the still-unverified
+Gemma/microphone/speaker workflow. Runtime integration tests select owned ephemeral ports,
 so an existing development server on port 8765 can remain running.

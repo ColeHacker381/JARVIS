@@ -6,6 +6,12 @@ TLS. Ollama is optional; fake mode needs no model weights, account or network.
 
 In separate terminals:
 
+If you already have Gemma (or another supported local model) installed, use
+`ollama list` and the exact existing tag with `--local-model`; do not download
+another model just for JARVIS. The [voice acceptance guide](../VOICE_ACCEPTANCE.md)
+shows configuration inspection and how to retain fake regression defaults.
+The commands below are only an example for operators who need a new model.
+
 ```sh
 ollama serve
 ollama pull qwen2.5:3b

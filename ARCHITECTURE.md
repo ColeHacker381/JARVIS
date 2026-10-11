@@ -488,3 +488,10 @@ scoped ephemeral ambient attention and unconfirmed memory candidates. A separate
 authenticated interaction reaches existing cognition/tasks/executor; capture credentials
 and diarization never confer speaker authority. The voice client uses existing HTTP v1.
 See [PHASE10.md](docs/PHASE10.md) and provisional ADR-T11; no device starts on serve.
+
+The same authenticated voice client accepts an explicit bounded WAV for one-shot
+real STT/API/TTS validation. It uses the current owned source/session and existing
+HTTP authentication; no alternate executor or grants are added. Non-speech/digital
+silence and invalid audio/text fail before becoming requests/playback. Linux speech
+inference is measured; Gemma/hardware acceptance is pending in
+[VOICE_ACCEPTANCE.md](docs/VOICE_ACCEPTANCE.md).

@@ -7,6 +7,7 @@ import struct
 import sys
 import tempfile
 import time
+import unicodedata
 import wave
 from collections import deque
 from dataclasses import dataclass
@@ -47,7 +48,10 @@ def validate_wave(data):
                 raise AudioError("speech_output_format_invalid")
             if f.getnframes() / f.getframerate() > 60:
                 raise AudioError("speech_output_duration_exceeded")
-            return f.getframerate(), f.readframes(f.getnframes())
+            pcm = f.readframes(f.getnframes())
+            if not pcm or len(pcm) != f.getnframes() * 2:
+                raise AudioError("speech_output_format_invalid")
+            return f.getframerate(), pcm
     except (wave.Error, EOFError):
         raise AudioError("speech_output_format_invalid") from None
 
@@ -137,8 +141,15 @@ class WhisperCppRecognizer:
                 raise AudioError("stt_output_invalid")
             try:
                 data = json.loads(file.read_text())
-                text = " ".join(x["text"].strip() for x in data["transcription"]).strip()
-                if not text:
+                parts = [x["text"].strip() for x in data["transcription"]]
+                # whisper.cpp can emit a non-speech marker even with exit status zero.
+                # Such markers must never become conversational/tool requests.
+                markers = {"[blank_audio]", "[silence]", "(silence)"}
+                text = " ".join(p for p in parts if p.casefold() not in markers).strip()
+                # Even non-marker hallucinations (observed: "You") from digital
+                # silence must not become a user request. This narrow check does
+                # not claim reliable rejection of real microphone noise.
+                if not text or not any(segment.pcm()):
                     raise AudioError("stt_no_speech")
                 return TranscriptionResult(
                     segment_id=segment.segment_id,
@@ -171,7 +182,12 @@ class SystemSpeechSynthesizer:
         self.rate, self.timeout = rate, timeout
 
     async def synthesize(self, text):
-        if not isinstance(text, str) or not 1 <= len(text) <= 4096:
+        if (
+            not isinstance(text, str)
+            or not 1 <= len(text) <= 4096
+            or not text.strip()
+            or any(unicodedata.category(c) == "Cc" and c not in "\n\t" for c in text)
+        ):
             raise AudioError("tts_text_invalid")
         if not self.executable:
             raise AudioError("local_tts_binary_missing")

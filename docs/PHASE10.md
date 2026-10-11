@@ -3,10 +3,11 @@
 This milestone adds an explicitly activated local push-to-talk client and bounded
 ambient audio simulation to the Phase 9 application. Deterministic fixtures are
 not AI reasoning, biometric recognition or proof of real acoustic performance.
-The cloud execution machine has no microphone. Model-weight download returned
-HTTP 403; genuine STT inference and the microphone-to-speaker smoke test remain
-unverified here. Local executable protocol fixtures test adapter integration,
-not recognition or natural voice quality.
+The initial cloud run used executable protocol fixtures because model downloads
+were blocked. Follow-on validation built whisper.cpp v1.8.2, verified tiny.en and
+base.en weights, and exercised genuine Linux STT/TTS plus authenticated audio-file
+integration. Gemma, physical microphone/playback and macOS speech remain unverified.
+See the [operator acceptance checklist](VOICE_ACCEPTANCE.md) and measurements below.
 
 ## Architecture and authority
 
@@ -162,15 +163,11 @@ selection uses PortAudio indices. TTS provider protocol tests are not a hardware
 playback test.
 
 Build whisper.cpp outside this repository and explicitly download the tiny English
-model. Never commit weights. These are manual installation instructions; the cloud
-machine could not download the weights and did not verify recognition quality.
+model. Never commit weights. The reproducible script checks the source commit and
+model SHA-256 before use; it was run twice against the verified installation.
 
 ```sh
-git clone --branch v1.8.2 --depth 1 https://github.com/ggml-org/whisper.cpp.git ~/jarvis-audio/whisper.cpp
-cmake -S ~/jarvis-audio/whisper.cpp -B ~/jarvis-audio/whisper.cpp/build -DCMAKE_BUILD_TYPE=Release
-cmake --build ~/jarvis-audio/whisper.cpp/build --config Release -j 2
-bash ~/jarvis-audio/whisper.cpp/models/download-ggml-model.sh tiny.en
-shasum -a 256 ~/jarvis-audio/whisper.cpp/models/ggml-tiny.en.bin
+uv run --no-sync bash scripts/install_whisper.sh "$HOME/jarvis-audio/whisper.cpp"
 ```
 
 Expected SHA-256 for the published tiny.en artifact reviewed here:
@@ -194,7 +191,7 @@ uv run jarvis permissions grant --config .jarvis/dev/runtime.json --credential-f
 uv run jarvis permissions grant --config .jarvis/dev/runtime.json --credential-file .jarvis/dev/credentials/owner.json --principal OWNER_UUID --permission audio.process
 uv run jarvis audio register --config .jarvis/dev/runtime.json --credential-file .jarvis/dev/credentials/owner.json --source local.microphone --location computer --consent-ref consent:explicit-local-user
 uv run jarvis audio devices
-uv run jarvis audio mic-test --device 0 --seconds 5 --consent-ref consent:explicit-local-user
+uv run jarvis audio mic-test --device "$JARVIS_INPUT_DEVICE" --seconds 5 --consent-ref consent:explicit-local-user
 uv run jarvis audio tts-test --text 'Local speech test' --tts-rate 175
 ```
 
@@ -207,11 +204,13 @@ Participant awareness/consent is an operator responsibility; proximity is no pro
 ## Push-to-talk and manual acceptance
 
 ```sh
-uv run jarvis voice --config .jarvis/dev/runtime.json --credential-file .jarvis/dev/credentials/owner.json --source local.microphone --device 0 --output-device 1 --seconds 10 --stt-binary ~/jarvis-audio/whisper.cpp/build/bin/whisper-cli --stt-model ~/jarvis-audio/whisper.cpp/models/ggml-tiny.en.bin
+uv run jarvis voice --config .jarvis/dev/runtime.json --credential-file .jarvis/dev/credentials/owner.json --source local.microphone --device "$JARVIS_INPUT_DEVICE" --output-device "$JARVIS_OUTPUT_DEVICE" --seconds 10 --stt-binary ~/jarvis-audio/whisper.cpp/build/bin/whisper-cli --stt-model ~/jarvis-audio/whisper.cpp/models/ggml-tiny.en.bin
 ```
 
 Enter begins visible capture, Enter again releases it; capture always closes after
-at most `--seconds` (maximum 10). Input levels are visible. Speak "JARVIS, what do
+at most `--seconds` (maximum 10). Choose actual indices with `audio devices`
+and define the variables as shown in [the checklist](VOICE_ACCEPTANCE.md).
+Do not assume device 0/1. Input levels are visible. Speak "JARVIS, what do
 you remember about Slipstream?". Verify the transcript, authorized memory reply,
 local synthesized playback, model provenance and actual task state. Repeat with
 "Set lights to 25" using simulated lighting only, and test guest denial. Enter during
@@ -317,7 +316,7 @@ identity, participant/retention controls and enrolled local satellite transport
 before enabling room-wide capture or real device actions.
 
 
-## Validation recorded for this implementation
+## Initial implementation validation (historical)
 
 - Before edits: 800 tests passed in 134.42s; occupied-8765 reproduction failed all
   three targeted real-process cases with the reported envelope/cleanup symptoms.
@@ -348,3 +347,81 @@ before enabling room-wide capture or real device actions.
 The first full regression run found a malformed non-string contract-type dispatch
 error in the new audio decoder. Type checking was corrected; 209 targeted contract,
 runtime and audio tests passed before the final successful complete suite.
+
+## Follow-on real speech validation
+
+The network-enabled validation built the exact whisper.cpp v1.8.2 source pin with
+GCC 14.2.0/CMake 4.4.4 (Release, two build jobs), verified tiny.en **and** base.en
+SHA-256 and exercised both models with two CPU threads. Debian's signed package
+indexes supplied eSpeak NG 1.52.0, PortAudio 19.6.0 and required libraries in a
+workspace-local sysroot; optional Python sounddevice 0.5.6 was installed with the
+locked voice extra. Whisper/weights are MIT; eSpeak NG is GPLv3. No model weights
+or speech binaries enter Git. No Gemma was downloaded or invoked.
+
+Actual adapter measurements on Debian 13 x86_64 / Python 3.12.14 (five logical CPUs):
+
+| Fixture | tiny.en latency | base.en latency | tiny.en / base.en word error rate |
+| --- | ---: | ---: | --- |
+| Human JFK, first 10s | 1,483ms | 3,015ms | 0% / 0% |
+| Same speech at 5% amplitude | 1,428ms | 2,935ms | 4.5% / 0% |
+| Same speech plus seeded noise | 1,519ms | 3,169ms | 4.5% / 0% |
+| Digital silence, 3s | 1,292ms | 2,753ms | both rejected as no speech |
+| Seeded noise only, 3s | 1,269ms | 3,626ms | both rejected as no speech |
+| Synthesized lighting command | 1,228ms | 2,774ms | 16.7% / 0% |
+| Synthesized JARVIS/Slipstream question | 1,334ms | 2,742ms | 80% / 60% |
+| Synthesized Slipstream continuation | 1,299ms | 2,686ms | 0% / 33.3% |
+
+This is **16 actual inference calls**, not fake STT. Normalized word error rate
+ignores punctuation/case; small synthetic samples are not a recognition benchmark.
+Latency includes model loading, private WAV/JSON IO and child startup. Independent
+child CPU time for clear speech was 2,886ms / 5,913ms; child peak RSS was
+171.2MiB / 279.2MiB. Two threads can use nearly two CPU cores; these are sampled
+process costs, not an accepted response SLO. Peak RSS includes the launcher fork
+before exec. These measurements were taken before the full regression run.
+
+Actual eSpeak en-us/en-gb output was mono PCM16 at 22,050Hz. Three generated
+commands took 8.1–22.8ms; synthesis at 100 versus 250 words/minute took 8.8/8.0ms
+and produced 3.566/1.368 seconds of speech. Four invalid text probes were rejected
+before subprocess invocation. Unsupported voice and deliberately corrupt model
+returned `speech_provider_failed`; real STT/TTS 1ms deadlines returned
+`speech_provider_timeout`. Cancellation observed each real child spawn, then
+cancelled and verified exit/reaping. Valid audio was generated; no speaker played.
+
+The initial real probe exposed `[BLANK_AUDIO]` as conversational text and base.en
+hallucinating “You” on digital silence. The adapter now rejects known non-speech
+markers and all-zero PCM after inference. TTS refuses blank/control-only input;
+WAV validation rejects empty/truncated PCM. Real acoustic noise can still
+hallucinate: no transcript is silently repaired and voice is not an identity proof.
+
+The installed `voice --wav` path executed real STT, **authenticated owned-child
+HTTP**, existing coordinator/policy/task services and real TTS without hardware.
+Owner memory answers, three persisted turns across a process restart, one actual
+simulated lighting invocation at 25 and guest refusal were observed. A separate
+trusted development scheduling probe generated real TTS from an actual `pending` /
+`READY` response without invoking lighting. Completed speech describes verified
+results; pending speech says work was submitted. Cognition in these probes was
+explicitly `development.fake`, not Gemma. Full measured transcripts/CPU/RSS/latency
+and outcomes are in [the sanitized measurement report](reports/phase10-real-audio.json).
+
+The inspected configurations only select fake cognition with the example Qwen name;
+Ollama on loopback 11434 returned connection refused. PortAudio discovered zero
+devices. MacBook microphones/speakers, local personal files, actual Gemma tag and
+macOS `say` are inaccessible. Physical end-to-end acceptance remains **pending**;
+follow [the standalone MacBook checklist](VOICE_ACCEPTANCE.md). INT-002 stays
+PROPOSED and ADR-T11 provisional; no OPEN provider/hardware/identity decision is settled.
+
+Follow-on regression results: baseline **873 passed in 248.53s**; final **889 passed
+in 241.83s** on Python 3.12.14 (16 added, no failures, one existing upstream
+Starlette/AnyIO warning). All 85 audio cases passed in 25.73s. Three repeated
+occupied-8765 runs each passed both actual signal/recovery cases (six executions,
+7.46/7.79/7.11s). Ruff lint/format passed (152 files); docs-check passed with
+42 Markdown files, 120 internal links, three generated references and unchanged
+25 OpenAPI paths. Locked voice-extra install, source/wheel builds, shell syntax,
+guide Python syntax and whitespace checks passed. All eleven source demos and
+three independently installed-wheel runtime/voice/ambient demos passed; the wheel
+also ran genuine whisper.cpp and eSpeak NG standalone diagnostics outside the
+checkout. The real-model probe is optional and separate from pytest; ordinary
+tests/demos retain deterministic fake/protocol fixtures and need no models/devices.
+Fresh and cached installer runs both succeeded, including fresh checksum-verified
+model download; PortAudio discovery succeeds with the documented workspace
+library paths and returns zero devices. Hardware/Gemma acceptance remains pending.

@@ -741,3 +741,11 @@ unconfirmed provenance-aware candidates and local metadata/history recovery.
 See [PHASE10.md](docs/PHASE10.md) for exact files, tests and limitations. Schema 9
 migrates metadata only and grants nothing. INT-002 remains PROPOSED, INT-003 LEGACY,
 and final authentication/biometrics/retention/hardware/schema/provider decisions OPEN.
+
+Follow-on Phase 10 validation adds real checksum-verified whisper.cpp tiny.en/base.en
+and Linux eSpeak NG inference, authenticated one-shot audio-file interaction, measured
+failures/cancellation, and input-boundary regressions (INT-001, provisional INT-002,
+ARCH-001/003/004, COG-001, IAM-004/007, PER-001–003, CAP-002/003, TASK-001/002,
+SEC-001–003, REL-001/002, DEV-001/003). Existing authority and recovery are reused.
+Gemma and physical microphone/speaker acceptance remain unverified; see
+[the operator checklist](docs/VOICE_ACCEPTANCE.md). Requirement/ADR statuses are unchanged.

@@ -39,3 +39,7 @@ and [Phase 8](PHASE8.md). Their validation counts describe those milestones.
 
 [Phase 10 voice guide](PHASE10.md): explicit local push-to-talk, offline STT/TTS,
 consent/attention/context rules, simulated ambient demos and runtime test isolation.
+
+[Real speech and MacBook acceptance](VOICE_ACCEPTANCE.md): checksum-verified installs,
+measured real STT/TTS, existing Gemma configuration, safe schema migration and
+explicit hardware/operator checks. Real-audio acceptance remains pending.

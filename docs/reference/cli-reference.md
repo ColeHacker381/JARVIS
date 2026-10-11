@@ -189,7 +189,7 @@ options:
   --conversation CONVERSATION
   --fake                DEVELOPMENT simulation, no real speech reasoning
   --text TEXT           literal fake transcript or standalone TTS text
-  --wav WAV             local mono PCM WAV for stt-test
+  --wav WAV             <=10s mono PCM WAV for stt-test or one-shot voice
   --no-playback
 ```
 
@@ -232,6 +232,6 @@ options:
   --conversation CONVERSATION
   --fake                DEVELOPMENT simulation, no real speech reasoning
   --text TEXT           literal fake transcript or standalone TTS text
-  --wav WAV             local mono PCM WAV for stt-test
+  --wav WAV             <=10s mono PCM WAV for stt-test or one-shot voice
   --no-playback
 ```

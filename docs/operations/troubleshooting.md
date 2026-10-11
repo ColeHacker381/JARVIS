@@ -49,6 +49,15 @@ Do not rerun fixture bootstrap or overwrite an existing store to hide the failur
 `audio_backpressure`: processing or stream limit reached; reduce sources and drain/expire buffers.
 No provider error permits cloud fallback. [Phase 10](../PHASE10.md) has manual diagnostics.
 
+`stt_no_speech`: no usable speech, known non-speech markers or all-zero PCM.
+Noise and proper-noun recognition remain unreliable; review actual transcripts.
+`tts_text_invalid`: blank, oversized, non-string or prohibited control characters.
+`speech_output_format_invalid`: wrong format, empty or truncated PCM WAV.
+`fake_and_real_wav_conflict`: choose explicit fake mode or real `voice --wav` input.
+`audio devices` includes actual PortAudio indices; do not assume input/output 0/1.
+Follow [MacBook acceptance](../VOICE_ACCEPTANCE.md) for OS permissions, installed
+Gemma selection and safe schema-8 backup/migration. Cloud cannot reach your MacBook.
+
 The three former real-process runtime failures on occupied port 8765 were caused by
 public readiness reaching another server and foreign credentials returning an error
 without `data`. Tests/demo now inherit continuously reserved ephemeral listeners and
