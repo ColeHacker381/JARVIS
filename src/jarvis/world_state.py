@@ -53,7 +53,7 @@ class WorldStore(Protocol):
     def _source(self, source_id, *, access): ...
     def _register(self, source, audit, *, expected_revision=None, access): ...
     def _ingest(self, incoming, record, audit, now, project, *, access): ...
-    def _events(self, principal_id, limit, *, access): ...
+    def _events(self, principal_id, limit, *, after_sequence=None, access): ...
 
     def _query(
         self,
@@ -464,13 +464,19 @@ class WorldModel:
                 raise WorldError("world_unavailable")
             return states[0]
 
-    def events(self, *, session_token, limit=20):
+    def events(self, *, session_token, limit=20, after_sequence=None):
         with self._request(session_token, "world.events") as (session, corr):
             if type(limit) is not int or not 1 <= limit <= 100:
                 raise WorldError("validation_failure")
             self._authorize(session, session_token, "world.read", corr)
             self._authorize(session, session_token, "world.history", corr)
-            records = self._store._events(session.principal_id, limit, access=self._access)
+            if after_sequence is not None and (
+                type(after_sequence) is not int or after_sequence < 0
+            ):
+                raise WorldError("validation_failure")
+            records = self._store._events(
+                session.principal_id, limit, after_sequence=after_sequence, access=self._access
+            )
             write_audit(
                 self.audit,
                 self._audit(session, "world.events", "succeeded", "world_events_read", corr),

@@ -429,3 +429,17 @@ reports unavailable provider measurements explicitly. Three fake sensor adapters
 and a real two-process world-demo verify this slice. See docs/PHASE6.md and
 provisional ADR-T07; WORLD-004 remains PROPOSED and hardware/auth/retention/initiative
 choices remain OPEN.
+
+
+Phase 7 extends InitiativeEngine with bounded authenticated consumption of the
+existing scoped journal. Receipt/cursor/proposal/suppression commits are atomic;
+CAS lifecycle/history/event/audit commits and proposal hashes bind approvals to
+immutable intent. Existing current policy, memory and world services revalidate
+all dependencies. TaskManager alone submits/runs actions through CapabilityExecutor;
+a persistent immutable task guard reference closes ordinary task-recovery bypasses.
+Missing guard resolvers deny. Migration 6 adds local initiative state while preserving
+migrations 1–5. ContextBuilder/cognition expose bounded scoped state/result summaries
+with revalidated initiative/world dependencies and separate default-deny egress.
+Rules are deterministic, auto execution is opt-in and allowlisted simulated LOW
+risk only, and models never grant authority. Final policy/risk/authentication/
+scheduler/retention remain OPEN. See PHASE7.md and provisional ADR-T08.

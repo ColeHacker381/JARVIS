@@ -677,3 +677,18 @@ context/verified world replies and separate default-deny world egress extend COG
 and SEC-002. Numeric performance instrumentation does not ratify REL-003 targets.
 ADR-T07 remains provisional; real device auth/hardware, collection/retention rules,
 autonomous initiative and all prior OPEN decisions remain unresolved.
+
+
+## Phase 7 implementation coverage
+
+AUTO-001/002/003 now have a local simulated initiative implementation: authorized
+durable world-event passes, explicit observe/approval/auto modes, owner-controlled
+pause/enable, separate revocable auto grants, durable exact approvals and lifecycle,
+cooldown/rate/active limits, guarded Phase 3 tasks and existing Phase 2 execution.
+AUTO-002's eventual continuous scanning remains phased: calls are finite and host
+scheduled. COG-001 gains bounded private initiative explanations; IAM-004/007,
+PER-001–003, CAP-001–003, TASK-001/002, EVT-001, MEM-003–006, WORLD-001–003,
+SEC-001–004 and REL-001/002 retain their enforcement boundaries and gain initiative
+regressions. ARCH-004/DEV-003 cover explicit contracts and offline fixtures.
+See docs/PHASE7.md for precise evidence, files and limits. No requirement IDs or
+OPEN/PROPOSED statuses are promoted; final risk/policy/auth/scheduler choices remain OPEN.

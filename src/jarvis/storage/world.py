@@ -443,7 +443,7 @@ class SQLiteWorldStore:
                 for r in rows
             )
 
-    def _events(self, principal_id, limit, *, access):
+    def _events(self, principal_id, limit, *, after_sequence=None, access):
         self._guard(access)
         with self.database.transaction() as c:
             rows = c.execute(
@@ -454,8 +454,10 @@ class SQLiteWorldStore:
                   'world.observation_expired') AND EXISTS (
                 SELECT 1 FROM observations o JOIN world_readers r ON r.partition_id=o.partition_id
                 WHERE r.principal_id=? AND (e.event_id=o.event_id OR e.causation_id=o.event_id))
-                ORDER BY e.sequence DESC LIMIT ?""",
-                (str(principal_id), limit),
+                AND e.sequence>? ORDER BY e.sequence """
+                + ("DESC" if after_sequence is None else "ASC")
+                + " LIMIT ?",
+                (str(principal_id), after_sequence or 0, limit),
             ).fetchall()
             for row in rows:
                 evidence = c.execute(
@@ -467,4 +469,6 @@ class SQLiteWorldStore:
                 if evidence is None:
                     raise StorageError("world_record_invalid")
                 self._scope_index(c, self._observation_decode(evidence).access_scope)
+            if after_sequence is not None:
+                return tuple((r["sequence"], _decode_event(r)) for r in rows)
             return tuple(_decode_event(r) for r in reversed(rows))

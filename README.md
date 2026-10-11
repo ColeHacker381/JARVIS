@@ -163,8 +163,31 @@ The Phase 3 verification pass adds durable current grants/revocations/principals
 sessions, atomic permission/audit changes and cross-process security exclusion.
 The default durable identity repository denies without a trusted authenticator;
 fixture credentials remain explicitly isolated from production. Run `uv run jarvis db-init`
-explicitly to migrate existing schema 1–4 development databases to schema 5;
+explicitly to migrate existing schema 1–5 development databases to schema 6;
 this never provisions identity or restores old task approvals. Back up existing
 state before migration. See
 [docs/PHASE3_VERIFICATION.md](docs/PHASE3_VERIFICATION.md) for findings, real-process
 race/crash tests, supported local guarantees and Phase 4 prerequisites.
+
+
+## Phase 7 initiative inbox (offline, simulated)
+
+`uv run jarvis initiative-demo` exercises observe-only (default), exact durable
+approval, narrow LOW simulated automatic execution, cooldowns/revocation/stale
+evidence, and three-process restart/ambiguous-outcome recovery. All invocation
+uses the existing guarded TaskManager and CapabilityExecutor.
+
+```bash
+uv run jarvis initiatives list --database <demo-database>
+uv run jarvis initiatives show <initiative-id> --database <demo-database>
+uv run jarvis initiatives approve <initiative-id> --database <demo-database>
+uv run jarvis initiatives deny <initiative-id> --database <demo-database>
+uv run jarvis initiatives cancel <initiative-id> --database <demo-database>
+uv run jarvis chat --database <demo-database> --model-provider fake
+```
+
+Development host identities are fixtures; observe-only and cloud default-deny
+remain the defaults. Existing databases migrate explicitly to schema 6 without
+new grants. See [docs/PHASE7.md](docs/PHASE7.md) for policy configuration, risk,
+approval/execution guards, bounded processing, all files/requirements, verified
+results and deferred production choices. Real devices/messaging are unavailable.

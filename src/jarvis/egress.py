@@ -21,15 +21,24 @@ class EgressPolicy:
         self.destinations = frozenset(destinations)
 
     def authorize(
-        self, identity, request, *, session_token, contains_memory=False, contains_world=False
+        self,
+        identity,
+        request,
+        *,
+        session_token,
+        contains_memory=False,
+        contains_world=False,
+        contains_initiatives=False,
     ):
         with self.identities.transaction():
             session = self.identities.resolve_session(session_token)
             classes = ["conversation", "identity"]
             if request.memories or contains_memory:
                 classes.append("memory")
-            if request.world_states or contains_world:
+            if request.world_states or request.initiatives or contains_world:
                 classes.append("world")
+            if request.initiatives or contains_initiatives:
+                classes.append("initiatives")
             if request.capabilities or request.tasks:
                 classes.append("capabilities")
             required = tuple(f"model.egress:{identity.provider_id}:{c}" for c in classes)

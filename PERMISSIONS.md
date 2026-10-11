@@ -219,3 +219,25 @@ Revoked permissions and stored-recipient revocation govern subsequent retrieval;
 old provenance/consent/policy references cannot grant access. Policy decisions and
 sensitive mutations are durably audited without content or queries. See
 `docs/PHASE4.md` and ADR-T05; final syntax/group policies and production auth remain OPEN.
+
+
+## Phase 7 initiative authorization (provisional)
+
+Owner-administered exact policies default to OBSERVE_ONLY. APPROVAL_REQUIRED
+binds single-use authenticated approval to exact immutable proposal hash/action,
+principal/session/source and grant IDs. Approval grants no standing authority;
+revocation/regrant invalidates it. AUTO_EXECUTE additionally requires an enabled
+matching policy and current `initiatives.auto:<policy-id>` grant, and admits only
+the trusted LOW simulated catalog entry. Moderate/high/critical never auto-execute.
+The current executor still checks capability scope/grants and validates arguments.
+
+`initiatives.manage` additionally requires the pinned owner; read/evaluate/approve/
+execute are separate current permissions. Inbox reads/approval use exact initiating
+principal ownership, including for an owner-administered friend policy. Natural
+language cannot issue approval. Pause/revision changes invalidate pending proposals;
+revoking evaluate/execute stops all that principal's policies. Task guard checks run
+inside the existing executor hook during every invocation/recovery; missing guards,
+stale/inaccessible evidence and revoked authority deny. Egress additionally requires
+initiatives and world data-class grants, including derived history. See PHASE7.md.
+These authorized simulation choices do not ratify the final policy language, risk
+classification, production authentication or approval UI/lifetime decisions.

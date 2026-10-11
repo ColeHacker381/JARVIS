@@ -244,6 +244,14 @@ Physical camera/EDITH integration until kernel behavior is proven.
 
 ## Phase 7 — Initiative Engine
 
+**Implementation status:** Local simulated milestone implemented. Finite scoped
+event passes, default observe-only, exact durable approvals, separately granted
+LOW simulated automatic actions, restart-safe suppression/rate limits, task guards,
+evidence/revocation checks, isolated inbox and bounded cognitive explanations are
+covered by docs/PHASE7.md and provisional ADR-T08. Continuous scheduling,
+production authentication, final risk/threshold/retention choices and actual
+external delivery remain OPEN. No unrestricted model autonomy is installed.
+
 **Goal:** allow JARVIS to proactively find useful work while preserving control.
 
 ### Implement

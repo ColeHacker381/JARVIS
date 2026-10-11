@@ -6,9 +6,11 @@ from dataclasses import dataclass
 
 from jarvis.conversations import ConversationError, contains_secret
 from jarvis.core.cognitive_records import MemoryContext, ModelMessage, ModelRequest, TaskContext
+from jarvis.core.initiative_records import InitiativeReference
 from jarvis.core.memory_records import MemoryQuery
 from jarvis.core.world_records import WorldContext, WorldReference
 from jarvis.identity import IdentityError
+from jarvis.initiative import InitiativeError
 from jarvis.memory import MemoryError
 from jarvis.observability import NullMetrics
 from jarvis.world_state import WorldError
@@ -66,6 +68,7 @@ class BuiltContext:
     # Revalidate current authority and validity before using model output or replaying a turn.
     memory_ids: tuple
     world_refs: tuple = ()
+    initiative_refs: tuple = ()
 
 
 class ContextBuilder:
@@ -80,6 +83,7 @@ class ContextBuilder:
         limits=None,
         tasks=None,
         world=None,
+        initiatives=None,
         metrics=None,
     ):
         if policy.identities is not identities or conversations.identities is not identities:
@@ -92,11 +96,14 @@ class ContextBuilder:
             raise ValueError("task context must share trusted identity state")
         if world is not None and world.identities is not identities:
             raise ValueError("world context must share identity state")
+        if initiatives is not None and initiatives.identities is not identities:
+            raise ValueError("initiative context must share identity state")
+        self.initiatives = initiatives
         self.world, self.metrics = world, metrics or NullMetrics()
         self.tasks = tasks
         self.limits = limits or ContextLimits()
 
-    def ensure_current(self, ids, *, session_token, world_refs=()):
+    def ensure_current(self, ids, *, session_token, world_refs=(), initiative_refs=()):
         with self.identities.transaction():
             session = self.identities.resolve_session(session_token)
             if session.principal_id is None or session.authentication_ref is None:
@@ -115,6 +122,16 @@ class ContextBuilder:
                     if state.revision != reference.revision:
                         raise ConversationError("context_authorization_changed")
                 except WorldError as exc:
+                    raise ConversationError("context_authorization_changed") from exc
+
+            for ref in initiative_refs:
+                if self.initiatives is None:
+                    raise ConversationError("context_authorization_changed")
+                try:
+                    record = self.initiatives.get(ref.initiative_id, session_token=session_token)
+                    if record.revision != ref.revision:
+                        raise ConversationError("context_authorization_changed")
+                except InitiativeError as exc:
                     raise ConversationError("context_authorization_changed") from exc
 
     def build(self, turn, *, session_token):
@@ -211,8 +228,25 @@ class ContextBuilder:
                     )
                     if fits(candidate):
                         request = candidate
+            if self.initiatives is not None:
+                try:
+                    records = self.initiatives.context(turn.user_text, session_token=session_token)
+                except InitiativeError as exc:
+                    if exc.code != "initiative_access_denied":
+                        raise ConversationError(exc.code) from exc
+                    records = ()
+                for record in records:
+                    candidate = request.model_copy(
+                        update={"initiatives": (*request.initiatives, record)}
+                    )
+                    if fits(candidate):
+                        request = candidate
+            initiative_refs = [
+                InitiativeReference(initiative_id=i.initiative_id, revision=i.revision)
+                for i in request.initiatives
+            ]
             dependencies = [m.memory_id for m in request.memories]
-            world_refs = [
+            world_refs = [ref for i in request.initiatives for ref in i.world_refs] + [
                 WorldReference(state_id=s.state_id, revision=s.revision)
                 for s in request.world_states
             ]
@@ -250,6 +284,7 @@ class ContextBuilder:
                         previous.memory_ids,
                         session_token=session_token,
                         world_refs=previous.world_refs,
+                        initiative_refs=previous.initiative_refs,
                     )
                 except ConversationError:
                     # Inactive/revoked memory cannot re-enter through old conversation text.
@@ -264,15 +299,25 @@ class ContextBuilder:
                     }
                 )
                 next_world_refs = tuple(dict.fromkeys((*world_refs, *previous.world_refs)))
-                if fits(candidate) and len(next_world_refs) <= (
-                    (self.limits.history_turns + 1) * self.limits.world_states
+                next_initiative_refs = tuple(
+                    dict.fromkeys((*initiative_refs, *previous.initiative_refs))
+                )
+                if (
+                    len(next_initiative_refs) <= (self.limits.history_turns + 1) * 3
+                    and fits(candidate)
+                    and len(next_world_refs)
+                    <= ((self.limits.history_turns + 1) * self.limits.world_states)
                 ):
                     messages = [*pair, *messages]
                     dependencies.extend(previous.memory_ids)
                     world_refs.extend(previous.world_refs)
+                    initiative_refs.extend(previous.initiative_refs)
             request = request.model_copy(
                 update={"messages": (*request.messages[:2], *messages, request.messages[-1])}
             ).model_copy(deep=True)
             return BuiltContext(
-                request, tuple(dict.fromkeys(dependencies)), tuple(dict.fromkeys(world_refs))
+                request,
+                tuple(dict.fromkeys(dependencies)),
+                tuple(dict.fromkeys(world_refs)),
+                tuple(dict.fromkeys(initiative_refs)),
             )

@@ -17,10 +17,13 @@ from jarvis.development import (
     ECHO_PERMISSION,
     register_development_capabilities,
 )
+from jarvis.initiative import InitiativeEngine
+from jarvis.initiative_development import register_initiative_capability
 from jarvis.memory import MemoryService
 from jarvis.models import FakeModel, ModelRouter, OpenAILocalModel
 from jarvis.observability import InMemoryMetrics
 from jarvis.storage.conversations import SQLiteConversationStore
+from jarvis.storage.initiatives import SQLiteInitiativeStore
 from jarvis.storage.memory import SQLiteMemoryStore
 from jarvis.storage.security import SQLiteDevelopmentIdentityService, SQLitePermissionStore
 from jarvis.storage.sqlite import SQLiteAuditSink, SQLiteDatabase, SQLiteTaskStore
@@ -45,6 +48,8 @@ class DevelopmentCognitiveRuntime:
     audit: SQLiteAuditSink
     world: WorldModel
     metrics: InMemoryMetrics
+    initiatives: InitiativeEngine
+    notices: object
 
     def credentials(self, name):
         principal_id = {"owner": self.identities.owner_id, "friend": FRIEND_ID, "guest": GUEST_ID}[
@@ -95,6 +100,12 @@ def development_runtime(
             "memory.history",
             "world.sources.manage",
             "world.history",
+            "initiatives.manage",
+            "initiatives.read",
+            "initiatives.evaluate",
+            "initiatives.approve",
+            "initiatives.execute",
+            "development.simulated_notice.invoke",
             BRIGHTNESS_PERMISSION,
         ):
             permissions.grant(
@@ -118,11 +129,22 @@ def development_runtime(
         identities.close_session_for_testing(credentials.token)
     registry = InMemoryCapabilityRegistry()
     lighting = register_development_capabilities(registry)
+    notices = register_initiative_capability(registry)
     policy = DeterministicPolicy(identities, permissions, audit)
     from jarvis.execution import CapabilityExecutor
 
     executor = CapabilityExecutor(identities, registry, policy, audit)
     tasks = TaskManager(SQLiteTaskStore(database), identities, executor, audit)
+    initiatives = InitiativeEngine(
+        SQLiteInitiativeStore(database, identities, audit),
+        permissions=permissions,
+        world=world,
+        memory=memory,
+        registry=registry,
+        policy=policy,
+        tasks=tasks,
+        clock=clock,
+    )
     conversations = ConversationService(SQLiteConversationStore(database, identities, audit))
     context = ContextBuilder(
         identities=identities,
@@ -132,6 +154,7 @@ def development_runtime(
         policy=policy,
         tasks=tasks,
         world=world,
+        initiatives=initiatives,
         metrics=metrics,
     )
     models = ModelRouter(
@@ -165,4 +188,6 @@ def development_runtime(
         audit,
         world,
         metrics,
+        initiatives,
+        notices,
     )

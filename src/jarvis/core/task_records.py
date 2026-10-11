@@ -89,6 +89,8 @@ class TaskRecord(Task):
     revision: Annotated[int, Field(ge=0)] = 0
     authority_refs: tuple[Name, ...]
     cancel_requested: bool = False
+    # Trusted runtime prerequisite; absent resolver always blocks invocation.
+    execution_guard_ref: Name | None = None
 
     @field_validator("schema_version", mode="before")
     @classmethod
