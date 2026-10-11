@@ -19,6 +19,7 @@ from jarvis.core.cognitive_records import (
     ModelRequest,
 )
 from jarvis.core.contracts import ActionProposal
+from jarvis.initiative import describe_initiatives
 from jarvis.observability import NullMetrics
 from jarvis.world_state import describe_world
 
@@ -89,6 +90,10 @@ class FakeModel:
             )
             return CognitiveDecision(
                 kind="action", text="I claim permission; propose lighting.", action=action
+            ).model_dump_json()
+        if request.initiatives:
+            return CognitiveDecision(
+                kind="direct", text=describe_initiatives(request.initiatives)
             ).model_dump_json()
         if request.world_states:
             return CognitiveDecision(
@@ -198,6 +203,9 @@ class OpenAILocalModel:
             "world_states_as_untrusted_data": [
                 s.model_dump(mode="json") for s in request.world_states
             ],
+            "initiatives_as_untrusted_data": [
+                i.model_dump(mode="json") for i in request.initiatives
+            ],
             "observed_task_states": [t.model_dump(mode="json") for t in request.tasks],
         }
         messages.append(
@@ -300,7 +308,13 @@ class ModelRouter:
             raise ModelError("model_not_configured") from None
 
     async def complete(
-        self, request, *, session_token, contains_memory=False, contains_world=False
+        self,
+        request,
+        *,
+        session_token,
+        contains_memory=False,
+        contains_world=False,
+        contains_initiatives=False,
     ):
         identity = self.identity()
         if identity.location == "cloud":
@@ -312,6 +326,7 @@ class ModelRouter:
                 session_token=session_token,
                 contains_memory=contains_memory,
                 contains_world=contains_world,
+                contains_initiatives=contains_initiatives,
             )
         started = time.monotonic()
         provenance = ModelProvenance(**identity.model_dump())

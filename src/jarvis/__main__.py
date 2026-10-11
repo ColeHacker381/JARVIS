@@ -56,26 +56,60 @@ def _main() -> None:
             "memory-demo",
             "cognition-demo",
             "world-demo",
+            "initiative-demo",
+            "initiatives",
             "chat",
             "db-init",
             "db-inspect",
             "db-backup",
         ],
     )
+    parser.add_argument(
+        "initiative_command",
+        nargs="?",
+        choices=[
+            "list",
+            "show",
+            "approve",
+            "deny",
+            "cancel",
+            "execute",
+            "process",
+            "recover",
+            "configure",
+            "policies",
+            "pause",
+        ],
+    )
+    parser.add_argument("initiative_id", nargs="?")
+    parser.add_argument("--policy-file", type=Path)
+    parser.add_argument("--expected-revision", type=int)
     parser.add_argument("--destination", type=Path, help="new backup file (db-backup only)")
-    parser.add_argument("--database", type=Path, help="development chat database (chat only)")
+    parser.add_argument(
+        "--database", type=Path, help="development conversation/initiative database"
+    )
     parser.add_argument(
         "--identity",
         choices=["owner", "friend", "guest"],
         default="owner",
-        help="DEVELOPMENT trusted host identity (chat only)",
+        help="DEVELOPMENT trusted host identity (chat/inbox)",
     )
     parser.add_argument("--conversation", type=UUID, help="resume owned conversation (chat only)")
     parser.add_argument("--model-provider", choices=["local", "fake"], help="chat provider")
     parser.add_argument("--local-endpoint", help="loopback OpenAI-compatible /v1 URL")
     parser.add_argument("--local-model", help="local server model name")
     args = parser.parse_args()
-    if args.command == "chat":
+    if args.command == "initiatives":
+        from jarvis.initiative_cli import run_inbox
+
+        if args.initiative_command is None:
+            parser.error("initiatives requires an inbox operation")
+        run_inbox(args)
+    elif args.command == "initiative-demo":
+        from jarvis.initiative_demo import run_initiative_demo
+
+        print(json.dumps(run_initiative_demo()))
+    elif args.command == "chat":
         from jarvis.chat import run_chat
 
         run_chat(args)

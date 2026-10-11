@@ -299,6 +299,12 @@ def decode_contract(serialized: str) -> Contract:
     data = json.loads(serialized)
     if not isinstance(data, dict):
         raise ValueError("contract must be a JSON object")
+    if isinstance(data.get("contract_type"), str) and data["contract_type"].startswith(
+        "initiative_"
+    ):
+        from jarvis.core.initiative_records import decode_initiative
+
+        return decode_initiative(serialized)
     if data.get("contract_type") in ("observation_input", "observation_source", "world_state") or (
         data.get("contract_type") == "observation" and data.get("schema_version") == 2
     ):

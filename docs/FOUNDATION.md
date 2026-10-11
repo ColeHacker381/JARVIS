@@ -118,8 +118,7 @@ retention periods, profiling rules, initiative thresholds and SLOs remain open.
 
 ## Next smallest milestone
 
-Phase 7 scoped world-event suggestions with explicit enable/pause controls, bounded
-intent and existing task/policy execution. Complete genuine local-model validation against
+Phase 8 durable simulated notifications with explicit recipient/channel policy. Complete genuine local-model validation against
 available weights/endpoint; Phase 5 offline/protocol checks cannot establish that.
 
 ## Validation performed
@@ -210,3 +209,23 @@ readiness demos, persisted-world fake chat, repeated schema 5 initialization,
 inspection and online backup passed from the checkout and a separately installed
 wheel outside it, with verified site-packages import. Hosted Python 3.12/3.13 CI
 results are reported on the PR; genuine inference remains separately unverified.
+
+
+Phase 7 adds bounded permission-governed initiative (AUTO-001/002/003), default
+observe-only, exact durable approval, narrow LOW simulated auto grants, private
+inbox and evidence-grounded cognitive explanations. It extends the existing
+journal/task/policy/evidence services with migration 6 and immutable execution
+guards, preserving current revocation and ambiguous-outcome review. Baseline:
+563 passing tests. See PHASE7.md for full validation, files, requirement mapping,
+three-process demo and deferred production choices; ADR-T08 is provisional.
+AUTO-002 continuous product behavior remains phased with finite host-scheduled
+passes. Phase 8 recommendation: simulated durable notifications and recipient/
+channel policies before actual external delivery.
+
+
+Final Phase 7 validation passed **640 tests** (77 added) on Python 3.12.14,
+frozen installation, Ruff lint/format, source/wheel build and whitespace checks.
+All seven demos, inbox list/show/approve, persisted initiative fake chat and
+repeated schema 6 initialization/inspection/online backup passed in the checkout
+and a separately installed wheel outside it. Hosted Python 3.12/3.13 results are
+reported with the PR. Genuine local model inference remains separately unverified.

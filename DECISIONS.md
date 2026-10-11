@@ -614,3 +614,38 @@ source enrollment/consent/retention, real hardware, calibrated confidence, initi
 thresholds and all previous OPEN decisions remain OPEN. No raw media processing,
 biometrics/person profiling, physical devices, autonomous initiative, distributed
 broker, cloud perception or genuine-model verification is claimed. See PHASE6.md.
+
+
+---
+
+## ADR-T08 — Provisional bounded initiative and exact durable approvals
+
+**Status:** Provisional implementation choices authorized for Phase 7;
+not final policy/risk taxonomy, authentication, scheduler, storage or retention.
+
+AUTO-001/002/003 and confirmed ADR-003/007/009/010/011/012 require finite,
+permission-scoped initiative around the existing authority/evidence/task kernel.
+Use trusted deterministic source/resource rules, observe-only default, exact
+single-use durable approvals, and separate narrowly revocable simulated LOW auto
+grants. Trusted catalog determines risk; no model recommendation grants authority.
+
+Reuse SQLite migration 6 with atomic event receipt/cursor/accepted intent and CAS
+lifecycle/history/journal/audit persistence. Suppression/rate/active state persists.
+Use stable submission keys and immutable persistent task prerequisite references;
+TaskManager's existing executor hook checks registered guards on every invocation,
+including general recovery. Unknown resolvers deny. Original evidence/revisions,
+current policy/grants, source/TTL, memory validity and approval bindings are checked
+before execution. Known outcomes finalize without repetition; ambiguous non-idempotent
+attempts use existing NEEDS_REVIEW. No parallel autonomous runner/retry engine exists.
+
+Extend bounded cognition/context with scoped initiative/result summaries and current
+reference checks; require independent initiative/world egress even for derived
+history. All actions remain simulated. Phase 1 protocol compatibility remains.
+
+Tests and the three-process demo cover enforcement, crashes between admission/
+submission/link/result/finalization, concurrency, revocation/regrant, uncertain
+or inaccessible evidence and default-deny cloud adapter calls. No arbitrary external
+exactly-once, permanent daemon, distributed claims, real sensors/messaging,
+biometrics/profiling or production authentication is established. No required new
+initiative IDs were missing; existing AUTO-001/002/003 apply. All previous OPEN and
+PROPOSED statuses remain unchanged. See docs/PHASE7.md for precise scope/limits.

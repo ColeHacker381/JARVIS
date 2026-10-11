@@ -51,6 +51,13 @@ class TaskManager:
         self.identities = identities
         self.executor = executor
         self.audit = audit
+        self._execution_guards = {}
+
+    def register_execution_guard(self, family, guard):
+        """Trusted runtime wiring only; never supplied by a model or serialized approval."""
+        if family in self._execution_guards or not callable(guard):
+            raise ValueError("execution guard already registered or invalid")
+        self._execution_guards[family] = guard
 
     def _owner_session(self, token: str, task: TaskRecord | None = None):
         session = self.identities.resolve_session(token)
@@ -136,6 +143,7 @@ class TaskManager:
         session_token: str,
         idempotency_key: str | None = None,
         correlation_id: UUID | None = None,
+        execution_guard_ref: str | None = None,
     ) -> TaskRecord:
         session = self._owner_session(session_token)
         if any(step.state != "NOT_STARTED" or step.attempts for step in steps):
@@ -146,6 +154,7 @@ class TaskManager:
             steps=steps,
             idempotency_key=idempotency_key,
             authority_refs=(f"principal:{session.principal_id}",),
+            execution_guard_ref=execution_guard_ref,
         )
         event, audit = self._records(task, "task.created", "created")
         task = self.store.create(task, event, audit)
@@ -386,6 +395,12 @@ class TaskManager:
                     }
                 )
                 try:
+                    if task.execution_guard_ref is not None:
+                        family = task.execution_guard_ref.split(":", 1)[0]
+                        guard = self._execution_guards.get(family)
+                        if guard is None:
+                            raise StorageError("task_guard_unavailable")
+                        guard(task, token)
                     task = self._commit(
                         task,
                         "RUNNING",

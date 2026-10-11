@@ -16,6 +16,7 @@ from jarvis.core.contracts import (
     ExecutionResult,
     Name,
 )
+from jarvis.core.initiative_records import InitiativeContext, InitiativeReference
 from jarvis.core.task_records import TaskState
 from jarvis.core.time import utc_now
 from jarvis.core.world_records import WorldContext, WorldReference
@@ -50,6 +51,7 @@ class ModelRequest(Contract):
     capabilities: Annotated[tuple[Capability, ...], Field(max_length=32)] = ()
     tasks: Annotated[tuple["TaskContext", ...], Field(max_length=3)] = ()
     world_states: Annotated[tuple[WorldContext, ...], Field(max_length=5)] = ()
+    initiatives: Annotated[tuple[InitiativeContext, ...], Field(max_length=3)] = ()
     max_output_tokens: Annotated[int, Field(ge=64, le=4096)] = 1024
 
 
@@ -127,6 +129,7 @@ class CognitiveResponse(Contract):
     provenance: ModelProvenance | None = None
     memory_ids: tuple[UUID, ...] = ()
     world_refs: Annotated[tuple[WorldReference, ...], Field(max_length=105)] = ()
+    initiative_refs: Annotated[tuple[InitiativeReference, ...], Field(max_length=63)] = ()
     task_id: UUID | None = None
     task_state: Name | None = None
     # ExecutionResult is the existing authoritative result envelope, not model text.
@@ -179,6 +182,7 @@ class ConversationTurn(Contract):
     # All context dependencies, including those inherited through recent history.
     memory_ids: tuple[UUID, ...] = ()
     world_refs: Annotated[tuple[WorldReference, ...], Field(max_length=105)] = ()
+    initiative_refs: Annotated[tuple[InitiativeReference, ...], Field(max_length=63)] = ()
     task_id: UUID | None = None
     response: CognitiveResponse | None = None
 
@@ -203,6 +207,7 @@ class ConversationTurn(Contract):
             or self.response.provenance != self.provenance
             or not set(self.response.memory_ids) <= set(self.memory_ids)
             or not set(self.response.world_refs) <= set(self.world_refs)
+            or not set(self.response.initiative_refs) <= set(self.initiative_refs)
         ):
             raise ValueError("turn outcome/provenance binding mismatch")
         return self
@@ -223,32 +228,6 @@ COGNITIVE_TYPES = {
 def decode_cognitive(serialized: str) -> Contract:
     data = json.loads(serialized)
 
-    # Require explicit versions on every contract, without interpreting arbitrary content JSON.
-    def explicit(value, model):
-        if not isinstance(value, dict) or type(value.get("schema_version")) is not int:
-            raise ValueError("explicit cognitive version required")
-        if value["schema_version"] != 1:
-            raise ValueError("unsupported cognitive version")
-        for name, field in model.model_fields.items():
-            nested = value.get(name)
-            if nested is None:
-                continue
-            # Only declared contracts; content/argument objects are data, not envelopes.
-            annotation = field.annotation
-            origin = get_origin(annotation)
-            if origin is types.UnionType:
-                annotation = next((a for a in get_args(annotation) if a is not type(None)), None)
-                origin = get_origin(annotation)
-            if origin is tuple:
-                item_type = get_args(annotation)[0]
-                if isinstance(item_type, type) and issubclass(item_type, Contract):
-                    if not isinstance(nested, list):
-                        raise ValueError("contract array required")
-                    for item in nested:
-                        explicit(item, item_type)
-            elif isinstance(annotation, type) and issubclass(annotation, Contract):
-                explicit(nested, annotation)
-
     if (
         not isinstance(data, dict)
         or not isinstance(data.get("contract_type"), str)
@@ -256,5 +235,31 @@ def decode_cognitive(serialized: str) -> Contract:
     ):
         raise ValueError("unknown cognitive contract")
     model = COGNITIVE_TYPES[data["contract_type"]]
-    explicit(data, model)
+    explicit_versions(data, model)
     return model.model_validate_json(serialized)
+
+
+def explicit_versions(value, model):
+    if not isinstance(value, dict) or type(value.get("schema_version")) is not int:
+        raise ValueError("explicit cognitive version required")
+    if value["schema_version"] != 1:
+        raise ValueError("unsupported cognitive version")
+    for name, field in model.model_fields.items():
+        nested = value.get(name)
+        if nested is None:
+            continue
+        # Only declared contracts; content/argument objects are data, not envelopes.
+        annotation = field.annotation
+        origin = get_origin(annotation)
+        if origin is types.UnionType:
+            annotation = next((a for a in get_args(annotation) if a is not type(None)), None)
+            origin = get_origin(annotation)
+        if origin is tuple:
+            item_type = get_args(annotation)[0]
+            if isinstance(item_type, type) and issubclass(item_type, Contract):
+                if not isinstance(nested, list):
+                    raise ValueError("contract array required")
+                for item in nested:
+                    explicit_versions(item, item_type)
+        elif isinstance(annotation, type) and issubclass(annotation, Contract):
+            explicit_versions(nested, annotation)

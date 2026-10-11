@@ -17,7 +17,7 @@ from jarvis.identity import IdentityError
 from jarvis.storage.errors import StorageError
 from jarvis.tasks import TaskBusyError, TaskConflictError
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 
 class DuplicateEventError(StorageError):
@@ -174,6 +174,49 @@ MIGRATIONS = {
         *(
             f"""CREATE TRIGGER observations_no_{op.lower()} BEFORE {op} ON observations
             BEGIN SELECT RAISE(ABORT, 'immutable_evidence'); END"""
+            for op in ("UPDATE", "DELETE")
+        ),
+    ),
+    6: (
+        """CREATE TABLE initiative_policies (policy_id TEXT PRIMARY KEY, principal_id TEXT NOT NULL
+            REFERENCES security_principals(principal_id), revision INTEGER NOT NULL,
+            data TEXT NOT NULL)""",
+        """CREATE TABLE initiative_cursors (policy_id TEXT PRIMARY KEY REFERENCES
+            initiative_policies(policy_id),
+            sequence INTEGER NOT NULL DEFAULT 0)""",
+        """CREATE TABLE initiatives (initiative_id TEXT PRIMARY KEY, owner_id TEXT NOT NULL
+            REFERENCES security_principals(principal_id), correlation_id TEXT NOT NULL,
+            policy_id TEXT NOT NULL REFERENCES initiative_policies(policy_id),
+            deduplication_key TEXT NOT NULL,
+            state TEXT NOT NULL, revision INTEGER NOT NULL, created_at TEXT NOT NULL,
+            data TEXT NOT NULL)""",
+        ("CREATE INDEX initiatives_owner ON initiatives(owner_id,created_at,initiative_id)"),
+        ("CREATE INDEX initiatives_dedup ON initiatives(owner_id,deduplication_key,created_at)"),
+        """CREATE TABLE initiative_receipts (policy_id TEXT NOT NULL REFERENCES
+            initiative_policies(policy_id),
+            event_id TEXT NOT NULL REFERENCES events(event_id), sequence INTEGER NOT
+            NULL,
+            initiative_id TEXT REFERENCES initiatives(initiative_id), reason_code
+            TEXT NOT NULL,
+            PRIMARY KEY(policy_id,event_id))""",
+        """CREATE TABLE initiative_suppressions (suppression_id TEXT PRIMARY KEY,
+            principal_id TEXT NOT NULL, policy_id TEXT NOT NULL, event_id TEXT NOT NULL,
+            data TEXT NOT NULL)""",
+        """CREATE TABLE initiative_history (sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+            initiative_id TEXT NOT NULL REFERENCES initiatives(initiative_id),
+            revision INTEGER NOT NULL,
+            data TEXT NOT NULL, UNIQUE(initiative_id,revision))""",
+        """CREATE TRIGGER initiatives_revision BEFORE UPDATE ON initiatives
+            WHEN NEW.revision != OLD.revision+1 OR NEW.owner_id != OLD.owner_id
+            OR NEW.initiative_id != OLD.initiative_id OR NEW.correlation_id !=
+            OLD.correlation_id
+            OR NEW.policy_id != OLD.policy_id OR NEW.created_at != OLD.created_at
+            OR NEW.deduplication_key != OLD.deduplication_key
+            BEGIN SELECT RAISE(ABORT, 'immutable_initiative'); END""",
+        *(
+            f"""CREATE TRIGGER {table}_no_{op.lower()} BEFORE {op} ON {table}
+            BEGIN SELECT RAISE(ABORT, 'append_only'); END"""
+            for table in ("initiative_history", "initiative_receipts", "initiative_suppressions")
             for op in ("UPDATE", "DELETE")
         ),
     ),
@@ -511,7 +554,10 @@ class SQLiteTaskStore:
                 ).fetchone()
                 if existing is not None:
                     previous = _decode_task_row(existing)
-                    if _plan_hash(previous) != _plan_hash(task):
+                    if (
+                        _plan_hash(previous) != _plan_hash(task)
+                        or previous.execution_guard_ref != task.execution_guard_ref
+                    ):
                         raise IdempotencyConflictError("idempotency_key_plan_conflict")
                     return previous
             connection.execute(
@@ -566,12 +612,14 @@ class SQLiteTaskStore:
                 task.correlation_id,
                 task.idempotency_key,
                 task.created_at,
+                task.execution_guard_ref,
                 _plan_hash(task),
             ) != (
                 old.owner_id,
                 old.correlation_id,
                 old.idempotency_key,
                 old.created_at,
+                old.execution_guard_ref,
                 _plan_hash(old),
             ):
                 raise ValueError("immutable task identity/plan changed")
