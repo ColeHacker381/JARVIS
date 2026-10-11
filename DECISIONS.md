@@ -692,3 +692,42 @@ rollback/migration, hostile content, current cognitive dependencies and approval
 separation. Final owner decisions on authentication, providers/address policies,
 urgency classifications, reconciliation, retention and permanent scheduling remain
 OPEN. No real external message, hardware or automatic privilege change is added.
+
+---
+
+## ADR-T10 — Provisional integrated single-host runtime and local development API
+
+**Status:** Provisional implementation choices explicitly authorized for Phase 9;
+not production authentication, final API/storage/scheduler or public deployment.
+**Date:** 2026-10-11
+
+ARCH-001–004, current independent authorization and recoverable tasks require a
+shared composition boundary. Move existing development composition to Application,
+retain compatibility wrappers, and bind existing Phase 2–8 services once for CLI,
+HTTP, scheduler and tests. Keep TaskManager/CapabilityExecutor as the sole handler
+path and register domain prerequisite guards before recovery. A finite serial
+single-host scheduler invokes current-authorized domain passes; no new autonomous
+LLM loop, duplicated retry engine or automatically activated policy exists.
+
+Use validated explicit-file/environment/CLI settings and loopback FastAPI/Uvicorn
+HTTP v1 with strict versioned contracts, owned bounded reads, sanitized errors,
+protected generated OpenAPI, Host/browser defenses and bounded request/body limits.
+Migration 8 adds immutable high-entropy credential-hash/session/kind bindings and
+irreversible revocations without granting authority. Trusted host-only explicit
+development provisioning writes new private files; HTTP accepts no role/session
+claim or issuer. Persisted current principal/session/grants/expiry remain decisive.
+Production IAM-005/PER-004 remain OPEN and this API cannot authenticate internet users.
+
+Validate existing compatible storage/authority before readiness; optional model/
+worker failures degrade explicitly, authoritative corruption fails closed. Doctor
+does not create storage, credentials, grants or effects. Signals stop admission,
+drain tracked request/worker futures to one deadline and preserve uncertain tasks
+on actual forced exit. Current owner diagnostics expose numeric bounded samples,
+not private global histories. Backup uses existing SQLite online backup and explicit
+separate-destination restore; no live-WAL copy or security reset is added.
+
+Documentation references are generated from actual interfaces and checked in CI;
+two-process runtime-demo exercises real local services/persistence with simulation.
+No real model inference, external messaging/hardware, public listener, distributed
+leases, production systemd containment, physical retention or universal exactly-once
+guarantee is inferred. All previous ACCEPTED, PROPOSED and OPEN statuses are preserved.

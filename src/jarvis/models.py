@@ -177,6 +177,36 @@ class OpenAILocalModel:
         self._transport = transport
         self.metrics = metrics or NullMetrics()
 
+    async def available(self) -> bool:
+        """Bounded advertised-model probe; availability does not establish inference."""
+        try:
+            async with (
+                asyncio.timeout(min(3, self.timeout)),
+                httpx.AsyncClient(
+                    timeout=min(3, self.timeout),
+                    trust_env=False,
+                    follow_redirects=False,
+                    transport=self._transport,
+                ) as client,
+            ):
+                async with client.stream("GET", self.endpoint + "/models") as response:
+                    if response.status_code != 200:
+                        return False
+                    body = bytearray()
+                    async for part in response.aiter_bytes():
+                        body.extend(part)
+                        if len(body) > 65536:
+                            return False
+            records = json.loads(body)["data"]
+            return (
+                isinstance(records, list)
+                and len(records) <= 1024
+                and all(isinstance(record, dict) for record in records)
+                and any(record.get("id") == self.identity.model_id for record in records)
+            )
+        except (TimeoutError, httpx.HTTPError, ValueError, KeyError, TypeError):
+            return False
+
     async def complete(self, request: ModelRequest) -> str:
         schema = CognitiveDecision.model_json_schema()
         for envelope in (schema, *schema.get("$defs", {}).values()):

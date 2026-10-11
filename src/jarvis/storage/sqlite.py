@@ -17,7 +17,7 @@ from jarvis.identity import IdentityError
 from jarvis.storage.errors import StorageError
 from jarvis.tasks import TaskBusyError, TaskConflictError
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 
 class DuplicateEventError(StorageError):
@@ -290,6 +290,23 @@ MIGRATIONS = {
 }
 
 
+# Explicit local-API credential boundary; migration does not issue or grant authority.
+MIGRATIONS[8] = (
+    "CREATE TABLE local_api_credentials (credential_id TEXT PRIMARY KEY, "
+    "token_hash TEXT UNIQUE NOT NULL, "
+    "session_id TEXT NOT NULL REFERENCES security_sessions(session_id), "
+    "kind TEXT NOT NULL CHECK(kind IN ('client','worker')), created_at TEXT NOT NULL, "
+    "revoked_at TEXT)",
+    "CREATE TRIGGER local_credential_no_delete BEFORE DELETE ON local_api_credentials "
+    "BEGIN SELECT RAISE(ABORT,'credential history is retained'); END",
+    "CREATE TRIGGER local_credential_immutable BEFORE UPDATE ON local_api_credentials "
+    "WHEN NEW.credential_id IS NOT OLD.credential_id OR NEW.token_hash IS NOT OLD.token_hash "
+    "OR NEW.session_id IS NOT OLD.session_id OR NEW.kind IS NOT OLD.kind "
+    "OR NEW.created_at IS NOT OLD.created_at OR OLD.revoked_at IS NOT NULL "
+    "BEGIN SELECT RAISE(ABORT,'credential binding is immutable'); END",
+)
+
+
 @contextmanager
 def _file_lock(path: Path, *, blocking: bool = False) -> Iterator[None]:
     """Crash-released local exclusion; nonblocking by default. Never use on network filesystems."""
@@ -406,6 +423,14 @@ class SQLiteDatabase:
             source.close()
             if target is not None:
                 target.close()
+
+    def verify(self) -> None:
+        """Read-only SQLite integrity/schema/FK check, not semantic source verification."""
+        with self.transaction() as c:
+            if c.execute("PRAGMA integrity_check").fetchall()[0][0] != "ok":
+                raise StorageError("database_integrity_failed")
+            if c.execute("PRAGMA foreign_key_check").fetchone() is not None:
+                raise StorageError("database_foreign_key_failed")
 
 
 def _event_data(event: Event) -> str:
@@ -738,6 +763,29 @@ class SQLiteTaskStore:
                 "SELECT * FROM tasks WHERE task_id=?", (str(task_id),)
             ).fetchone()
             return _decode_task_row(row) if row is not None else None
+
+    def get_owned(self, task_id, owner_id):
+        with self.database.transaction() as c:
+            row = c.execute(
+                "SELECT * FROM tasks WHERE task_id=? AND owner_id=?", (str(task_id), str(owner_id))
+            ).fetchone()
+            return _decode_task_row(row) if row else None
+
+    def list_owned(self, owner_id, *, limit=20, after=None, unfinished=False):
+        with self.database.transaction() as c:
+            rows = c.execute(
+                "SELECT * FROM tasks WHERE owner_id=? AND (? IS NULL OR task_id>?) "
+                "AND (?=0 OR state NOT IN ('COMPLETED','FAILED','CANCELLED','NEEDS_REVIEW')) "
+                "ORDER BY task_id LIMIT ?",
+                (
+                    str(owner_id),
+                    str(after) if after else None,
+                    str(after) if after else None,
+                    int(unfinished),
+                    limit,
+                ),
+            ).fetchall()
+            return tuple(_decode_task_row(row) for row in rows)
 
     def all(self) -> tuple[TaskRecord, ...]:
         with self.database.transaction() as connection:

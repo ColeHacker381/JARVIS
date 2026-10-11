@@ -2,6 +2,11 @@
 
 This roadmap sequences implementation without pretending unresolved choices are settled.
 
+Phase 9 now integrates the local always-on development runtime, authenticated
+loopback API, bounded scheduler, diagnostics and developer/operator documentation.
+See [documentation index](docs/README.md), [v0.9 release report](docs/releases/v0.9.md)
+and provisional ADR-T10. Production authentication and real integrations remain OPEN.
+
 Current progress: Phase 0/1 tooling and validated contracts plus the Phase 2
 in-memory identity, owner grant/revoke, deterministic policy, validated execution,
 and audit pipeline are implemented. `jarvis demo` exercises simulated capabilities.
@@ -16,7 +21,8 @@ and actual separate-process verification (`jarvis memory-demo`). See docs/PHASE4
 and ADR-T05. Phase 5 implements bounded cognition/context building, fake/local
 model adapters, isolated persistent conversations and text CLI (docs/PHASE5.md,
 provisional ADR-T06). Offline and protocol checks are implemented; genuine model
-inference here remains unverified because weight downloads are blocked. Phase 6 now adds a persistent evidence-based world model, simulated sensors,
+inference remains unverified; earlier weight-download attempts were blocked.
+Phase 6 now adds a persistent evidence-based world model, simulated sensors,
 scoped cognitive world context and a two-process world-demo (docs/PHASE6.md, ADR-T07).
 Production exposure still requires trusted authentication/provisioning and collection policies.
 
@@ -297,7 +303,24 @@ Provider choice remains open.
 
 ---
 
-## Phase 9 — Real Sensors and EDITH-Style Wearables
+## Phase 9 — Integrated Runtime, Local API and Documentation
+
+**Implemented local development slice:** shared composition root; explicit
+credential-bound current sessions; loopback HTTP v1; finite non-overlapping
+initiative/notification/task recovery; readiness/owner metrics; bounded graceful
+shutdown; same-store restart; online backup/restore and coherent checked docs.
+Migration 8 preserves all authority/state and adds revocable credential bindings.
+No model-driven privileges or automatic policy activation are introduced.
+
+**Limits:** fake/local-only models, no verified genuine inference in this cloud
+workspace, no production authentication/public exposure/distributed scheduler or
+real external effects. All final runtime/auth/API decisions remain OPEN.
+
+## Deferred proposal — Real Sensors and EDITH-Style Wearables
+
+The earlier Phase 9 proposal is retained here as deferred potential work. The
+explicit Phase 9 request selected integration instead; no hardware is authorized
+by this roadmap entry.
 
 **Goal:** connect authorized environmental awareness.
 
@@ -319,7 +342,15 @@ Provider choice remains open.
 
 ---
 
-## Phase 10 — Social Intelligence
+## Phase 10 recommendation — Deployment Identity and Genuine Local-Model Acceptance
+
+Validate an available real local model end to end; decide production owner
+provisioning/session authentication, deployment threat model, credential rotation
+and reconciliation/retention policy before privileged real integrations. A
+narrowly enrolled sensor may follow explicit collection/retention decisions.
+This is a recommendation, not an accepted architectural decision.
+
+## Deferred proposal — Social Intelligence
 
 **Goal:** improve JARVIS's understanding of people and relationships without weakening privacy.
 

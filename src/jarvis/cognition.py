@@ -16,14 +16,14 @@ from jarvis.core.contracts import ActionProposal, AuditRecord, ErrorDetail, Sess
 from jarvis.core.task_records import TaskStep
 from jarvis.execution import validate_capability_arguments
 from jarvis.identity import IdentityError
-from jarvis.initiative import describe_initiatives, is_initiative_question
+from jarvis.initiative import InitiativeError, describe_initiatives, is_initiative_question
 from jarvis.memory import MemoryError
 from jarvis.models import ModelError
-from jarvis.notifications import describe_notifications, is_notification_question
+from jarvis.notifications import NotificationError, describe_notifications, is_notification_question
 from jarvis.observability import AuditWriteError, write_audit
 from jarvis.storage.errors import StorageError
 from jarvis.tasks import TaskConflictError
-from jarvis.world_state import describe_world, is_world_question
+from jarvis.world_state import WorldError, describe_world, is_world_question
 
 
 class ProposalSource(Protocol):
@@ -31,6 +31,30 @@ class ProposalSource(Protocol):
 
 
 class CognitiveCoordinator:
+    def history(self, conversation_id, *, session_token, limit=20):
+        """User-facing history rechecks all private context dependencies before reuse."""
+        records = self.conversations.recent(
+            conversation_id, session_token=session_token, limit=limit
+        )
+        visible = []
+        for turn in records:
+            try:
+                self.context.ensure_current(
+                    turn.memory_ids,
+                    session_token=session_token,
+                    world_refs=turn.world_refs,
+                    initiative_refs=turn.initiative_refs,
+                    notification_refs=turn.notification_refs,
+                )
+            except (MemoryError, WorldError, InitiativeError, NotificationError):
+                continue
+            except ConversationError as exc:
+                if exc.code != "context_authorization_changed":
+                    raise
+                continue
+            visible.append(turn)
+        return tuple(visible)
+
     def __init__(self, *, conversations, context, models, tasks, audit, defer_actions=False):
         if tasks.identities is not conversations.identities or (
             context.identities is not conversations.identities
