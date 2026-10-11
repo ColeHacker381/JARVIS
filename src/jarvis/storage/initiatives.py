@@ -337,6 +337,37 @@ class SQLiteInitiativeStore:
             )
         return record
 
+    def _execution_limits(self, record, policy, now, *, access):
+        """Current execution budget, under the shared security claim, before invocation."""
+        self._guard(access)
+        with self.database.transaction() as c:
+            # Only this principal's durable admitted slots, one per immutable initiative.
+            # Reservations survive crashes and conservatively consume budget before effects.
+            count = c.execute(
+                "SELECT count(*) FROM initiatives WHERE owner_id=? AND initiative_id!=? "
+                "AND julianday(json_extract(data,'$.execution.admitted_at'))>julianday(?)",
+                (
+                    str(record.owner_id),
+                    str(record.initiative_id),
+                    timestamp(now - timedelta(seconds=policy.rate_window_seconds)),
+                ),
+            ).fetchone()[0]
+            cooldown = c.execute(
+                "SELECT 1 FROM initiatives WHERE owner_id=? AND initiative_id!=? "
+                "AND deduplication_key=? AND "
+                "julianday(json_extract(data,'$.execution.admitted_at'))>julianday(?) LIMIT 1",
+                (
+                    str(record.owner_id),
+                    str(record.initiative_id),
+                    record.proposal.deduplication_key,
+                    timestamp(now - timedelta(seconds=policy.cooldown_seconds)),
+                ),
+            ).fetchone()
+            if count >= policy.rate_limit:
+                raise StorageError("execution_rate_limit")
+            if cooldown:
+                raise StorageError("execution_cooldown")
+
     def _save(self, old, new, session_id, *, access):
         self._guard(access)
         new = decode_initiative(new.model_dump_json())

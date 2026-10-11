@@ -223,7 +223,7 @@ passes. Phase 8 recommendation: simulated durable notifications and recipient/
 channel policies before actual external delivery.
 
 
-Final Phase 7 validation passed **640 tests** (77 added) on Python 3.12.14,
+Final Phase 7 validation passed **642 tests** (79 added) on Python 3.12.14,
 frozen installation, Ruff lint/format, source/wheel build and whitespace checks.
 All seven demos, inbox list/show/approve, persisted initiative fake chat and
 repeated schema 6 initialization/inspection/online backup passed in the checkout

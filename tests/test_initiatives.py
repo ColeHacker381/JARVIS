@@ -1069,3 +1069,50 @@ def test_unsupported_outer_trigger_event_version_fails_without_receipt(rt, versi
         rt.initiatives.process(session_token=rt.owner.token)
     assert rt.initiatives._store._cursor(p.policy_id, access=rt.initiatives._access) == 0
     assert not rt.notices.calls
+
+
+@pytest.mark.parametrize("mode", ["APPROVAL_REQUIRED", "AUTO_EXECUTE"])
+def test_delayed_proposals_recheck_durable_execution_rate_at_invocation(rt, mode):
+    p = install_policy(
+        rt,
+        rt.owner,
+        "first",
+        mode=mode,
+        capability="development.simulated_notice",
+        arguments={"text": "first"},
+        rate_limit=1,
+        rate_window_seconds=5,
+        cooldown_seconds=1,
+        expires_seconds=300,
+    )
+    if mode == "AUTO_EXECUTE":
+        grant(rt, "initiatives.auto:first")
+    first = candidate(rt, p, execute=False)
+    if mode == "APPROVAL_REQUIRED":
+        first = approve(rt, first)
+    rt.world.clock.advance(6)
+    p = install_policy(
+        rt,
+        rt.owner,
+        "second",
+        mode=mode,
+        capability="development.simulated_notice",
+        arguments={"text": "second"},
+        rate_limit=1,
+        rate_window_seconds=5,
+        cooldown_seconds=1,
+        expires_seconds=300,
+    )
+    if mode == "AUTO_EXECUTE":
+        grant(rt, "initiatives.auto:second")
+    second = candidate(rt, p, execute=False)
+    if mode == "APPROVAL_REQUIRED":
+        second = approve(rt, second)
+    completed = execute(rt, first)
+    assert completed.state == "COMPLETED" and completed.execution.admitted_at == rt.world.clock()
+    fresh = reopen(rt)
+    blocked = execute(fresh, second)
+    assert blocked.state == "FAILED" and blocked.decision.reason_code == "execution_rate_limit"
+    assert rt.notices.calls == ["first"] and not fresh.notices.calls
+    assert fresh.tasks.store.get(blocked.execution.task_id).state == "CANCELLED"
+    assert execute(fresh, completed).state == "COMPLETED" and not fresh.notices.calls

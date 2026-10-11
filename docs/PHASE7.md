@@ -161,7 +161,13 @@ per-observation UUID/revision. Thus repeated fresh reports cannot cause a burst 
 actions. Cooldowns (default 60s), all-policy principal rate windows (default 10/h),
 and active-count limits (default 10) use persisted state and transactional admission.
 Failed admitted proposals also consume rate/cooldown budget; SUPPRESSED records do
-not. A new supported observation after cooldown may create a new opportunity.
+not. At the actual first invocation, the guard independently checks current principal
+execution-rate and per-key cooldown windows and commits `admitted_at` with the
+initiative's CAS/event/audit transaction before the task attempt/handler. Delayed
+approvals and deferred automatic proposals cannot accumulate outside an admission
+window and then bypass execution limits. Crash reservations conservatively consume
+budget; the same bound task's safe recovery reuses its slot after current authority/
+evidence checks. A rate denial cancels its task, persists FAILED and invokes nothing. A new supported observation after cooldown may create a new opportunity.
 Duplicates already consumed have durable receipts even after cooldown/restart.
 Suppression/history are retained; physical purge/retention periods remain OPEN.
 
@@ -235,7 +241,7 @@ real-model inference is optional for Phase 7 and separately unverified here.
 ## Validation and demonstration
 
 Baseline: **563 passing tests** before implementation. Final full suite:
-**640 passed**, **77 added**, on Python 3.12.14 (65.85s). Frozen installation,
+**642 passed**, **79 added**, on Python 3.12.14. Frozen installation,
 Ruff lint/format, whitespace checks, source distribution and wheel build passed.
 All seven demos, inbox show/list/approve, persisted fake chat, repeated schema 6
 initialization, inspection, online backup and backup inspection passed from the

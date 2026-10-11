@@ -202,6 +202,7 @@ class InitiativeExecutionRecord(Contract):
     task_state: Name
     result: ExecutionResult | None = None
     recovery: bool = False
+    admitted_at: AwareDatetime | None = None
 
 
 class InitiativeSuppressionRecord(Contract):

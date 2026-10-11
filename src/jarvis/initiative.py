@@ -77,6 +77,7 @@ class InitiativeStore(Protocol):
     def _get(self, initiative_id, owner_id, *, access): ...
     def _list(self, owner_id, *, limit, active=False, state=None, terms=None, access): ...
     def _accept(self, policy, event, sequence, expected_cursor, record, session_id, *, access): ...
+    def _execution_limits(self, record, policy, now, *, access): ...
     def _save(self, old, new, session_id, *, access): ...
     def _claim(self, initiative_id, *, access): ...
     def _history(self, initiative_id, owner_id, *, limit, access): ...
@@ -640,6 +641,13 @@ class InitiativeEngine:
             approval = approval.model_copy(
                 update={"state": "EXPIRED" if "expired" in code else "INVALIDATED"}
             )
+        execution = record.execution
+        if execution is not None:
+            task = self.tasks.store.get(execution.task_id)
+            if task is not None and task.owner_id == record.owner_id:
+                execution = execution.model_copy(
+                    update={"task_state": task.state, "result": task.steps[0].result}
+                )
         return self._change(
             record,
             session,
@@ -647,6 +655,7 @@ class InitiativeEngine:
             code,
             disposition="deny",
             approval=approval,
+            execution=execution,
         )
 
     def evaluate(self, initiative_id, *, session_token, execute=True):
@@ -785,14 +794,29 @@ class InitiativeEngine:
                     or task.steps[0].arguments != record.proposal.action.arguments
                 ):
                     raise InitiativeError("task_initiative_binding_invalid")
-                self._revalidate(record, session, token, execution=True)
+                policy = self._revalidate(record, session, token, execution=True)
+                if record.execution.admitted_at is None:
+                    self._store._execution_limits(record, policy, self.clock(), access=self._access)
+                    self._change(
+                        record,
+                        session,
+                        "EXECUTING",
+                        "execution_admitted",
+                        execution=record.execution.model_copy(update={"admitted_at": self.clock()}),
+                    )
         except (InitiativeError, WorldError, MemoryError) as exc:
             raise StorageError(exc.code) from None
 
     def _outcome(self, record, session, task, *, recovery=False):
+        # A trusted guard can commit admission during TaskManager invocation.
+        record = self._load(record.initiative_id, session)
         result = task.steps[0].result
         execution = InitiativeExecutionRecord(
-            task_id=task.task_id, task_state=task.state, result=result, recovery=recovery
+            task_id=task.task_id,
+            task_state=task.state,
+            result=result,
+            recovery=recovery,
+            admitted_at=record.execution.admitted_at if record.execution else None,
         )
         states = {
             "COMPLETED": "COMPLETED",
@@ -904,7 +928,11 @@ class InitiativeEngine:
                 if run.task:
                     return self._outcome(record, session, run.task, recovery=run.task.attempt > 1)
                 if run.status == "busy":
-                    return record
+                    return self._load(initiative_id, session)
+                if run.error and run.error.code in {"execution_rate_limit", "execution_cooldown"}:
+                    self.tasks.cancel(record.execution.task_id, session_token=session_token)
+                    record = self._load(initiative_id, session)
+                    return self._blocked(record, session, run.error.code)
                 raise InitiativeError(run.error.code if run.error else "task_failed")
 
     def recover(self, *, session_token, limit=100):
