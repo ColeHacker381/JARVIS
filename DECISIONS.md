@@ -649,3 +649,46 @@ exactly-once, permanent daemon, distributed claims, real sensors/messaging,
 biometrics/profiling or production authentication is established. No required new
 initiative IDs were missing; existing AUTO-001/002/003 apply. All previous OPEN and
 PROPOSED statuses remain unchanged. See docs/PHASE7.md for precise scope/limits.
+
+
+---
+
+## ADR-T09 — Provisional scoped durable notifications and local simulated channels
+
+**Status:** Provisional implementation choices authorized for Phase 8; final
+providers, severity/urgent policy, authentication, scheduling, storage, retention
+and review-resolution semantics remain OPEN. ADR-P04 remains PROPOSED.
+**Date:** 2026-10-11
+
+COM-001's capability-dependent urgency behavior and accepted ADR-004/006/007/009/
+010/012 require trusted recipients, current source authorization, durable intent
+and observable outcomes independent of model claims. Reuse existing strict v1
+contracts, policy/identity, tasks/executor, scoped sources and the SQLite journal.
+Reference-only requests derive content from real task/initiative/memory/world
+services; owner policies pin origin/recipient/channel/priority. Inbox admission
+commits first, with separate read/ack/dismiss/expiry and transport states.
+
+Migration 7 preserves authority/data without new grants. Bounded origin-owned
+history receipts/cursors/admission and suppression are atomic; attempts/interactions
+use CAS/event/audit commits. Existing TaskManager alone handles invocation/recovery.
+Persistent notification task guards and registry-required guard families protect
+transport execution, including direct tools/general recovery. Current source,
+principal/grants, policy/preferences, local-time quiet hours and durable rate
+reservations precede sends. Idempotent simulated channels retain key/payload/result
+ledgers; unknown non-idempotent outcomes require review. Exactly-once external
+transport semantics are not claimed. Local POSIX claims are not distributed leases.
+
+Bound quiet-hour scheduling evaluates real UTC instants in recipient IANA zones,
+including midnight, gaps and folds. URGENT exceptions require explicit trusted
+policy; priority never grants action authority. Initiative notifications link to
+existing approval services; acknowledgement is never approval. Bounded cognitive
+summaries revalidate notification AND current source dependencies, including history.
+A separate notification-egress grant plus conservative source classes protects
+future cloud model calls; no real/cloud notification channel is installed.
+
+Tests and the three-process offline demo cover actual authorization/non-invocation,
+privacy/revocation, race/crash recovery, quiet hours/DST, bounded replay/rates/queues,
+rollback/migration, hostile content, current cognitive dependencies and approval
+separation. Final owner decisions on authentication, providers/address policies,
+urgency classifications, reconciliation, retention and permanent scheduling remain
+OPEN. No real external message, hardware or automatic privilege change is added.

@@ -19,6 +19,7 @@ from jarvis.identity import IdentityError
 from jarvis.initiative import describe_initiatives, is_initiative_question
 from jarvis.memory import MemoryError
 from jarvis.models import ModelError
+from jarvis.notifications import describe_notifications, is_notification_question
 from jarvis.observability import AuditWriteError, write_audit
 from jarvis.storage.errors import StorageError
 from jarvis.tasks import TaskConflictError
@@ -76,11 +77,23 @@ class CognitiveCoordinator:
             decision = CognitiveDecision(
                 kind="direct", text=describe_initiatives(request.initiatives)
             )
+        if (
+            self.context.notifications is not None
+            and is_notification_question(request.messages[-1].content)
+            and (
+                request.notifications
+                or "waiting for my approval" not in request.messages[-1].content.casefold()
+            )
+        ):
+            decision = CognitiveDecision(
+                kind="direct", text=describe_notifications(request.notifications)
+            )
         # Render environmental replies from verified state, never arbitrary model claims.
         if (
             request.world_states
             and decision.action is None
             and decision.kind != "failure"
+            and not is_notification_question(request.messages[-1].content)
             and not is_initiative_question(request.messages[-1].content)
         ):
             decision = CognitiveDecision(
@@ -90,6 +103,7 @@ class CognitiveCoordinator:
             )
         elif (
             self.context.world is not None
+            and not is_notification_question(request.messages[-1].content)
             and not is_initiative_question(request.messages[-1].content)
             and is_world_question(request.messages[-1].content)
             and decision.action is None
@@ -133,6 +147,7 @@ class CognitiveCoordinator:
                         session_token=session_token,
                         world_refs=turn.world_refs,
                         initiative_refs=turn.initiative_refs,
+                        notification_refs=turn.notification_refs,
                     )
                     return turn.response  # Request replay cannot repeat any model call or action.
                 if not fresh and turn.state == "RECEIVED":
@@ -160,6 +175,7 @@ class CognitiveCoordinator:
                             contains_memory=bool(built.memory_ids),
                             contains_world=bool(built.world_refs),
                             contains_initiatives=bool(built.initiative_refs),
+                            contains_notifications=bool(built.notification_refs),
                         )
                     except asyncio.CancelledError:
                         response = self._response(
@@ -186,6 +202,7 @@ class CognitiveCoordinator:
                         session_token=session_token,
                         world_refs=built.world_refs,
                         initiative_refs=built.initiative_refs,
+                        notification_refs=built.notification_refs,
                     )
                     decision = self._validate(raw, built.request)
                     turn = self.conversations._save(
@@ -197,12 +214,14 @@ class CognitiveCoordinator:
                         memory_ids=built.memory_ids,
                         world_refs=built.world_refs,
                         initiative_refs=built.initiative_refs,
+                        notification_refs=built.notification_refs,
                     )
                 self.context.ensure_current(
                     turn.memory_ids,
                     session_token=session_token,
                     world_refs=turn.world_refs,
                     initiative_refs=turn.initiative_refs,
+                    notification_refs=turn.notification_refs,
                 )
                 if turn.decision.action is None:
                     decision = turn.decision
@@ -213,6 +232,7 @@ class CognitiveCoordinator:
                         memory_ids=decision.memory_ids,
                         world_refs=turn.world_refs,
                         initiative_refs=turn.initiative_refs,
+                        notification_refs=turn.notification_refs,
                         error=decision.error,
                         audit_ids=self._refs(turn.correlation_id),
                     )

@@ -118,7 +118,8 @@ retention periods, profiling rules, initiative thresholds and SLOs remain open.
 
 ## Next smallest milestone
 
-Phase 8 durable simulated notifications with explicit recipient/channel policy. Complete genuine local-model validation against
+Phase 9 one explicitly authorized real sensor adapter after enrollment, collection
+and retention decisions. Complete genuine local-model validation against
 available weights/endpoint; Phase 5 offline/protocol checks cannot establish that.
 
 ## Validation performed
@@ -229,3 +230,22 @@ All seven demos, inbox list/show/approve, persisted initiative fake chat and
 repeated schema 6 initialization/inspection/online backup passed in the checkout
 and a separately installed wheel outside it. Hosted Python 3.12/3.13 results are
 reported with the PR. Genuine local model inference remains separately unverified.
+
+
+Phase 8 builds on the **642 passing test baseline** with locally persistent scoped
+notifications, recipient preferences and simulated channels, using existing tasks/
+executor guards and current source authority. Read/ack/dismiss and transport states
+are separate; initiative approval links confer no authority. Bounded history
+receipts/cursors/admission commit atomically; non-idempotent ambiguous sends require
+review. Current notification/source dependencies and default-deny egress protect
+cognition/history. Migration 7 preserves data/grants/revocations. See PHASE8.md and
+provisional ADR-T09 for complete files/requirement coverage, validation and limits.
+Production auth, real channels, final priority/retention/reconciliation and permanent
+scheduling remain OPEN; genuine model inference is separately unverified.
+
+
+Final Phase 8 local validation passed **724 tests (82 added)** in 152.26 seconds
+on Python 3.12.14, frozen install, Ruff lint/format (102 files), source/wheel build,
+whitespace checks, all eight demos and notification CLI/chat/database operations.
+The wheel was independently installed outside the checkout and runtime source
+matched the checkout. CI includes Python 3.12/3.13 and notification-demo.

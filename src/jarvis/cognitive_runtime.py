@@ -21,10 +21,13 @@ from jarvis.initiative import InitiativeEngine
 from jarvis.initiative_development import register_initiative_capability
 from jarvis.memory import MemoryService
 from jarvis.models import FakeModel, ModelRouter, OpenAILocalModel
+from jarvis.notification_channels import SimulatedPushChannel, SimulatedUnreliableChannel
+from jarvis.notifications import NotificationService
 from jarvis.observability import InMemoryMetrics
 from jarvis.storage.conversations import SQLiteConversationStore
 from jarvis.storage.initiatives import SQLiteInitiativeStore
 from jarvis.storage.memory import SQLiteMemoryStore
+from jarvis.storage.notifications import SQLiteNotificationStore
 from jarvis.storage.security import SQLiteDevelopmentIdentityService, SQLitePermissionStore
 from jarvis.storage.sqlite import SQLiteAuditSink, SQLiteDatabase, SQLiteTaskStore
 from jarvis.storage.world import SQLiteWorldStore
@@ -50,6 +53,7 @@ class DevelopmentCognitiveRuntime:
     metrics: InMemoryMetrics
     initiatives: InitiativeEngine
     notices: object
+    notifications: NotificationService
 
     def credentials(self, name):
         principal_id = {"owner": self.identities.owner_id, "friend": FRIEND_ID, "guest": GUEST_ID}[
@@ -69,6 +73,7 @@ def development_runtime(
     fake=None,
     defer_actions=False,
     clock=utc_now,
+    notification_channels=None,
 ) -> DevelopmentCognitiveRuntime:
     database = SQLiteDatabase(path)
     database.initialize()
@@ -90,7 +95,16 @@ def development_runtime(
         )
         credentials = identities.establish_session_for_testing(owner.principal_id)
         for principal_id in (owner.principal_id, FRIEND_ID, GUEST_ID):
-            for permission in ("memory.read", "world.read", ECHO_PERMISSION):
+            for permission in (
+                "memory.read",
+                "world.read",
+                ECHO_PERMISSION,
+                "notifications.read",
+                "notifications.interact",
+                "notifications.preferences",
+                "notifications.deliver",
+                "notifications.publish",
+            ):
                 permissions.grant(
                     credentials.token, principal_id, permission, correlation_id=uuid4()
                 )
@@ -100,6 +114,7 @@ def development_runtime(
             "memory.history",
             "world.sources.manage",
             "world.history",
+            "notifications.manage",
             "initiatives.manage",
             "initiatives.read",
             "initiatives.evaluate",
@@ -145,6 +160,20 @@ def development_runtime(
         tasks=tasks,
         clock=clock,
     )
+    notifications = NotificationService(
+        SQLiteNotificationStore(database, identities, audit),
+        permissions=permissions,
+        policy=policy,
+        tasks=tasks,
+        registry=registry,
+        initiatives=initiatives,
+        memory=memory,
+        world=world,
+        clock=clock,
+        channels=notification_channels
+        if notification_channels is not None
+        else (SimulatedPushChannel(database), SimulatedUnreliableChannel(database)),
+    )
     conversations = ConversationService(SQLiteConversationStore(database, identities, audit))
     context = ContextBuilder(
         identities=identities,
@@ -155,6 +184,7 @@ def development_runtime(
         tasks=tasks,
         world=world,
         initiatives=initiatives,
+        notifications=notifications,
         metrics=metrics,
     )
     models = ModelRouter(
@@ -190,4 +220,5 @@ def development_runtime(
         metrics,
         initiatives,
         notices,
+        notifications,
     )

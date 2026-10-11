@@ -57,6 +57,8 @@ def _main() -> None:
             "cognition-demo",
             "world-demo",
             "initiative-demo",
+            "notification-demo",
+            "notifications",
             "initiatives",
             "chat",
             "db-init",
@@ -79,9 +81,20 @@ def _main() -> None:
             "configure",
             "policies",
             "pause",
+            "read",
+            "unread",
+            "acknowledge",
+            "dismiss",
+            "expire",
+            "preferences",
+            "set-preferences",
+            "bridge",
         ],
     )
     parser.add_argument("initiative_id", nargs="?")
+    parser.add_argument("--json", action="store_true", help="structured notification output")
+    parser.add_argument("--after", type=int, default=0, help="recipient inbox cursor")
+    parser.add_argument("--text", help="literal recipient inbox search")
     parser.add_argument("--policy-file", type=Path)
     parser.add_argument("--expected-revision", type=int)
     parser.add_argument("--destination", type=Path, help="new backup file (db-backup only)")
@@ -99,7 +112,34 @@ def _main() -> None:
     parser.add_argument("--local-endpoint", help="loopback OpenAI-compatible /v1 URL")
     parser.add_argument("--local-model", help="local server model name")
     args = parser.parse_args()
-    if args.command == "initiatives":
+    if args.command == "notifications":
+        from jarvis.notification_cli import run_notifications
+
+        if args.initiative_command not in {
+            "list",
+            "show",
+            "read",
+            "unread",
+            "acknowledge",
+            "dismiss",
+            "expire",
+            "process",
+            "recover",
+            "bridge",
+            "preferences",
+            "set-preferences",
+            "policies",
+            "configure",
+            "approve",
+            "deny",
+        }:
+            parser.error("notifications requires a supported inbox operation")
+        run_notifications(args)
+    elif args.command == "notification-demo":
+        from jarvis.notification_demo import run_notification_demo
+
+        print(json.dumps(run_notification_demo()))
+    elif args.command == "initiatives":
         from jarvis.initiative_cli import run_inbox
 
         if args.initiative_command is None:

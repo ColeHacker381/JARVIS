@@ -272,6 +272,13 @@ external delivery remain OPEN. No unrestricted model autonomy is installed.
 
 ## Phase 8 — Communication and Notification
 
+**Implementation status:** Offline local/simulated milestone implemented: durable
+recipient-scoped inbox, trusted routing, separate interactions/approval links,
+replaceable channels, task-backed attempts/guards, conservative unknown-outcome
+recovery, retained deduplication, preferences/quiet hours and bounded cognition.
+See docs/PHASE8.md and provisional ADR-T09. Real phone/text/push, provider choice,
+production authentication, final severity/retention and scheduling remain OPEN.
+
 **Goal:** route important events to the owner.
 
 ### Implement

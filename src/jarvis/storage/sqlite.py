@@ -17,7 +17,7 @@ from jarvis.identity import IdentityError
 from jarvis.storage.errors import StorageError
 from jarvis.tasks import TaskBusyError, TaskConflictError
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 
 class DuplicateEventError(StorageError):
@@ -217,6 +217,73 @@ MIGRATIONS = {
             f"""CREATE TRIGGER {table}_no_{op.lower()} BEFORE {op} ON {table}
             BEGIN SELECT RAISE(ABORT, 'append_only'); END"""
             for table in ("initiative_history", "initiative_receipts", "initiative_suppressions")
+            for op in ("UPDATE", "DELETE")
+        ),
+    ),
+    7: (
+        "CREATE TABLE simulated_notification_ledger (channel_id TEXT NOT N"
+        "ULL,operation_key TEXT NOT NULL,payload TEXT NOT NULL,result TEXT"
+        " NOT NULL,PRIMARY KEY(channel_id,operation_key))",
+        """CREATE TABLE notification_policies (policy_id TEXT PRIMARY KEY, origin_id TEXT
+            NOT NULL,             recipient_id TEXT NOT NULL REFERENCES
+            security_principals(principal_id),             revision INTEGER NOT
+            NULL, data TEXT NOT NULL)""",
+        "CREATE INDEX notification_policy_origin ON notification_policies(origin_id,policy_id)",
+        "CREATE TABLE notification_cursors (policy_id TEXT PRIMARY KEY REF"
+        "ERENCES notification_policies(policy_id),sequence INTEGER NOT NUL"
+        "L)",
+        """CREATE TABLE notifications (sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+            notification_id TEXT NOT NULL UNIQUE, recipient_id TEXT NOT NULL
+            REFERENCES security_principals(principal_id),             policy_id
+            TEXT NOT NULL REFERENCES notification_policies(policy_id),revision
+            INTEGER NOT NULL,             deduplication_key TEXT NOT
+            NULL,created_at TEXT NOT NULL,data TEXT NOT NULL,
+            UNIQUE(recipient_id,deduplication_key))""",
+        "CREATE INDEX notification_inbox ON notifications(recipient_id,sequence)",
+        """CREATE TABLE notification_deliveries (delivery_id TEXT PRIMARY KEY,
+            notification_id TEXT NOT NULL REFERENCES
+            notifications(notification_id),recipient_id TEXT NOT NULL,
+            channel_id TEXT NOT NULL,state TEXT NOT NULL,revision INTEGER NOT
+            NULL,due_at TEXT NOT NULL,data TEXT NOT NULL,
+            UNIQUE(notification_id,recipient_id,channel_id))""",
+        "CREATE INDEX notification_pending ON notification_deliveries(recipient_id,state,due_at)",
+        """CREATE TABLE notification_attempts (attempt_id TEXT PRIMARY KEY,delivery_id TEXT
+            NOT NULL REFERENCES notification_deliveries(delivery_id),
+            recipient_id TEXT NOT NULL,channel_id TEXT NOT NULL,number INTEGER
+            NOT NULL,admitted_at TEXT,data TEXT NOT NULL,
+            UNIQUE(delivery_id,number))""",
+        "CREATE INDEX notification_rate ON notification_attempts(recipient"
+        "_id,channel_id,admitted_at)",
+        """CREATE TABLE notification_interactions (interaction_id TEXT PRIMARY
+            KEY,notification_id TEXT NOT NULL REFERENCES
+            notifications(notification_id),             recipient_id TEXT NOT
+            NULL,occurred_at TEXT NOT NULL,data TEXT NOT NULL)""",
+        "CREATE TABLE notification_preferences (recipient_id TEXT PRIMARY "
+        "KEY REFERENCES security_principals(principal_id),revision INTEGER"
+        " NOT NULL,data TEXT NOT NULL)",
+        """CREATE TABLE notification_receipts (policy_id TEXT NOT NULL REFERENCES
+            notification_policies(policy_id),sequence INTEGER NOT NULL,
+            notification_id TEXT REFERENCES
+            notifications(notification_id),reason_code TEXT NOT NULL,PRIMARY
+            KEY(policy_id,sequence))""",
+        "CREATE TABLE notification_suppressions (suppression_id TEXT PRIMA"
+        "RY KEY,policy_id TEXT NOT NULL,recipient_id TEXT NOT NULL,occurre"
+        "d_at TEXT NOT NULL,reason_code TEXT NOT NULL)",
+        """CREATE TRIGGER notifications_revision BEFORE UPDATE ON notifications
+            WHEN NEW.revision != OLD.revision+1 OR NEW.recipient_id !=
+            OLD.recipient_id             OR NEW.notification_id !=
+            OLD.notification_id OR NEW.policy_id != OLD.policy_id             OR
+            NEW.deduplication_key != OLD.deduplication_key OR NEW.created_at !=
+            OLD.created_at             BEGIN SELECT RAISE(ABORT,
+            'immutable_notification'); END""",
+        *(
+            f"""CREATE TRIGGER {table}_no_{op.lower()} BEFORE {op} ON {table}
+            BEGIN SELECT RAISE(ABORT, 'append_only'); END"""
+            for table in (
+                "notification_interactions",
+                "notification_receipts",
+                "notification_suppressions",
+            )
             for op in ("UPDATE", "DELETE")
         ),
     ),

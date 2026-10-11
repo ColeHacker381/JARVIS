@@ -8,10 +8,12 @@ from jarvis.conversations import ConversationError, contains_secret
 from jarvis.core.cognitive_records import MemoryContext, ModelMessage, ModelRequest, TaskContext
 from jarvis.core.initiative_records import InitiativeReference
 from jarvis.core.memory_records import MemoryQuery
+from jarvis.core.notification_records import NotificationReference
 from jarvis.core.world_records import WorldContext, WorldReference
 from jarvis.identity import IdentityError
 from jarvis.initiative import InitiativeError
 from jarvis.memory import MemoryError
+from jarvis.notifications import NotificationError
 from jarvis.observability import NullMetrics
 from jarvis.world_state import WorldError
 
@@ -69,6 +71,7 @@ class BuiltContext:
     memory_ids: tuple
     world_refs: tuple = ()
     initiative_refs: tuple = ()
+    notification_refs: tuple = ()
 
 
 class ContextBuilder:
@@ -84,6 +87,7 @@ class ContextBuilder:
         tasks=None,
         world=None,
         initiatives=None,
+        notifications=None,
         metrics=None,
     ):
         if policy.identities is not identities or conversations.identities is not identities:
@@ -98,12 +102,17 @@ class ContextBuilder:
             raise ValueError("world context must share identity state")
         if initiatives is not None and initiatives.identities is not identities:
             raise ValueError("initiative context must share identity state")
+        if notifications is not None and notifications.identities is not identities:
+            raise ValueError("notification context must share identity state")
+        self.notifications = notifications
         self.initiatives = initiatives
         self.world, self.metrics = world, metrics or NullMetrics()
         self.tasks = tasks
         self.limits = limits or ContextLimits()
 
-    def ensure_current(self, ids, *, session_token, world_refs=(), initiative_refs=()):
+    def ensure_current(
+        self, ids, *, session_token, world_refs=(), initiative_refs=(), notification_refs=()
+    ):
         with self.identities.transaction():
             session = self.identities.resolve_session(session_token)
             if session.principal_id is None or session.authentication_ref is None:
@@ -132,6 +141,21 @@ class ContextBuilder:
                     if record.revision != ref.revision:
                         raise ConversationError("context_authorization_changed")
                 except InitiativeError as exc:
+                    raise ConversationError("context_authorization_changed") from exc
+
+            for ref in notification_refs:
+                if self.notifications is None:
+                    raise ConversationError("context_authorization_changed")
+                try:
+                    record = self.notifications.get(
+                        ref.notification_id, session_token=session_token
+                    )
+                    source = self.notifications.source_context(
+                        ref.notification_id, session_token=session_token
+                    )
+                    if record.revision != ref.revision or source["revision"] != ref.source_revision:
+                        raise ConversationError("context_authorization_changed")
+                except NotificationError as exc:
                     raise ConversationError("context_authorization_changed") from exc
 
     def build(self, turn, *, session_token):
@@ -241,6 +265,29 @@ class ContextBuilder:
                     )
                     if fits(candidate):
                         request = candidate
+            if self.notifications is not None:
+                try:
+                    summaries = self.notifications.context(
+                        turn.user_text, session_token=session_token
+                    )
+                except NotificationError as exc:
+                    if exc.code != "notification_access_denied":
+                        raise ConversationError(exc.code) from exc
+                    summaries = ()
+                for summary in summaries:
+                    candidate = request.model_copy(
+                        update={"notifications": (*request.notifications, summary)}
+                    )
+                    if fits(candidate):
+                        request = candidate
+            notification_refs = [
+                NotificationReference(
+                    notification_id=n.notification_id,
+                    revision=n.revision,
+                    source_revision=n.source_revision,
+                )
+                for n in request.notifications
+            ]
             initiative_refs = [
                 InitiativeReference(initiative_id=i.initiative_id, revision=i.revision)
                 for i in request.initiatives
@@ -285,6 +332,7 @@ class ContextBuilder:
                         session_token=session_token,
                         world_refs=previous.world_refs,
                         initiative_refs=previous.initiative_refs,
+                        notification_refs=previous.notification_refs,
                     )
                 except ConversationError:
                     # Inactive/revoked memory cannot re-enter through old conversation text.
@@ -302,8 +350,12 @@ class ContextBuilder:
                 next_initiative_refs = tuple(
                     dict.fromkeys((*initiative_refs, *previous.initiative_refs))
                 )
+                next_notification_refs = tuple(
+                    dict.fromkeys((*notification_refs, *previous.notification_refs))
+                )
                 if (
-                    len(next_initiative_refs) <= (self.limits.history_turns + 1) * 3
+                    len(next_notification_refs) <= (self.limits.history_turns + 1) * 3
+                    and len(next_initiative_refs) <= (self.limits.history_turns + 1) * 3
                     and fits(candidate)
                     and len(next_world_refs)
                     <= ((self.limits.history_turns + 1) * self.limits.world_states)
@@ -312,6 +364,7 @@ class ContextBuilder:
                     dependencies.extend(previous.memory_ids)
                     world_refs.extend(previous.world_refs)
                     initiative_refs.extend(previous.initiative_refs)
+                    notification_refs.extend(previous.notification_refs)
             request = request.model_copy(
                 update={"messages": (*request.messages[:2], *messages, request.messages[-1])}
             ).model_copy(deep=True)
@@ -320,4 +373,5 @@ class ContextBuilder:
                 tuple(dict.fromkeys(dependencies)),
                 tuple(dict.fromkeys(world_refs)),
                 tuple(dict.fromkeys(initiative_refs)),
+                tuple(dict.fromkeys(notification_refs)),
             )

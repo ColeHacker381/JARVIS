@@ -21,6 +21,7 @@ class _Registration:
     provider: CapabilityProvider | None
     access_scope: AccessScope | None
     supports_idempotency: bool = False
+    execution_guard_family: str | None = None
 
 
 def _local_schema_only(value: JsonValue) -> None:
@@ -50,6 +51,7 @@ class CapabilityRegistry(Protocol):
         *,
         access_scope: AccessScope | None = None,
         supports_idempotency: bool = False,
+        execution_guard_family: str | None = None,
     ) -> None: ...
 
     def get(self, capability_id: str) -> Capability: ...
@@ -71,7 +73,10 @@ class InMemoryCapabilityRegistry:
         *,
         access_scope: AccessScope | None = None,
         supports_idempotency: bool = False,
+        execution_guard_family: str | None = None,
     ) -> None:
+        if execution_guard_family is not None and (not execution_guard_family.isidentifier()):
+            raise ValueError("invalid required execution guard")
         # Revalidate even objects built via unchecked model_copy/model_construct.
         capability = Capability.model_validate(capability.model_dump())
         if type(supports_idempotency) is not bool or (supports_idempotency and provider is None):
@@ -88,7 +93,11 @@ class InMemoryCapabilityRegistry:
             if capability.capability_id in self._capabilities:
                 raise ValueError(f"duplicate capability: {capability.capability_id}")
             self._capabilities[capability.capability_id] = _Registration(
-                capability.model_copy(deep=True), provider, access_scope, supports_idempotency
+                capability.model_copy(deep=True),
+                provider,
+                access_scope,
+                supports_idempotency,
+                execution_guard_family,
             )
 
     def get(self, capability_id: str) -> Capability:
@@ -105,6 +114,8 @@ class InMemoryCapabilityRegistry:
             available = []
             for capability in self.discover():
                 registered = self._resolve_for_executor(capability.capability_id)
+                if registered.execution_guard_family is not None:
+                    continue  # Internal task-bound transports are not conversational tools.
                 proposal = ActionProposal(
                     session_id=session.session_id,
                     capability_id=capability.capability_id,
@@ -128,4 +139,5 @@ class InMemoryCapabilityRegistry:
                 registered.provider,
                 registered.access_scope,
                 registered.supports_idempotency,
+                registered.execution_guard_family,
             )

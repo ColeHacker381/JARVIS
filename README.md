@@ -134,11 +134,12 @@ or identifier fields. Arbitrary extras and exception messages are omitted.
 | `models.py`, `egress.py` | Fake/local model adapters, routing and separate trusted egress policy |
 | `conversations.py`, `storage/conversations.py` | Authenticated private history and durable turn/task links |
 | `cognitive_runtime.py`, `chat.py`, `cognition_demo.py` | Explicit development CLI composition and two-process cognition demo |
-| `initiative.py` | Proposal-only initiative adapter protocol |
+| `initiative.py`, `storage/initiatives.py` | Permission-governed proposals, exact approvals and guarded durable execution |
+| `notifications.py`, `notification_channels.py`, `storage/notifications.py` | Scoped durable inbox, preferences, simulated delivery and safe recovery |
 | `observability.py` | JSON logging, audit interface, and in-memory audit sink (SQLite adapter in storage/) |
 | `config.py`, `__main__.py` | Local configuration, smoke/demo/recovery/memory and database operation commands |
 | `tests/` | Contracts, policy/execution, durability, recovery, concurrency, corruption and CLI tests |
-| `.github/workflows/ci.yml` | Frozen install, lint, formatting, tests, build and all six readiness demos |
+| `.github/workflows/ci.yml` | Frozen install, lint, formatting, tests, build and all eight readiness demos |
 
 Read [docs/FOUNDATION.md](docs/FOUNDATION.md) for the architectural review,
 requirement coverage, temporary choices, and remaining decisions.
@@ -152,8 +153,8 @@ provisional decisions distinct from accepted decisions. When a final decision is
 accepted, update `DECISIONS.md`, affected requirements/architecture, migration
 notes, and acceptance tests together.
 
-The recommended next milestone is Phase 7 bounded, scoped event-driven suggestions
-with explicit initiative controls and existing policy/task execution. Complete real-model validation against
+The recommended next milestone is Phase 9, one authorized real sensor adapter with
+explicit enrollment, collection and retention decisions. Complete real-model validation against
 an available local server before declaring all Phase 5 acceptance complete. Production authentication,
 production owner provisioning, tamper-resistant auditing, real integrations and the continuous
 assistant remain unfinished. SQLite is a provisional reversible local choice, not
@@ -163,7 +164,7 @@ The Phase 3 verification pass adds durable current grants/revocations/principals
 sessions, atomic permission/audit changes and cross-process security exclusion.
 The default durable identity repository denies without a trusted authenticator;
 fixture credentials remain explicitly isolated from production. Run `uv run jarvis db-init`
-explicitly to migrate existing schema 1–5 development databases to schema 6;
+explicitly to migrate existing schema 1–6 development databases to schema 7;
 this never provisions identity or restores old task approvals. Back up existing
 state before migration. See
 [docs/PHASE3_VERIFICATION.md](docs/PHASE3_VERIFICATION.md) for findings, real-process
@@ -187,7 +188,32 @@ uv run jarvis chat --database <demo-database> --model-provider fake
 ```
 
 Development host identities are fixtures; observe-only and cloud default-deny
-remain the defaults. Existing databases migrate explicitly to schema 6 without
+remain the defaults. Current databases migrate explicitly to schema 7 without
 new grants. See [docs/PHASE7.md](docs/PHASE7.md) for policy configuration, risk,
 approval/execution guards, bounded processing, all files/requirements, verified
 results and deferred production choices. Real devices/messaging are unavailable.
+
+
+## Phase 8 notification inbox (offline, simulated)
+
+`uv run jarvis notification-demo` runs three real processes through the core
+services: authorized task/initiative notifications, separate read/acknowledgement
+and approval, quiet-hour deferral, bounded retries, deduplication, guest isolation,
+revocation and ambiguous-send recovery. Nothing sends a real external message.
+
+```sh
+uv run jarvis notifications list --database <printed-demo-database>
+uv run jarvis notifications show <notification-id> --database <database> --json
+uv run jarvis notifications read <notification-id> --expected-revision <revision> --database <database>
+uv run jarvis notifications acknowledge <notification-id> --expected-revision <revision> --database <database>
+uv run jarvis notifications process --database <database>
+uv run jarvis notifications preferences --database <database> --json
+uv run jarvis chat --model-provider fake --database <database>
+```
+
+Try `Do I have new notifications?` or `Why did you notify me about garage?`.
+Transport delivery never means a human read, acknowledged or approved. Approval
+links use only the existing Phase 7 trusted workflow. New development stores seed
+basic rights once, with no routing policy; old stores never receive automatic grants.
+Current schema is 7. See [docs/PHASE8.md](docs/PHASE8.md) for routing/configuration,
+channels, retries, DST-aware preferences, migration, actual validation and limits.

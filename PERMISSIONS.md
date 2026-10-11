@@ -241,3 +241,29 @@ stale/inaccessible evidence and revoked authority deny. Egress additionally requ
 initiatives and world data-class grants, including derived history. See PHASE7.md.
 These authorized simulation choices do not ratify the final policy language, risk
 classification, production authentication or approval UI/lifetime decisions.
+
+
+## Phase 8 provisional notification boundary
+
+Owner-only `notifications.manage` configures pinned origin/recipient/source routing.
+Current `notifications.publish` plus actual source scope allows reference-only
+creation; model recipients/priorities/content/status/approval claims are refused.
+Exact recipients require `notifications.read`, source access and current authority
+for retrieval/delivery. Shared sources require explicit membership, including
+household's separate grant. Owner administration cannot read another private inbox.
+
+`notifications.interact` covers recipient revision-checked read/unread/acknowledge/
+dismiss/expire. `notifications.preferences` changes only the authenticated actor's
+preferences. `notifications.deliver` allows bounded own sends, with pinned origin
+publishing, source, policy/channel metadata, category/priority/quiet-hour and rate
+checks in a persistent task guard. Internal delivery capabilities require that guard
+family and are omitted from model discovery. Missing resolvers deny during general
+recovery. Only existing initiative approve/execute services can approve; notification
+read/ack or linked IDs grant nothing. Revocation affects subsequent reads/sends.
+
+Cloud remains disabled. Future notification context/history requires separate
+`model.egress:<provider>:notifications` and conservatively all source data-class
+grants, in addition to trusted cloud destination/enablement. Phase 8 channels refuse
+cloud destinations. Bootstrap grants only new development fixtures; migration/reopen
+never regrants. Public auth, provider addresses/egress, severity and urgent overrides
+remain OPEN. See docs/PHASE8.md.

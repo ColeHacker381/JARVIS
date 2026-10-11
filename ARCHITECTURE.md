@@ -443,3 +443,21 @@ with revalidated initiative/world dependencies and separate default-deny egress.
 Rules are deterministic, auto execution is opt-in and allowlisted simulated LOW
 risk only, and models never grant authority. Final policy/risk/authentication/
 scheduler/retention remain OPEN. See PHASE7.md and provisional ADR-T08.
+
+
+Phase 8 adds NotificationService and a private replaceable NotificationStore port.
+Trusted source/reference validation plus current recipient/source scope and exact
+policy determine content/routing. Migration 7 adds inbox/deliveries/attempts,
+interactions, preferences, suppression and transactional history receipts/cursors.
+Local admission is authoritative and precedes any additional simulated send.
+Transport, read, acknowledgement, dismissal and initiative approval are distinct.
+
+Simulated channel invocation stays TaskManager -> CapabilityExecutor, using durable
+notification guards and registry-required guard families to prevent ordinary tool
+or task bypass. Current recipient/origin grants, source access, policy/preferences,
+quiet hours and persisted rate reservations precede invocation. Known results
+finalize; unknown non-idempotent sends require review. Local claims/CAS protect
+concurrent workers. Bounded cognitive summaries reference current notification AND
+source revisions, and future cloud use needs separate notification/source egress.
+No new general scheduler, public transport, real messaging or production auth is
+selected. See docs/PHASE8.md and provisional ADR-T09.
