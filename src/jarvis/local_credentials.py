@@ -66,6 +66,28 @@ def export_curl_configuration(credential_path, output):
         os.fsync(stream.fileno())
 
 
+def resolve_worker_tokens(identities, path, max_principals):
+    """Shared read-only startup/doctor validation, never a credential issuer."""
+    if path is None:
+        return ()
+    data = read_private_json(path)
+    if (
+        not isinstance(data, dict)
+        or set(data) != {"tokens"}
+        or not isinstance(data["tokens"], list)
+        or not 1 <= len(data["tokens"]) <= max_principals
+    ):
+        raise ValueError("worker_credentials_invalid")
+    tokens, principals = [], set()
+    for token in data["tokens"]:
+        session = identities.resolve_kind(token, "worker")
+        if session.principal_id in principals:
+            raise ValueError("worker_principal_duplicate")
+        principals.add(session.principal_id)
+        tokens.append(token)
+    return tuple(tokens)
+
+
 class LocalCredentialAuthenticator:
     def __init__(self, database):
         self.database = database

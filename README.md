@@ -104,7 +104,9 @@ the printed ID with `--conversation <uuid>`; `--identity owner|friend|guest` is
 **development-only trusted host selection**, never production authentication.
 See [docs/PHASE5.md](docs/PHASE5.md) for contracts, setup, context/security rules,
 examples and validation limits. Genuine inference in this cloud environment is
-still unverified because the network policy blocks model-weight downloads.
+unverified in the Phase 5 cloud acceptance, when weight downloads were blocked.
+Current acceptance exercises fake and local HTTP protocol backends; genuine
+inference remains unverified. See the current local-model guide above.
 
 The `world-demo` command runs real ingestion/policy/SQLite world projections in two
 processes. It shows camera evidence versus inferred occupancy, corroboration,

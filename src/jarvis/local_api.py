@@ -173,6 +173,14 @@ def create_api(runtime):
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
+        responses={
+            status: {"model": ApiFailure, "description": description}
+            for status, description in {
+                408: "Request body timeout",
+                413: "Request body too large",
+                500: "Sanitized operation failure",
+            }.items()
+        },
     )
     api.add_middleware(LocalBoundary, runtime=runtime)
     bearer = HTTPBearer(auto_error=False)
@@ -248,9 +256,15 @@ def create_api(runtime):
     ):
         api.add_exception_handler(error_type, domain_error)
 
+    health_responses = {
+        403: {"model": ApiFailure, "description": "Local boundary denied"},
+        503: {"model": Health | ApiFailure, "description": "Process/core unready or saturated"},
+    }
+
     @api.get(
         "/health/live",
         response_model=Health,
+        responses=health_responses,
         tags=["health"],
         description="Non-sensitive process liveness.",
     )
@@ -261,15 +275,26 @@ def create_api(runtime):
     @api.get(
         "/health/ready",
         response_model=Health,
+        responses=health_responses,
         tags=["health"],
         description="Core readiness; optional model/worker degradation is explicit.",
     )
-    @api.get("/health/status", response_model=Health, tags=["health"])
+    @api.get("/health/status", response_model=Health, responses=health_responses, tags=["health"])
     async def ready():
         health = runtime.public_health()
         return JSONResponse(health, status_code=200 if health["ready"] else 503)
 
-    responses = {s: {"model": ApiFailure} for s in (401, 403, 404, 409, 422, 503)}
+    responses = {
+        status: {"model": ApiFailure, "description": description}
+        for status, description in {
+            401: "Current client credential required",
+            403: "Current authorization denied",
+            404: "Resource unavailable",
+            409: "Revision, replay or transition conflict",
+            422: "Request validation failed",
+            503: "Core unavailable or admission saturated",
+        }.items()
+    }
     from fastapi import APIRouter
 
     routes = APIRouter(prefix="/api/v1", responses=responses)

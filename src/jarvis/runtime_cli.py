@@ -19,6 +19,7 @@ from jarvis.local_api import create_api
 from jarvis.local_credentials import (
     LocalDevelopmentIdentityRepository,
     issue_credential,
+    resolve_worker_tokens,
     revoke_credential,
     write_private_json,
 )
@@ -196,15 +197,9 @@ async def doctor(settings):
         repo.validate_authority()
         result["database"], result["authority"] = True, True
         if settings.worker_credentials_file:
-            from jarvis.local_credentials import read_private_json
-
-            data = read_private_json(settings.worker_credentials_file)
-            if not isinstance(data, dict) or set(data) != {"tokens"}:
-                raise ValueError("worker_credentials_invalid")
-            if not 1 <= len(data["tokens"]) <= settings.max_worker_principals:
-                raise ValueError("worker_credentials_invalid")
-            for token in data["tokens"]:
-                repo.resolve_kind(token, "worker")
+            resolve_worker_tokens(
+                repo, settings.worker_credentials_file, settings.max_worker_principals
+            )
             result["workers"] = True
     except (StorageError, IdentityError, ValueError, OSError, TypeError):
         result["errors"].append("storage_authority_or_worker_configuration_unavailable")

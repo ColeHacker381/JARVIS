@@ -21,7 +21,8 @@ and actual separate-process verification (`jarvis memory-demo`). See docs/PHASE4
 and ADR-T05. Phase 5 implements bounded cognition/context building, fake/local
 model adapters, isolated persistent conversations and text CLI (docs/PHASE5.md,
 provisional ADR-T06). Offline and protocol checks are implemented; genuine model
-inference here remains unverified because weight downloads are blocked. Phase 6 now adds a persistent evidence-based world model, simulated sensors,
+inference remains unverified; earlier weight-download attempts were blocked.
+Phase 6 now adds a persistent evidence-based world model, simulated sensors,
 scoped cognitive world context and a two-process world-demo (docs/PHASE6.md, ADR-T07).
 Production exposure still requires trusted authentication/provisioning and collection policies.
 

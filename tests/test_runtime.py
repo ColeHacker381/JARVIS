@@ -201,13 +201,24 @@ def test_no_worker_credentials_or_model_outage_is_explicit_degradation(configure
         assert runtime.jobs["tasks"].passes >= 1
 
 
-def test_invalid_worker_file_fails_closed(configured):
+@pytest.mark.parametrize("problem", ["mode", "duplicate_principal"])
+def test_invalid_worker_file_fails_closed(configured, tmp_path, problem):
     settings, _ = configured
-    settings.worker_credentials_file.chmod(0o644)
+    if problem == "mode":
+        settings.worker_credentials_file.chmod(0o644)
+        code = "credential_file_unsafe"
+    else:
+        token = read_private_json(settings.worker_credentials_file)["tokens"][0]
+        path = tmp_path / "duplicate-workers.json"
+        write_private_json(path, {"tokens": [token, token]})
+        settings = settings.model_copy(update={"worker_credentials_file": path})
+        code = "worker_principal_duplicate"
+    result = asyncio.run(doctor(settings))
+    assert not result["workers"] and result["status"] == "degraded"
 
     async def run():
         runtime = RuntimeService(settings)
-        with pytest.raises(ValueError, match="credential_file_unsafe"):
+        with pytest.raises(ValueError, match=code):
             await runtime.start()
         assert runtime.state == "FAILED"
 

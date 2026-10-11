@@ -11,7 +11,7 @@ from pathlib import Path
 from jarvis.application import build_application
 from jarvis.core.time import utc_now
 from jarvis.identity import IdentityError
-from jarvis.local_credentials import LocalDevelopmentIdentityRepository, read_private_json
+from jarvis.local_credentials import LocalDevelopmentIdentityRepository, resolve_worker_tokens
 from jarvis.observability import AuditWriteError
 from jarvis.storage.errors import StorageError
 from jarvis.storage.sqlite import SCHEMA_VERSION, _file_lock
@@ -76,25 +76,11 @@ class RuntimeService:
         self.log = logging.getLogger("jarvis")
 
     def _workers(self):
-        path = self.settings.worker_credentials_file
-        if path is None:
-            return ()
-        data = read_private_json(path)
-        if (
-            not isinstance(data, dict)
-            or set(data) != {"tokens"}
-            or not isinstance(data["tokens"], list)
-            or not 1 <= len(data["tokens"]) <= self.settings.max_worker_principals
-        ):
-            raise ValueError("worker_credentials_invalid")
-        tokens, principals = [], set()
-        for token in data["tokens"]:
-            session = self.application.identities.resolve_kind(token, "worker")
-            if session.principal_id in principals:
-                raise ValueError("worker_principal_duplicate")
-            principals.add(session.principal_id)
-            tokens.append(token)
-        return tuple(tokens)
+        return resolve_worker_tokens(
+            self.application.identities,
+            self.settings.worker_credentials_file,
+            self.settings.max_worker_principals,
+        )
 
     async def start(self):
         self._startup_task = asyncio.current_task()
