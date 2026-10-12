@@ -9,6 +9,12 @@ from uuid import uuid4
 
 from pydantic import ValidationError
 
+from jarvis.action_reporting import (
+    SEPARATE_REQUESTS,
+    no_action_decision,
+    reported_turn,
+    request_shape,
+)
 from jarvis.conversations import ConversationError, contains_secret
 from jarvis.core.cognitive_records import (
     CognitiveDecision,
@@ -216,7 +222,9 @@ class CognitiveCoordinator:
                 decision = decision.model_copy(update={"text": warning + decision.text})
             else:
                 raise ModelError("fixture_provenance_missing")
-        return decision
+        # A conversational decision cannot stand in for submission. Suppress its
+        # prose for recognized action requests, irrespective of wording or tense.
+        return no_action_decision(decision, request.messages[-1].content)
 
     async def respond(
         self, conversation_id, text, *, session_token, request_id=None, response_style="text"
@@ -236,9 +244,40 @@ class CognitiveCoordinator:
                         initiative_refs=turn.initiative_refs,
                         notification_refs=turn.notification_refs,
                     )
-                    return turn.response  # Request replay cannot repeat any model call or action.
+                    return reported_turn(turn).response  # Never repeat model calls or actions.
                 if not fresh and turn.state == "RECEIVED":
                     raise ModelError("interrupted_model_request")
+                if fresh and request_shape(turn.user_text)[1]:
+                    # One v1 request is not a multi-intent execution plan. Ask for
+                    # separate requests before model inference, memory egress or
+                    # task submission. Recognition can only defer, never execute.
+                    write_audit(
+                        self.audit,
+                        AuditRecord(
+                            principal_id=turn.owner_id,
+                            session_id=turn.session_id,
+                            correlation_id=turn.correlation_id,
+                            action="cognition.clarification",
+                            outcome="succeeded",
+                            reason_code="separate_requests_required",
+                        ),
+                    )
+                    turn = self.conversations._save(
+                        turn,
+                        session_token=session_token,
+                        state="DECIDED",
+                        decision=CognitiveDecision(kind="clarification", text=SEPARATE_REQUESTS),
+                    )
+                    response = self._response(
+                        turn,
+                        kind="clarification",
+                        text=SEPARATE_REQUESTS,
+                        audit_ids=self._refs(turn.correlation_id),
+                    )
+                    self.conversations._save(
+                        turn, session_token=session_token, state="COMPLETED", response=response
+                    )
+                    return response
                 if fresh:
                     built = self.context.build(
                         turn, session_token=session_token, response_style=response_style
@@ -313,7 +352,9 @@ class CognitiveCoordinator:
                     notification_refs=turn.notification_refs,
                 )
                 if turn.decision.action is None:
-                    decision = turn.decision
+                    # Also protect a pre-upgrade DECIDED turn resumed after a crash.
+                    # Preserve its stored decision as evidence; render safely.
+                    decision = no_action_decision(turn.decision, turn.user_text)
                     response = self._response(
                         turn,
                         kind=decision.kind,
@@ -376,6 +417,10 @@ class CognitiveCoordinator:
                         )
                 except (StorageError, ConversationError, IdentityError, AuditWriteError):
                     pass  # Return observable failure; existing checkpoints remain authoritative.
+            # No accepted proposal means no task submission was attempted. Never
+            # apply this projection to an accepted action with an unknown outcome.
+            if turn is not None:
+                response = reported_turn(turn.model_copy(update={"response": response})).response
             return response
 
     def _action(self, turn, token):

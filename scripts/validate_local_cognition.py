@@ -28,6 +28,7 @@ BRAINSTORM = (
     "Based on your general knowledge, not just like your stored memory, suggest three ways "
     "we could use audio codecs in the Slipstream project."
 )
+MIXED_REQUEST = "How could audio codecs help Slipstream? Also, dim the lights to 45%."
 
 
 def validate(args):
@@ -114,13 +115,16 @@ def validate(args):
             headers = {"Authorization": "Bearer " + tokens[who]}
             if voice:
                 headers["Prefer"] = "response-style=voice"
+            prior = api_data(
+                client.get("/api/v1/status", headers={"Authorization": "Bearer " + tokens["owner"]})
+            ).get("metrics", [])
             started = time.monotonic()
             response = client.post(
                 f"/api/v1/conversations/{conversation}/messages", headers=headers, json=request
             )
             data = api_data(response)
             initial_kind = data["kind"]
-            if label == "lighting":
+            if label == "lighting" or label.startswith("separate_action_"):
                 data = settle_action(
                     client,
                     f"/api/v1/conversations/{conversation}/messages",
@@ -149,6 +153,22 @@ def validate(args):
                 "execution": data.get("execution"),
                 "audit_ids": data.get("audit_ids", []),
             }
+            status = api_data(
+                client.get("/api/v1/status", headers={"Authorization": "Bearer " + tokens["owner"]})
+            )
+            names = {
+                "context.build_ms",
+                "model.invoke_ms",
+                "model.input_tokens",
+                "model.output_tokens",
+            }
+            latest = {name: value for name, value in status.get("metrics", []) if name in names}
+            previous = {name: value for name, value in prior if name in names}
+            record["model_invoked"] = latest.get("model.invoke_ms") != previous.get(
+                "model.invoke_ms"
+            )
+            record["phase_metrics"] = latest if record["model_invoked"] else {}
+            record["simulated_invocations"] = status["simulated_invocations"]
             report["records"].append(record)
             save()
             print(
@@ -159,6 +179,24 @@ def validate(args):
             )
             return conversation, request, data
 
+        if args.scope == "mixed":
+            for i in range(args.repeats):
+                conversation, _, _ = message(f"technical_{i + 1}", "What are audio codecs?")
+                message(f"combined_{i + 1}", MIXED_REQUEST, conversation=conversation)
+                conversation, request, action = message(
+                    f"separate_action_{i + 1}", "Dim the lights to 45%.", conversation=conversation
+                )
+                replay = api_data(
+                    client.post(
+                        f"/api/v1/conversations/{conversation}/messages",
+                        headers={"Authorization": "Bearer " + tokens["owner"]},
+                        json=request,
+                    )
+                )
+                report["records"][-1]["same_request_replay"] = replay == action
+                save()
+            message("project_reasoning", "How could audio codecs help Slipstream?")
+            message("guest_combined", MIXED_REQUEST, who="guest")
         if args.scope in {"all", "actions"}:
             conversation, request, action = message("lighting", "Set the simulated lights to 25.")
             replay = api_data(
@@ -191,7 +229,7 @@ def validate(args):
                 "JARVIS, what do you remember about my Slipstream motorcycle concept project?",
             )
             message("grounded_reasoning", "How can we use audio codecs in Slipstream?", voice=True)
-        if args.scope != "actions":
+        if args.scope in {"all", "brainstorm"}:
             for i in range(args.repeats):
                 message(f"brainstorm_{i + 1}", BRAINSTORM, voice=True)
         if args.scope in {"all", "actions"}:
@@ -268,7 +306,7 @@ def main():
     parser.add_argument(
         "--response-format", choices=["json_object", "json_schema"], default="json_object"
     )
-    parser.add_argument("--scope", choices=["all", "brainstorm", "actions"], default="all")
+    parser.add_argument("--scope", choices=["all", "brainstorm", "actions", "mixed"], default="all")
     parser.add_argument(
         "--partial-context",
         action="store_true",

@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from typing import Protocol
 from uuid import UUID
 
+from jarvis.action_reporting import reported_turn
 from jarvis.core.cognitive_records import Conversation, ConversationTurn
 from jarvis.core.contracts import AuditRecord
 from jarvis.core.time import utc_now
@@ -92,8 +93,11 @@ class ConversationService:
             raise ConversationError("history_limit_invalid")
         with self._authenticated(session_token) as session:
             self._owned(conversation_id, session)
-            return self._store._recent(
-                conversation_id, session.principal_id, limit, access=self._access
+            return tuple(
+                reported_turn(turn)
+                for turn in self._store._recent(
+                    conversation_id, session.principal_id, limit, access=self._access
+                )
             )
 
     def begin(self, conversation_id, request_id, text, *, session_token):

@@ -15,7 +15,7 @@ from jarvis.core.contracts import Provenance
 from jarvis.core.memory_records import MemoryDraft, MemoryQuery
 from jarvis.local_api import create_api
 from jarvis.local_credentials import read_private_json
-from jarvis.models import FakeModel, OpenAILocalModel
+from jarvis.models import FakeModel
 from jarvis.observability import JsonFormatter
 from jarvis.runtime_cli import initialize_development
 from jarvis.runtime_config import RuntimeSettings
@@ -358,8 +358,9 @@ def test_diagnostic_logger_rejects_extra_private_metadata():
 
 @pytest.mark.parametrize("format_name", ["json_object", "json_schema"])
 def test_qwen_compatible_multi_turn_explanation_and_grounded_brainstorming_via_text_api(
-    tmp_path, format_name
+    tmp_path, format_name, monkeypatch
 ):
+    monkeypatch.setenv("JARVIS_LOCAL_MODEL_RESPONSE_FORMAT", format_name)
     settings = RuntimeSettings(
         data_dir=tmp_path / "dev", model_provider="local", local_model_name="qwen3:4b-instruct"
     )
@@ -401,15 +402,10 @@ def test_qwen_compatible_multi_turn_explanation_and_grounded_brainstorming_via_t
             },
         )
 
-    provider = OpenAILocalModel(
-        model="qwen3:4b-instruct",
-        response_format=format_name,
-        transport=httpx.MockTransport(server),
-    )
     runtime._construct(settings.resolved_runtime_database_path)
-    provider.metrics = runtime.application.metrics
-    runtime.application.models._providers["local"] = provider
-    runtime.application.models._identities["local"] = provider.identity
+    # Exercise the real settings/application factory; replace only network I/O.
+    provider = runtime.application.models._providers["local"]
+    provider._transport = httpx.MockTransport(server)
     with TestClient(create_api(runtime), base_url="http://127.0.0.1:8765") as client:
         runtime.application.memory.create(
             memory("Slipstream is a provisional motorcycle design study"), session_token=token
@@ -431,6 +427,7 @@ def test_qwen_compatible_multi_turn_explanation_and_grounded_brainstorming_via_t
         first = send("Can you give me a basic idea on what an audio codec is?")
         second = send("Could you give me a little more information on that?")
         assert first["kind"] == second["kind"] == "direct"
+        assert seen[-1]["response_format"]["type"] == format_name
         assert any(
             m["role"] == "assistant" and "codec" in m["content"] for m in seen[-1]["messages"]
         )

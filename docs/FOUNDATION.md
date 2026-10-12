@@ -266,3 +266,8 @@ genuine local Qwen inference separately from deterministic tests. It preserves v
 contracts and model-independent authorization, permits labeled engineering options
 with partial authorized evidence, adds scoped project continuity and content-free
 validation stages, and treats intentional playback interruption as cancelled.
+
+[Mixed-request hardening](PHASE10_MIXED_INTENT.md) adds trusted separation before
+inference, safe reporting of unsubmitted lighting requests, and protected historical
+presentation without rewriting evidence. Replay, accepted-action recovery, authorization
+and task results retain their existing boundaries; both local structured modes are tested.

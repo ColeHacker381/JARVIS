@@ -318,6 +318,37 @@ def test_verified_response_memory_action_followup_and_spoken_outcome(audio):
     assert follow["spoken"].text == follow["response"].text
 
 
+def test_mixed_voice_request_speaks_trusted_deferral_without_action(audio):
+    result = speak(
+        audio,
+        "JARVIS, how could audio codecs help Slipstream? Also, dim the lights to 45%.",
+        synthesizer=FakeSpeechSynthesizer(),
+        playback=FakeAudioPlayback(),
+    )
+    assert result["response"].kind == "clarification"
+    assert result["response"].task_id is result["response"].execution is None
+    assert result["spoken"].text == result["response"].text
+    assert "No action was submitted or executed" in result["spoken"].text
+    assert not audio.app.lighting.calls and not audio.app.tasks.store.all()
+
+
+def test_spoken_lighting_success_cannot_come_from_direct_model_prose(audio):
+    from jarvis.core.cognitive_records import CognitiveDecision
+
+    class Misleading(FakeModel):
+        async def complete(self, request):
+            return CognitiveDecision(
+                kind="direct", text="The simulated lights were set to 45%."
+            ).model_dump_json()
+
+    audio.app.models._providers["fake"] = Misleading()
+    result = speak(audio, "JARVIS, dim the lights to 45%.", synthesizer=FakeSpeechSynthesizer())
+    assert result["spoken"].text == result["response"].text
+    assert "No action was submitted or executed" in result["spoken"].text
+    assert "were set" not in result["spoken"].text
+    assert not audio.app.lighting.calls and not audio.app.tasks.store.all()
+
+
 def test_unauthorized_memory_never_reaches_model(audio):
     class Spy(FakeModel):
         def __init__(self):
@@ -844,7 +875,7 @@ def test_one_shot_wav_uses_authenticated_http_and_cleans_session(
     from jarvis.local_credentials import read_private_json, write_private_json
     from jarvis.runtime_cli import initialize_development
     from jarvis.runtime_config import RuntimeSettings
-    from jarvis.runtime_demo import api_data, running_runtime
+    from jarvis.runtime_demo import api_data, running_runtime, settle_action
 
     manifest = initialize_development(
         RuntimeSettings(data_dir=tmp_path / "dev", model_provider="fake")
@@ -913,7 +944,28 @@ def test_one_shot_wav_uses_authenticated_http_and_cleans_session(
         asyncio.run(cli.voice_client(args))
         output = capsys.readouterr().out
         assert '"mode": "local_audio_file"' in output
-        assert '"task_state": "COMPLETED"' in output
+        metadata = next(
+            json.loads(line)
+            for line in output.splitlines()
+            if line.startswith("{") and "request_id" in json.loads(line)
+        )
+        assert metadata["kind"] in {"action", "pending"} and metadata["task_id"]
+        # The scheduler can own the submitted task before the foreground runner.
+        # Verify actual completion via the same request, never another submission.
+        conversation_id = json.loads(output.splitlines()[0])["conversation_id"]
+        url = f"/api/v1/conversations/{conversation_id}/messages"
+        request = {
+            "schema_version": 1,
+            "request_id": metadata["request_id"],
+            "text": "Set lights to 25",
+        }
+        headers = {"Authorization": "Bearer " + token}
+        replay = api_data(client.post(url, json=request, headers=headers))
+        completed = settle_action(client, url, request, headers, replay)
+        assert completed["kind"] == "action" and completed["task_state"] == "COMPLETED"
+        assert completed["execution"]["output"] == {"brightness": 25, "simulated": True}
+        assert completed["task_id"] == metadata["task_id"]
+        assert completed["correlation_id"] == metadata["correlation_id"]
         if cancel_playback:
             assert (
                 '"status": "cancelled"' in output

@@ -362,6 +362,11 @@ grounded engineering reasoning, scoped project continuity, fixture migration,
 schema guidance and normal interrupted playback. See
 [the hardening report](docs/PHASE10_COGNITION_HARDENING.md); this is not Phase 11.
 
+The [mixed-request follow-on](docs/PHASE10_MIXED_INTENT.md) defers recognized combined
+question/lighting commands, suppresses unsubmitted execution claims, and verifies
+both configured local structured-output modes. Generalized intent planning remains
+deferred; MacBook and physical voice acceptance are still operator gates.
+
 ## Deferred recommendation — Deployment Identity and Genuine Local-Model Acceptance
 
 Validate an available real local model end to end; decide production owner

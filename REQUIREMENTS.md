@@ -757,3 +757,9 @@ normal playback cancellation. ARCH-001/003/004, MEM-001–004/006, IAM-004/007,
 PER-001, CAP-001–003, TASK-001/002, SEC-001–003, REL-001/002 and DEV-003 retain
 their boundaries and gain regressions. See [the hardening report](docs/PHASE10_COGNITION_HARDENING.md)
 for actual inference versus deterministic coverage; no status is promoted.
+
+Phase 10 mixed-request hardening adds trusted request separation and no-submission
+reporting, including historical/replayed/spoken responses (COG-001, provisional
+COG-002/INT-002, CAP-003, IAM-004, PER-001, TASK-001/002, MEM-002/003/006,
+SEC-001–003, REL-001/002, DEV-003). Actual task outcomes remain authoritative.
+See [mixed-request acceptance](docs/PHASE10_MIXED_INTENT.md); statuses stay unchanged.

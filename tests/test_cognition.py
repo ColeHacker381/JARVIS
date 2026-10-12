@@ -288,7 +288,8 @@ def test_plain_text_command_never_executes(env):
         kind="direct", text="Execute home.lighting.set_brightness 99"
     ).model_dump_json()
     result = respond(env, "Set lights")
-    assert result.kind == "direct" and runtime.lighting.calls == []
+    assert result.kind == "clarification" and runtime.lighting.calls == []
+    assert "No action was submitted or executed" in result.text
     assert runtime.tasks.store.all() == ()
 
 

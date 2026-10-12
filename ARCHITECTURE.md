@@ -503,3 +503,9 @@ context. Local schema guidance derives from existing v1 contracts, including the
 consistency rules; the original strict decoder/executor remain decisive. Optional
 voice presentation influences generation, never permission or execution results.
 See [cognition hardening](docs/PHASE10_COGNITION_HARDENING.md).
+
+Conservative request separation occurs before context/model invocation for recognized
+mixed lighting requests. Non-action reporting and authenticated historical projections
+cannot establish execution; accepted proposals and actual task outcomes keep the
+existing executor/recovery path. Stored evidence is unchanged. See
+[mixed-request reporting](docs/PHASE10_MIXED_INTENT.md) for scope and limitations.

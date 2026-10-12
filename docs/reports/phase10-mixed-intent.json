@@ -1,0 +1,1818 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-12",
+  "scope": "Phase 10 mixed request and action reporting follow-on",
+  "baseline_commit": "06a8c75be84013b6126dec6872b9a9956ba1dc73",
+  "fixture_notice": "Only public synthetic acceptance scenarios and numeric diagnostics; no existing user store, private prompts, raw provider output or credentials. Model generations require semantic review.",
+  "deterministic_before_fix": {
+    "kind": "direct",
+    "false_text_reached_user": true,
+    "task_id": null,
+    "execution": null,
+    "task_count": 0,
+    "handler_calls": []
+  },
+  "real_baseline": {
+    "mode": "genuine_local_inference_public_development_fixtures",
+    "model": {
+      "schema_version": 1,
+      "provider_id": "local.openai",
+      "model_id": "qwen3:4b-instruct",
+      "location": "local",
+      "destination": "http://127.0.0.1:11434/v1"
+    },
+    "response_format": "json_schema",
+    "partial_context_scenario": true,
+    "python": "3.12.14",
+    "records": [
+      {
+        "case": "technical_1",
+        "requester": "owner",
+        "conversation_id": "44fae34b-45e7-47d7-a633-25dac7141b84",
+        "request_id": "a6850894-ac3e-4d9b-9ece-46e537ac6518",
+        "correlation_id": "6bae2d35-0ea4-4a86-853d-630afbd3d30d",
+        "elapsed_ms": 70906,
+        "http_status": 200,
+        "kind": "direct",
+        "initial_kind": "direct",
+        "text": "Audio codecs are data compression formats used to encode and decode audio signals. They reduce the amount of data required to represent sound, enabling efficient storage and transmission over networks. Common audio codecs include MP3, AAC, WAV, FLAC, and ALAC. Each codec offers a trade-off between audio quality, file size, and computational complexity. For example, MP3 provides good compression with moderate quality loss, while FLAC offers lossless compression preserving original audio fidelity. Codecs work by removing redundant or less perceptible information from the audio signal, based on human hearing characteristics.",
+        "word_count": 90,
+        "error": null,
+        "memory_ids": [],
+        "provenance": {
+          "schema_version": 1,
+          "provider_id": "local.openai",
+          "model_id": "qwen3:4b-instruct",
+          "location": "local",
+          "destination": "http://127.0.0.1:11434/v1",
+          "invoked_at": "2026-10-12T01:35:34.880645Z",
+          "duration_ms": 70590
+        },
+        "task_id": null,
+        "task_state": null,
+        "execution": null,
+        "audit_ids": [
+          "8059847a-b16b-4cdf-b659-aac7cdb181a5",
+          "35e88413-538c-419c-9824-fef8e7c2848f",
+          "a4500142-d992-4d66-a225-acd372989f51",
+          "c478c104-bac9-41eb-aba6-1b9b89b67ad0",
+          "048cd272-e2bb-42a8-88f9-735d8b9582b2",
+          "09d0cf9a-4a9e-42e5-af0b-f9f01a59a038"
+        ],
+        "model_invoked": true,
+        "phase_metrics": {
+          "context.build_ms": 77.36673699992025,
+          "model.input_tokens": 1237.0,
+          "model.output_tokens": 134.0,
+          "model.invoke_ms": 70590.88649
+        },
+        "simulated_invocations": {
+          "lighting": 0,
+          "notice": 0
+        },
+        "context_memory_sources": [],
+        "backend_numeric_profile": {
+          "prefill_ms": 31390.05,
+          "decode_ms": 24318.55,
+          "total_ms": 55708.6
+        }
+      },
+      {
+        "case": "combined_1",
+        "requester": "owner",
+        "conversation_id": "44fae34b-45e7-47d7-a633-25dac7141b84",
+        "request_id": "f3f302da-ff80-4b86-984a-59893e991fbe",
+        "correlation_id": "d0ac7ef8-5992-47ba-b660-0b01aca18686",
+        "elapsed_ms": 82748,
+        "http_status": 200,
+        "kind": "memory_grounded",
+        "initial_kind": "memory_grounded",
+        "text": "Audio codecs could help Slipstream by enabling efficient storage and transmission of audio content, such as rider communication, navigation cues, or ambient soundscapes. For example, compressed audio (e.g., MP3 or AAC) could be used to stream real-time intercom messages or environmental audio to the rider, reducing bandwidth and storage needs. However, since Slipstream is a provisional motorcycle concept with undecided design selections, no specific audio integration has been implemented. As for dimming the lights, the request to set brightness to 45% is not supported by any available capability in the current context. The only lighting capability available is for simulating a local light state, which does not allow direct control of brightness. Therefore, no action can be taken to dim the lights to 45%.",
+        "word_count": 124,
+        "error": null,
+        "memory_ids": [
+          "be346aa7-d110-4603-b377-5a7956930de8"
+        ],
+        "provenance": {
+          "schema_version": 1,
+          "provider_id": "local.openai",
+          "model_id": "qwen3:4b-instruct",
+          "location": "local",
+          "destination": "http://127.0.0.1:11434/v1",
+          "invoked_at": "2026-10-12T01:36:45.710493Z",
+          "duration_ms": 82543
+        },
+        "task_id": null,
+        "task_state": null,
+        "execution": null,
+        "audit_ids": [
+          "fc3b5e0c-cb74-4f9e-bfb4-a43951bda2a5",
+          "d335e231-c9a8-4a47-b189-69b3ba2883aa",
+          "75ef983f-2ee1-4ec9-b989-c2affdef48a2",
+          "11987c19-5898-46b7-be19-3bb477e34380",
+          "51a8d6a1-720f-4bf6-9f73-8cb8cda08685",
+          "82ff9dba-83cc-4f72-9aaa-efd89c4941ef"
+        ],
+        "model_invoked": true,
+        "phase_metrics": {
+          "context.build_ms": 104.86774799994691,
+          "model.input_tokens": 1657.0,
+          "model.output_tokens": 217.0,
+          "model.invoke_ms": 82543.61644599999
+        },
+        "simulated_invocations": {
+          "lighting": 0,
+          "notice": 0
+        },
+        "context_memory_sources": [
+          "acceptance:partial-project-scenario"
+        ],
+        "backend_numeric_profile": {
+          "prefill_ms": 36175.82,
+          "decode_ms": 46066.61,
+          "total_ms": 82242.43
+        }
+      },
+      {
+        "case": "separate_action_1",
+        "requester": "owner",
+        "conversation_id": "44fae34b-45e7-47d7-a633-25dac7141b84",
+        "request_id": "f93eb194-1e2c-42d7-ba18-9b1a83cb72db",
+        "correlation_id": "e242586e-2359-4803-ae0f-16930063f73d",
+        "elapsed_ms": 67738,
+        "http_status": 200,
+        "kind": "action",
+        "initial_kind": "action",
+        "text": "Verified capability result: {\"brightness\": 45, \"simulated\": true}",
+        "word_count": 7,
+        "error": null,
+        "memory_ids": [],
+        "provenance": {
+          "schema_version": 1,
+          "provider_id": "local.openai",
+          "model_id": "qwen3:4b-instruct",
+          "location": "local",
+          "destination": "http://127.0.0.1:11434/v1",
+          "invoked_at": "2026-10-12T01:38:08.519555Z",
+          "duration_ms": 67389
+        },
+        "task_id": "f9af0fab-69e7-4817-bbdc-9239e82d3557",
+        "task_state": "COMPLETED",
+        "execution": {
+          "schema_version": 1,
+          "contract_type": "execution_result",
+          "proposal_id": "bdf268ae-7667-4a52-a380-f8a1a34669e1",
+          "task_id": "f9af0fab-69e7-4817-bbdc-9239e82d3557",
+          "correlation_id": "e242586e-2359-4803-ae0f-16930063f73d",
+          "status": "success",
+          "output": {
+            "brightness": 45,
+            "simulated": true
+          },
+          "error": null
+        },
+        "audit_ids": [
+          "3b48a564-5fce-473b-b196-865b53620752",
+          "2fddbc55-139d-4d33-8f09-7167fb7b9e33",
+          "7273bc3a-2fb5-441d-a0f6-64307154244a",
+          "5c8086d0-0282-4c3a-87e4-0e500cf7a769",
+          "4a49a1bc-682f-468d-a400-84c9aef4256d",
+          "05d61799-1477-47e2-901e-502d9a4e5825",
+          "16578707-5b60-45a7-b717-972016bb4d4c",
+          "02a383b9-f835-4e8f-ba8a-a99d79b67fc0",
+          "65be2be5-3d70-47f6-807e-b6ed03259ea7",
+          "de8fb4c9-10c7-4748-9b2b-9b3e16657e38",
+          "41651112-0c1b-4a0a-9ec7-0574fe221330",
+          "bccc9092-71a9-44d0-bf21-9c9d48f77c36",
+          "2d1b9a81-e5bc-44de-b6db-57cf2942c8ea",
+          "852f6933-4504-4a93-927e-b8b4324ebc27",
+          "0b59d4a3-f975-4cb4-8009-f8450b454603"
+        ],
+        "model_invoked": true,
+        "phase_metrics": {
+          "context.build_ms": 102.28751399995417,
+          "model.input_tokens": 1634.0,
+          "model.output_tokens": 152.0,
+          "model.invoke_ms": 67389.30848099994
+        },
+        "simulated_invocations": {
+          "lighting": 1,
+          "notice": 0
+        },
+        "same_request_replay": true,
+        "context_memory_sources": [
+          "acceptance:partial-project-scenario"
+        ],
+        "backend_numeric_profile": {
+          "prefill_ms": 35919.42,
+          "decode_ms": 31192.22,
+          "total_ms": 67111.64
+        }
+      },
+      {
+        "case": "project_reasoning",
+        "requester": "owner",
+        "conversation_id": "149c963f-64e1-4cd8-9015-840409e72797",
+        "request_id": "6ca5f063-d628-401a-a8de-bc4427f1d694",
+        "correlation_id": "57c0949b-edae-45d5-a628-cac0eefe2a62",
+        "elapsed_ms": 60769,
+        "http_status": 200,
+        "kind": "memory_grounded",
+        "initial_kind": "memory_grounded",
+        "text": "Audio codecs could help Slipstream by enabling efficient compression and transmission of audio data, which is relevant if the motorcycle concept includes audio-based features such as intercom communication, navigation cues, or voice commands. For example, using a lightweight codec could reduce bandwidth needs for real-time communication, while a high-fidelity codec might support immersive audio experiences. However, since Slipstream is currently a provisional concept with undecided design selections, these applications remain hypothetical. Options include compressed intercom speech, stored recorded audio, or streamed navigation cues\u2014each leveraging different codec characteristics. These are possibilities, not established project decisions.",
+        "word_count": 94,
+        "error": null,
+        "memory_ids": [
+          "be346aa7-d110-4603-b377-5a7956930de8"
+        ],
+        "provenance": {
+          "schema_version": 1,
+          "provider_id": "local.openai",
+          "model_id": "qwen3:4b-instruct",
+          "location": "local",
+          "destination": "http://127.0.0.1:11434/v1",
+          "invoked_at": "2026-10-12T01:39:16.447070Z",
+          "duration_ms": 60492
+        },
+        "task_id": null,
+        "task_state": null,
+        "execution": null,
+        "audit_ids": [
+          "b9afd257-e784-4127-ac76-70d54673d4d6",
+          "d790664c-4413-4066-ad6a-5fe239275e36",
+          "c7a5d895-c654-44c1-9cc0-545935439d42",
+          "72278145-199f-4bd5-bd46-e15039ce9e95",
+          "9f7c0c5e-f475-44b9-a55f-6bda1a23876b",
+          "9e66c2c1-ba2b-4469-a4ee-9999fa4783da"
+        ],
+        "model_invoked": true,
+        "phase_metrics": {
+          "context.build_ms": 151.88833000001978,
+          "model.input_tokens": 1512.0,
+          "model.output_tokens": 177.0,
+          "model.invoke_ms": 60492.803180999996
+        },
+        "simulated_invocations": {
+          "lighting": 1,
+          "notice": 0
+        },
+        "context_memory_sources": [
+          "acceptance:partial-project-scenario"
+        ],
+        "backend_numeric_profile": {
+          "prefill_ms": 24907.34,
+          "decode_ms": 35235.66,
+          "total_ms": 60143.0
+        }
+      },
+      {
+        "case": "guest_combined",
+        "requester": "guest",
+        "conversation_id": "035bac9f-8e0b-448e-a7f1-a61aeddf0ca9",
+        "request_id": "07328376-379f-401d-b7d5-21536856a4de",
+        "correlation_id": "a63cd976-24b9-4141-9e18-dad83687c75a",
+        "elapsed_ms": 43054,
+        "http_status": 200,
+        "kind": "failure",
+        "initial_kind": "failure",
+        "text": "Request failed: unverified_action_claim.",
+        "word_count": 3,
+        "error": {
+          "schema_version": 1,
+          "code": "unverified_action_claim",
+          "message": "unverified_action_claim; {\"stage\": \"unverified_action_claim\", \"output_bytes\": 537, \"unknown_field_count\": 0, \"root_type\": \"dict\", \"fields\": {\"contract_type\": \"str\", \"kind\": \"str\", \"schema_version\": \"int\", \"text\": \"str\"}, \"kind\": \"direct\", \"reference_counts\": {}}",
+          "retryable": false
+        },
+        "memory_ids": [],
+        "provenance": {
+          "schema_version": 1,
+          "provider_id": "local.openai",
+          "model_id": "qwen3:4b-instruct",
+          "location": "local",
+          "destination": "http://127.0.0.1:11434/v1",
+          "invoked_at": "2026-10-12T01:40:17.252078Z",
+          "duration_ms": 42916
+        },
+        "task_id": null,
+        "task_state": null,
+        "execution": null,
+        "audit_ids": [],
+        "model_invoked": true,
+        "phase_metrics": {
+          "model.input_tokens": 1111.0,
+          "model.output_tokens": 103.0,
+          "model.invoke_ms": 42916.37670399996,
+          "context.build_ms": 80.70682199991097
+        },
+        "simulated_invocations": {
+          "lighting": 1,
+          "notice": 0
+        },
+        "context_memory_sources": [],
+        "backend_numeric_profile": {
+          "prefill_ms": 21867.69,
+          "decode_ms": 20797.32,
+          "total_ms": 42665.02
+        }
+      }
+    ],
+    "simulated_invocations": {
+      "lighting": 1,
+      "notice": 0
+    },
+    "rejection_diagnostics": [
+      {
+        "reason_code": "unverified_action_claim",
+        "model_diagnostic": {
+          "stage": "unverified_action_claim",
+          "output_bytes": 537,
+          "unknown_field_count": 0,
+          "root_type": "dict",
+          "fields": {
+            "contract_type": "str",
+            "kind": "str",
+            "schema_version": "int",
+            "text": "str"
+          },
+          "kind": "direct",
+          "reference_counts": {}
+        }
+      }
+    ],
+    "brainstorm_valid_responses": 0,
+    "brainstorm_attempts": 0,
+    "semantic_review": "Required: JSON validity alone does not prove factual grounding or useful recommendations.",
+    "brainstorm_grounded_responses": 0,
+    "status": "completed"
+  },
+  "real_post_fix": [
+    {
+      "mode": "genuine_local_inference_public_development_fixtures",
+      "model": {
+        "schema_version": 1,
+        "provider_id": "local.openai",
+        "model_id": "qwen3:4b-instruct",
+        "location": "local",
+        "destination": "http://127.0.0.1:11434/v1"
+      },
+      "response_format": "json_schema",
+      "partial_context_scenario": true,
+      "python": "3.12.14",
+      "records": [
+        {
+          "case": "technical_1",
+          "requester": "owner",
+          "conversation_id": "76412a83-6757-4609-b52f-73552b992aff",
+          "request_id": "79a7833d-5784-429f-91d4-c0c840ac4dfe",
+          "correlation_id": "c40a2099-6f2c-47e0-abf0-601e0a21cd0c",
+          "elapsed_ms": 52657,
+          "http_status": 200,
+          "kind": "direct",
+          "initial_kind": "direct",
+          "text": "Audio codecs are data compression formats used to encode and decode audio signals. They reduce the amount of data required to represent sound, enabling efficient storage and transmission over networks. Common audio codecs include MP3, AAC, WAV, FLAC, and ALAC. Each codec offers a different balance between audio quality, file size, and computational requirements. For example, MP3 and AAC are widely used for streaming and portable devices due to their small file sizes, while WAV and FLAC preserve higher audio fidelity and are often used in professional audio production.",
+          "word_count": 89,
+          "error": null,
+          "memory_ids": [],
+          "provenance": {
+            "schema_version": 1,
+            "provider_id": "local.openai",
+            "model_id": "qwen3:4b-instruct",
+            "location": "local",
+            "destination": "http://127.0.0.1:11434/v1",
+            "invoked_at": "2026-10-12T01:53:57.543288Z",
+            "duration_ms": 52500
+          },
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "2b44d7cf-1f5f-45dd-a2a9-81b6a4ccbf74",
+            "19dc5e52-7c48-4be8-9d96-6ede787cc738",
+            "72c2b6da-49fd-4b21-8d58-360d4e681fb8",
+            "964f188c-019e-4b0b-aafa-2de841a8aab5",
+            "f95f2c3b-5312-46fc-a8f9-2f95e90855e8",
+            "895096f9-5412-416c-bbca-41024c2f340b"
+          ],
+          "model_invoked": true,
+          "phase_metrics": {
+            "context.build_ms": 73.33388899996862,
+            "model.input_tokens": 1239.0,
+            "model.output_tokens": 127.0,
+            "model.invoke_ms": 52500.5102749999
+          },
+          "simulated_invocations": {
+            "lighting": 0,
+            "notice": 0
+          },
+          "context_memory_sources": [],
+          "backend_numeric_profile": {
+            "prefill_ms": 27331.6,
+            "decode_ms": 24848.37,
+            "total_ms": 52179.98
+          }
+        },
+        {
+          "case": "combined_1",
+          "requester": "owner",
+          "conversation_id": "76412a83-6757-4609-b52f-73552b992aff",
+          "request_id": "6d2187e7-55ea-490a-ba9a-32fc3ffbd7a5",
+          "correlation_id": "a30ae024-1a78-4173-a9ac-65b4cb298d1f",
+          "elapsed_ms": 48,
+          "http_status": 200,
+          "kind": "clarification",
+          "initial_kind": "clarification",
+          "text": "This contains multiple requests. No action was submitted or executed for this request. Please send the question and each action separately.",
+          "word_count": 21,
+          "error": null,
+          "memory_ids": [],
+          "provenance": null,
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "9e16d72d-7925-4ddf-a984-7ba80532737a",
+            "b35da154-cdb0-4058-a3b8-32f5e887db8e",
+            "379ca4bb-41be-4832-833d-def9a0ae67cc"
+          ],
+          "model_invoked": false,
+          "phase_metrics": {},
+          "simulated_invocations": {
+            "lighting": 0,
+            "notice": 0
+          },
+          "context_memory_sources": []
+        },
+        {
+          "case": "separate_action_1",
+          "requester": "owner",
+          "conversation_id": "76412a83-6757-4609-b52f-73552b992aff",
+          "request_id": "444e0662-d06d-496f-891d-bcbee5395313",
+          "correlation_id": "12235eda-437c-4def-9e37-30226fd2f02d",
+          "elapsed_ms": 59525,
+          "http_status": 200,
+          "kind": "action",
+          "initial_kind": "action",
+          "text": "Verified capability result: {\"brightness\": 45, \"simulated\": true}",
+          "word_count": 7,
+          "error": null,
+          "memory_ids": [],
+          "provenance": {
+            "schema_version": 1,
+            "provider_id": "local.openai",
+            "model_id": "qwen3:4b-instruct",
+            "location": "local",
+            "destination": "http://127.0.0.1:11434/v1",
+            "invoked_at": "2026-10-12T01:54:50.355903Z",
+            "duration_ms": 59342
+          },
+          "task_id": "34d530f6-a0dd-458f-badd-ed46c24cbd51",
+          "task_state": "COMPLETED",
+          "execution": {
+            "schema_version": 1,
+            "contract_type": "execution_result",
+            "proposal_id": "750790ee-deed-4804-b68e-a2f05d3e3e13",
+            "task_id": "34d530f6-a0dd-458f-badd-ed46c24cbd51",
+            "correlation_id": "12235eda-437c-4def-9e37-30226fd2f02d",
+            "status": "success",
+            "output": {
+              "brightness": 45,
+              "simulated": true
+            },
+            "error": null
+          },
+          "audit_ids": [
+            "273d5516-38e8-44b0-a193-459bc5b7249d",
+            "e826fec6-6597-4812-adce-af401d1d1c18",
+            "5229722c-f215-4296-bfd1-cd3a24f26e84",
+            "501bbfc7-58ba-45dd-82cf-bd0895f2c62b",
+            "e6aeab42-1fbe-4c25-8197-5868a0c61fc5",
+            "2e851e9f-73fe-4b62-ab30-9977788bc526",
+            "25cc17f9-fb87-47c3-aa61-8ca354b0fd82",
+            "6fc5e152-c922-4216-9079-dab9828ddfa4",
+            "6254ee28-56d7-4f95-aa3c-01f59f930fec",
+            "0d588beb-00ef-4944-af81-278253ff6525",
+            "1414b377-2180-4f5a-99dd-6876c97e810a",
+            "c8eef5f9-9599-45ec-84d3-de89233db8e9",
+            "f3270ab9-1778-4592-99cb-ca1316646ce6",
+            "acee5361-b727-4931-8e92-d535cf2825af",
+            "22b92a1d-abf9-4949-a319-39ba163888d3"
+          ],
+          "model_invoked": true,
+          "phase_metrics": {
+            "context.build_ms": 76.27365999996982,
+            "model.input_tokens": 1414.0,
+            "model.output_tokens": 140.0,
+            "model.invoke_ms": 59342.52266299995
+          },
+          "simulated_invocations": {
+            "lighting": 1,
+            "notice": 0
+          },
+          "same_request_replay": true,
+          "context_memory_sources": [],
+          "backend_numeric_profile": {
+            "prefill_ms": 27204.38,
+            "decode_ms": 31919.83,
+            "total_ms": 59124.21
+          }
+        },
+        {
+          "case": "technical_2",
+          "requester": "owner",
+          "conversation_id": "827982b8-bd48-456a-af91-23ac712d5398",
+          "request_id": "cc513479-8071-407d-9175-5b17c668de4e",
+          "correlation_id": "0a36a1ef-941a-4019-909b-e7d57dabc425",
+          "elapsed_ms": 87469,
+          "http_status": 200,
+          "kind": "direct",
+          "initial_kind": "direct",
+          "text": "Audio codecs are data compression formats used to encode and decode audio signals. They reduce the amount of data required to represent sound, enabling efficient storage and transmission over networks. Common audio codecs include MP3, AAC, WAV, FLAC, and ALAC. Each codec offers a trade-off between audio quality, file size, and computational complexity. For example, MP3 provides good compression with moderate quality loss, while FLAC offers lossless compression preserving original audio fidelity. Codecs work by removing redundant or less perceptible information from the audio signal, based on human hearing characteristics.",
+          "word_count": 90,
+          "error": null,
+          "memory_ids": [],
+          "provenance": {
+            "schema_version": 1,
+            "provider_id": "local.openai",
+            "model_id": "qwen3:4b-instruct",
+            "location": "local",
+            "destination": "http://127.0.0.1:11434/v1",
+            "invoked_at": "2026-10-12T01:55:50.007880Z",
+            "duration_ms": 87121
+          },
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "1fbecddd-3ea7-404a-bc95-b50e5bd54d1d",
+            "f41af544-0eb1-4370-8a95-70d442c2e9c8",
+            "7f64c322-8792-469a-9c0f-869d7cb621a2",
+            "ffac4e2f-2123-4812-8d4d-9e94142b4b41",
+            "9cec8c71-4595-41c3-82a1-ffb64053b738",
+            "06278761-8c55-490c-a6a5-dd73eb9dd38f"
+          ],
+          "model_invoked": true,
+          "phase_metrics": {
+            "context.build_ms": 84.01151599991863,
+            "model.input_tokens": 1237.0,
+            "model.output_tokens": 134.0,
+            "model.invoke_ms": 87121.44180999984
+          },
+          "simulated_invocations": {
+            "lighting": 1,
+            "notice": 0
+          },
+          "context_memory_sources": [],
+          "backend_numeric_profile": {
+            "prefill_ms": 31139.21,
+            "decode_ms": 55534.12,
+            "total_ms": 86673.33
+          }
+        },
+        {
+          "case": "combined_2",
+          "requester": "owner",
+          "conversation_id": "827982b8-bd48-456a-af91-23ac712d5398",
+          "request_id": "32454969-27a3-44a9-92fe-7c01c04ed3e3",
+          "correlation_id": "73351090-dce9-4978-bd27-20f0bae459b2",
+          "elapsed_ms": 75,
+          "http_status": 200,
+          "kind": "clarification",
+          "initial_kind": "clarification",
+          "text": "This contains multiple requests. No action was submitted or executed for this request. Please send the question and each action separately.",
+          "word_count": 21,
+          "error": null,
+          "memory_ids": [],
+          "provenance": null,
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "8457620e-5ed5-49fe-973b-186520744989",
+            "e14a9f3f-2bc7-41f0-ad62-a349239b732c",
+            "e13aff86-cca9-49a8-8142-6a2d357a6c7d"
+          ],
+          "model_invoked": false,
+          "phase_metrics": {},
+          "simulated_invocations": {
+            "lighting": 1,
+            "notice": 0
+          },
+          "context_memory_sources": []
+        },
+        {
+          "case": "separate_action_2",
+          "requester": "owner",
+          "conversation_id": "827982b8-bd48-456a-af91-23ac712d5398",
+          "request_id": "39b83e7e-a6fe-442b-abba-67938bd29ebb",
+          "correlation_id": "ae1499bd-3ae6-4127-8d0d-32badba3f96d",
+          "elapsed_ms": 82313,
+          "http_status": 200,
+          "kind": "action",
+          "initial_kind": "action",
+          "text": "Verified capability result: {\"brightness\": 45, \"simulated\": true}",
+          "word_count": 7,
+          "error": null,
+          "memory_ids": [],
+          "provenance": {
+            "schema_version": 1,
+            "provider_id": "local.openai",
+            "model_id": "qwen3:4b-instruct",
+            "location": "local",
+            "destination": "http://127.0.0.1:11434/v1",
+            "invoked_at": "2026-10-12T01:57:17.829805Z",
+            "duration_ms": 82049
+          },
+          "task_id": "aa73a9e4-cf98-4ede-8daf-a1aca773ce65",
+          "task_state": "COMPLETED",
+          "execution": {
+            "schema_version": 1,
+            "contract_type": "execution_result",
+            "proposal_id": "e250ddf2-9b36-400b-9b99-714e6a35369f",
+            "task_id": "aa73a9e4-cf98-4ede-8daf-a1aca773ce65",
+            "correlation_id": "ae1499bd-3ae6-4127-8d0d-32badba3f96d",
+            "status": "success",
+            "output": {
+              "brightness": 45,
+              "simulated": true
+            },
+            "error": null
+          },
+          "audit_ids": [
+            "5dfd0cab-6b22-4313-a4c9-99142591435f",
+            "8e1c0bf6-d5f7-4165-9465-ee77254e4cf7",
+            "b37f8524-3347-47df-ab5f-82c8356eb9c8",
+            "536d45bd-3793-4baa-8170-a90447846d6b",
+            "4621f919-9615-4f45-a07e-e6aaa7f7406c",
+            "accd20a8-f10a-4b20-8f44-3be75069c587",
+            "32037734-5607-401e-9a1f-c1787b0d448d",
+            "5fa06d39-ba80-4b7c-81da-d6d9ad260d95",
+            "f3c00793-ea81-49cf-b5c3-fec36fb8538a",
+            "da5547e8-81a0-4c5d-a1d7-069090252fff",
+            "48226d9a-1bd0-4491-a20b-0744aa1c058e",
+            "685d6c92-5cb6-47d1-9f37-3a775b88dd2a",
+            "40d9af47-a547-41e5-8661-9ecb7734d30e",
+            "61e68681-d5ed-40ef-9971-197bb5dc6ea4",
+            "23086001-ac86-45c4-add8-683b58b23b83"
+          ],
+          "model_invoked": true,
+          "phase_metrics": {
+            "context.build_ms": 106.17457199987257,
+            "model.input_tokens": 1419.0,
+            "model.output_tokens": 139.0,
+            "model.invoke_ms": 82049.20642099978
+          },
+          "simulated_invocations": {
+            "lighting": 2,
+            "notice": 0
+          },
+          "same_request_replay": true,
+          "context_memory_sources": [],
+          "backend_numeric_profile": {
+            "prefill_ms": 44930.56,
+            "decode_ms": 36900.56,
+            "total_ms": 81831.12
+          }
+        },
+        {
+          "case": "technical_3",
+          "requester": "owner",
+          "conversation_id": "a317128f-c15b-4a1e-aab7-aded22739948",
+          "request_id": "66147f69-d245-4b40-9756-cf20eb847fc5",
+          "correlation_id": "3a409ca6-17c7-42c5-b704-ed0fa737ff4f",
+          "elapsed_ms": 80407,
+          "http_status": 200,
+          "kind": "direct",
+          "initial_kind": "direct",
+          "text": "Audio codecs are data compression formats used to encode and decode audio signals. They reduce the amount of data required to represent sound, enabling efficient storage and transmission over networks. Common audio codecs include MP3, AAC, WAV, FLAC, and ALAC. Each codec offers a different balance between audio quality, file size, and computational complexity. For example, MP3 provides good compression with moderate quality loss, while FLAC offers lossless compression preserving original audio fidelity. Audio codecs are essential in applications such as streaming services, digital music files, and voice communication.",
+          "word_count": 89,
+          "error": null,
+          "memory_ids": [],
+          "provenance": {
+            "schema_version": 1,
+            "provider_id": "local.openai",
+            "model_id": "qwen3:4b-instruct",
+            "location": "local",
+            "destination": "http://127.0.0.1:11434/v1",
+            "invoked_at": "2026-10-12T01:58:40.208561Z",
+            "duration_ms": 80286
+          },
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "76aa62b6-5b4a-4e08-ac3a-efa665c4f822",
+            "afaa7db5-8536-47df-a3d8-1221d26aee7a",
+            "0e80078e-b04b-41fb-89a0-2fc442a110c9",
+            "b9635e48-eba8-4639-8812-47559bd0499c",
+            "d237f15a-d612-41ce-a775-d9a90f348ce7",
+            "3df009fc-af11-4098-a250-f379c4a9d0b2"
+          ],
+          "model_invoked": true,
+          "phase_metrics": {
+            "model.input_tokens": 1233.0,
+            "model.output_tokens": 131.0,
+            "model.invoke_ms": 80286.98031700014,
+            "context.build_ms": 68.65684600006716
+          },
+          "simulated_invocations": {
+            "lighting": 2,
+            "notice": 0
+          },
+          "context_memory_sources": [],
+          "backend_numeric_profile": {
+            "prefill_ms": 35176.62,
+            "decode_ms": 44817.33,
+            "total_ms": 79993.95
+          }
+        },
+        {
+          "case": "combined_3",
+          "requester": "owner",
+          "conversation_id": "a317128f-c15b-4a1e-aab7-aded22739948",
+          "request_id": "1e2a6597-80a2-4544-b8ae-92d7bca105d9",
+          "correlation_id": "4d6f2ab8-f4a6-41f5-81ea-e124814dd0dd",
+          "elapsed_ms": 109,
+          "http_status": 200,
+          "kind": "clarification",
+          "initial_kind": "clarification",
+          "text": "This contains multiple requests. No action was submitted or executed for this request. Please send the question and each action separately.",
+          "word_count": 21,
+          "error": null,
+          "memory_ids": [],
+          "provenance": null,
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "3fd7227a-a6a1-4b02-8481-f8ac2ec3998d",
+            "926abdce-71de-4c97-81a9-bbefc9db3989",
+            "bc67f9f5-9c04-4abd-815e-845a06b38af3"
+          ],
+          "model_invoked": false,
+          "phase_metrics": {},
+          "simulated_invocations": {
+            "lighting": 2,
+            "notice": 0
+          },
+          "context_memory_sources": []
+        },
+        {
+          "case": "separate_action_3",
+          "requester": "owner",
+          "conversation_id": "a317128f-c15b-4a1e-aab7-aded22739948",
+          "request_id": "52f0b618-cbc1-46eb-8763-ade1051e6eba",
+          "correlation_id": "4ee02607-b8aa-497b-b170-92b8e166fe4a",
+          "elapsed_ms": 59470,
+          "http_status": 200,
+          "kind": "action",
+          "initial_kind": "action",
+          "text": "Verified capability result: {\"brightness\": 45, \"simulated\": true}",
+          "word_count": 7,
+          "error": null,
+          "memory_ids": [],
+          "provenance": {
+            "schema_version": 1,
+            "provider_id": "local.openai",
+            "model_id": "qwen3:4b-instruct",
+            "location": "local",
+            "destination": "http://127.0.0.1:11434/v1",
+            "invoked_at": "2026-10-12T02:00:01.012754Z",
+            "duration_ms": 59253
+          },
+          "task_id": "ae2c35f0-0abb-415d-9ed7-10282d66feb7",
+          "task_state": "COMPLETED",
+          "execution": {
+            "schema_version": 1,
+            "contract_type": "execution_result",
+            "proposal_id": "216c3418-09c8-42a0-8ea2-44471e7ea1da",
+            "task_id": "ae2c35f0-0abb-415d-9ed7-10282d66feb7",
+            "correlation_id": "4ee02607-b8aa-497b-b170-92b8e166fe4a",
+            "status": "success",
+            "output": {
+              "brightness": 45,
+              "simulated": true
+            },
+            "error": null
+          },
+          "audit_ids": [
+            "78b2d7d6-3493-42fc-abf2-45bd52b2d3b6",
+            "ec4b7bae-8c65-4e46-9ecd-34b33f255318",
+            "816c2016-c838-45f0-99dc-d26d2c8f0505",
+            "74c0e8ad-25b7-46bd-bdfc-f0f93718cbda",
+            "862b2445-30df-4e7d-9f72-53ce473c7608",
+            "4e487425-5a3a-4918-85f9-fecad92b91e6",
+            "7cb13555-c1b4-471e-9a5c-d2dccba4fc29",
+            "cb1f6c85-b08a-4a18-9e6b-e326a71cdff4",
+            "014fda8e-f563-4192-8c0a-f0dd93773eea",
+            "3a21064e-622b-4823-8e99-3c4fb71b4449",
+            "da1ff498-b99b-4b39-bb7d-24c415274d67",
+            "35dd7e82-cd63-4a50-b85c-7ec45aad0f18",
+            "f6af10d4-c279-43ed-a1b1-680ac8a1c765",
+            "54459a78-564c-4f76-b3c1-60f7e5620a25",
+            "ade48c6a-5abd-4cc9-92b7-dc5466472812"
+          ],
+          "model_invoked": true,
+          "phase_metrics": {
+            "model.input_tokens": 1418.0,
+            "model.output_tokens": 140.0,
+            "model.invoke_ms": 59253.16665600031,
+            "context.build_ms": 80.74987100008002
+          },
+          "simulated_invocations": {
+            "lighting": 3,
+            "notice": 0
+          },
+          "same_request_replay": true,
+          "context_memory_sources": [],
+          "backend_numeric_profile": {
+            "prefill_ms": 28610.39,
+            "decode_ms": 30426.22,
+            "total_ms": 59036.61
+          }
+        },
+        {
+          "case": "project_reasoning",
+          "requester": "owner",
+          "conversation_id": "bc144103-b19f-4592-b386-9972b200df73",
+          "request_id": "1ae0b281-11a4-4afb-9292-12dae38a2220",
+          "correlation_id": "a9628de2-a1ee-4811-8d8f-66584b4d1160",
+          "elapsed_ms": 78614,
+          "http_status": 200,
+          "kind": "memory_grounded",
+          "initial_kind": "memory_grounded",
+          "text": "Slipstream is a provisional motorcycle concept with undecided design selections. Audio codecs could support Slipstream by enabling efficient compression and transmission of audio data, such as intercom communication between riders or navigation cues. For example, using optimized codecs could reduce bandwidth usage, improve real-time responsiveness, or allow for lower-power audio processing on the motorcycle. However, these are hypothetical applications, as no actual project decisions or audio systems have been established for Slipstream. Audio codecs are not directly tied to the motorcycle's mechanical or design aspects, but could enhance rider experience through clear, low-latency communication or environmental audio feedback.",
+          "word_count": 98,
+          "error": null,
+          "memory_ids": [
+            "b0c920ae-08d0-4d09-bfc3-76e85ceb6b8a"
+          ],
+          "provenance": {
+            "schema_version": 1,
+            "provider_id": "local.openai",
+            "model_id": "qwen3:4b-instruct",
+            "location": "local",
+            "destination": "http://127.0.0.1:11434/v1",
+            "invoked_at": "2026-10-12T02:01:00.625728Z",
+            "duration_ms": 78393
+          },
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "ffa7f2b3-491e-4a47-9053-8209994f728e",
+            "38aec497-1173-43a8-9b11-049c53b2d418",
+            "07a35662-2c60-449e-8811-5afb874d04c7",
+            "55e5ac5d-4da6-4346-a4be-f2f8466a4f46",
+            "deaacb6d-bb2a-43b1-abc0-02a554019e44",
+            "f3e5c847-de38-4d58-a11e-a531b2826362"
+          ],
+          "model_invoked": true,
+          "phase_metrics": {
+            "model.input_tokens": 1522.0,
+            "model.output_tokens": 182.0,
+            "model.invoke_ms": 78393.45468299961,
+            "context.build_ms": 78.40748300031919
+          },
+          "simulated_invocations": {
+            "lighting": 3,
+            "notice": 0
+          },
+          "context_memory_sources": [
+            "acceptance:partial-project-scenario"
+          ],
+          "backend_numeric_profile": {
+            "prefill_ms": 36520.21,
+            "decode_ms": 41631.69,
+            "total_ms": 78151.9
+          }
+        },
+        {
+          "case": "guest_combined",
+          "requester": "guest",
+          "conversation_id": "68fba3ef-5810-417c-8e9b-0a2657036d3d",
+          "request_id": "623225d3-e13b-400d-b77b-d267cd9ce39b",
+          "correlation_id": "ce2b0841-7346-422d-8bbe-cf20db4cef04",
+          "elapsed_ms": 56,
+          "http_status": 200,
+          "kind": "clarification",
+          "initial_kind": "clarification",
+          "text": "This contains multiple requests. No action was submitted or executed for this request. Please send the question and each action separately.",
+          "word_count": 21,
+          "error": null,
+          "memory_ids": [],
+          "provenance": null,
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "5cc5897f-ae7e-4449-81c5-02c4ed2bfcfc",
+            "eed9c4e7-2c21-4aa3-9130-537436c1961d",
+            "7da09d10-0932-4362-b01b-737c09eebef1"
+          ],
+          "model_invoked": false,
+          "phase_metrics": {},
+          "simulated_invocations": {
+            "lighting": 3,
+            "notice": 0
+          },
+          "context_memory_sources": []
+        }
+      ],
+      "simulated_invocations": {
+        "lighting": 3,
+        "notice": 0
+      },
+      "rejection_diagnostics": [],
+      "brainstorm_valid_responses": 0,
+      "brainstorm_attempts": 0,
+      "semantic_review": "Required: JSON validity alone does not prove factual grounding or useful recommendations.",
+      "brainstorm_grounded_responses": 0,
+      "status": "completed"
+    },
+    {
+      "mode": "genuine_local_inference_public_development_fixtures",
+      "model": {
+        "schema_version": 1,
+        "provider_id": "local.openai",
+        "model_id": "qwen3:4b-instruct",
+        "location": "local",
+        "destination": "http://127.0.0.1:11434/v1"
+      },
+      "response_format": "json_object",
+      "partial_context_scenario": true,
+      "python": "3.12.14",
+      "records": [
+        {
+          "case": "technical_1",
+          "requester": "owner",
+          "conversation_id": "8bc3da4e-4a5a-4ea9-9867-fec37eaba4fe",
+          "request_id": "d26d6f56-439a-47dc-98cf-d50331af7efb",
+          "correlation_id": "16235fae-8a08-4af8-a278-139c72b688df",
+          "elapsed_ms": 81684,
+          "http_status": 200,
+          "kind": "direct",
+          "initial_kind": "direct",
+          "text": "Audio codecs are data compression formats used to encode and decode audio signals. They reduce the amount of data required to represent sound, enabling efficient storage and transmission over networks. Common audio codecs include MP3, AAC, WAV, FLAC, and OPUS. Each codec offers a trade-off between audio quality, file size, and computational complexity. For example, MP3 provides good compression with moderate quality, while FLAC offers lossless compression preserving original audio fidelity. Audio codecs are essential in applications such as streaming services, voice calls, and digital music files.",
+          "word_count": 87,
+          "error": null,
+          "memory_ids": [],
+          "provenance": {
+            "schema_version": 1,
+            "provider_id": "local.openai",
+            "model_id": "qwen3:4b-instruct",
+            "location": "local",
+            "destination": "http://127.0.0.1:11434/v1",
+            "invoked_at": "2026-10-12T02:02:22.936613Z",
+            "duration_ms": 81476
+          },
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "b107387d-dcb4-4b1b-b11b-5ae0479720da",
+            "22ba1276-e966-4290-b151-71efb042c4c6",
+            "012de829-5371-4ab0-8539-ba45bebcd12a",
+            "a5b3291e-c902-478f-be63-f358c5f29ca2",
+            "f3f62dfb-a513-4494-aa46-1ca3acdab4e4",
+            "1044cea2-6924-4dce-bd3b-17a011e99e48"
+          ],
+          "model_invoked": true,
+          "phase_metrics": {
+            "context.build_ms": 75.37465099994733,
+            "model.input_tokens": 1832.0,
+            "model.output_tokens": 130.0,
+            "model.invoke_ms": 81476.25721699979
+          },
+          "simulated_invocations": {
+            "lighting": 0,
+            "notice": 0
+          },
+          "context_memory_sources": [],
+          "backend_numeric_profile": {
+            "prefill_ms": 47211.44,
+            "decode_ms": 33927.45,
+            "total_ms": 81138.89
+          }
+        },
+        {
+          "case": "combined_1",
+          "requester": "owner",
+          "conversation_id": "8bc3da4e-4a5a-4ea9-9867-fec37eaba4fe",
+          "request_id": "7047b7a5-b210-4fb5-b06a-7e4627418b45",
+          "correlation_id": "5eb7aef9-80f1-4646-9086-afe5972b01c6",
+          "elapsed_ms": 64,
+          "http_status": 200,
+          "kind": "clarification",
+          "initial_kind": "clarification",
+          "text": "This contains multiple requests. No action was submitted or executed for this request. Please send the question and each action separately.",
+          "word_count": 21,
+          "error": null,
+          "memory_ids": [],
+          "provenance": null,
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "2933a12a-2de4-4999-855e-98d647a27da7",
+            "1831fd84-e4b6-4ea2-a8da-ff922106041c",
+            "8a00ace7-3477-465c-928a-340dbc11e9b6"
+          ],
+          "model_invoked": false,
+          "phase_metrics": {},
+          "simulated_invocations": {
+            "lighting": 0,
+            "notice": 0
+          },
+          "context_memory_sources": []
+        },
+        {
+          "case": "separate_action_1",
+          "requester": "owner",
+          "conversation_id": "8bc3da4e-4a5a-4ea9-9867-fec37eaba4fe",
+          "request_id": "54cd4c7c-d779-4ee1-aa27-e4a9ed7e90ae",
+          "correlation_id": "b9383ab0-64e9-42bd-a1ee-47e3538b7aa7",
+          "elapsed_ms": 90067,
+          "http_status": 200,
+          "kind": "action",
+          "initial_kind": "action",
+          "text": "Verified capability result: {\"brightness\": 45, \"simulated\": true}",
+          "word_count": 7,
+          "error": null,
+          "memory_ids": [],
+          "provenance": {
+            "schema_version": 1,
+            "provider_id": "local.openai",
+            "model_id": "qwen3:4b-instruct",
+            "location": "local",
+            "destination": "http://127.0.0.1:11434/v1",
+            "invoked_at": "2026-10-12T02:03:44.989805Z",
+            "duration_ms": 89802
+          },
+          "task_id": "ea196136-49b6-41ff-a15e-46f3ff286c80",
+          "task_state": "COMPLETED",
+          "execution": {
+            "schema_version": 1,
+            "contract_type": "execution_result",
+            "proposal_id": "995029ef-a803-433f-b5d9-293b257ac9de",
+            "task_id": "ea196136-49b6-41ff-a15e-46f3ff286c80",
+            "correlation_id": "b9383ab0-64e9-42bd-a1ee-47e3538b7aa7",
+            "status": "success",
+            "output": {
+              "brightness": 45,
+              "simulated": true
+            },
+            "error": null
+          },
+          "audit_ids": [
+            "82f4ebee-c2bd-4eb2-a521-e35651eb89b6",
+            "4e5123ee-59e8-41ab-93ff-e229e13b7663",
+            "60dba81d-2889-4ceb-b811-6abb307b458b",
+            "64084fc7-f812-476b-ad9b-9e52c67bac11",
+            "a004bf79-e67e-4f5f-ae2b-b97e31b86867",
+            "ba75dbe1-4804-4186-a4be-d230b0be2b5c",
+            "ce352bf0-9235-4ee7-b728-041480da1183",
+            "ad10c87f-8f75-45a9-a474-aac6732cb1d5",
+            "d8a6a345-de69-4e9b-aedf-8a2011f3f012",
+            "51f1a53c-d68c-4ea7-ab82-9b8e4f9d4435",
+            "8b164273-2d0b-4328-9c91-6e808b447433",
+            "a67f049d-f981-4c04-be93-3b4454dd6e8b",
+            "0f180875-1403-4446-a78c-2af74dcd2560",
+            "73fb8f4a-5732-4d1a-9650-387efe7b402c",
+            "b21af295-04cb-4a64-b507-21c97d08e03e"
+          ],
+          "model_invoked": true,
+          "phase_metrics": {
+            "context.build_ms": 102.5405469999896,
+            "model.input_tokens": 2011.0,
+            "model.output_tokens": 138.0,
+            "model.invoke_ms": 89802.39422999966
+          },
+          "simulated_invocations": {
+            "lighting": 1,
+            "notice": 0
+          },
+          "same_request_replay": true,
+          "context_memory_sources": [],
+          "backend_numeric_profile": {
+            "prefill_ms": 49060.09,
+            "decode_ms": 40244.48,
+            "total_ms": 89304.57
+          }
+        },
+        {
+          "case": "technical_2",
+          "requester": "owner",
+          "conversation_id": "b51a4ab8-ec04-43a1-91c3-596889ba7e0f",
+          "request_id": "17ae79f5-8b8f-45c1-bf98-a0b854bf9e35",
+          "correlation_id": "3a45c982-f83f-4bd6-9577-d188ef52ebba",
+          "elapsed_ms": 72725,
+          "http_status": 200,
+          "kind": "direct",
+          "initial_kind": "direct",
+          "text": "Audio codecs are data compression formats used to encode and decode audio signals. They reduce the amount of data required to represent sound, enabling efficient storage and transmission over networks. Common audio codecs include MP3, AAC, WAV, FLAC, and OPUS. Each codec offers a trade-off between audio quality, file size, and computational complexity. For example, MP3 provides good compression with moderate quality, while FLAC offers lossless compression preserving original audio fidelity. Audio codecs are essential in applications such as streaming services, voice calls, and digital music files.",
+          "word_count": 87,
+          "error": null,
+          "memory_ids": [],
+          "provenance": {
+            "schema_version": 1,
+            "provider_id": "local.openai",
+            "model_id": "qwen3:4b-instruct",
+            "location": "local",
+            "destination": "http://127.0.0.1:11434/v1",
+            "invoked_at": "2026-10-12T02:05:15.174764Z",
+            "duration_ms": 72562
+          },
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "0a4d06b5-1603-411b-b37d-bfe94aaf7dbc",
+            "e20c3dd3-b9e1-4e80-9e8f-f50e7558e0d5",
+            "0222332c-ca84-443e-be11-e34a866bd560",
+            "da9b43b1-cbee-474a-9fba-3caa22e7ca69",
+            "7a4f4415-168d-4f63-ac92-a4d482ebe41d",
+            "cdcb8989-f648-4e34-b838-42afb13c4d28"
+          ],
+          "model_invoked": true,
+          "phase_metrics": {
+            "context.build_ms": 86.53708399970128,
+            "model.input_tokens": 1826.0,
+            "model.output_tokens": 130.0,
+            "model.invoke_ms": 72562.21044399991
+          },
+          "simulated_invocations": {
+            "lighting": 1,
+            "notice": 0
+          },
+          "context_memory_sources": [],
+          "backend_numeric_profile": {
+            "prefill_ms": 39860.97,
+            "decode_ms": 32337.44,
+            "total_ms": 72198.41
+          }
+        },
+        {
+          "case": "combined_2",
+          "requester": "owner",
+          "conversation_id": "b51a4ab8-ec04-43a1-91c3-596889ba7e0f",
+          "request_id": "1cd0c195-e8cd-4fab-8076-9afb90615429",
+          "correlation_id": "f165d44d-a427-4984-a1ad-1fa99282311b",
+          "elapsed_ms": 79,
+          "http_status": 200,
+          "kind": "clarification",
+          "initial_kind": "clarification",
+          "text": "This contains multiple requests. No action was submitted or executed for this request. Please send the question and each action separately.",
+          "word_count": 21,
+          "error": null,
+          "memory_ids": [],
+          "provenance": null,
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "288a241d-1a58-4544-bd7c-53fa69ce068b",
+            "a7b9d916-e7e1-421e-8c1d-e1b016e53db9",
+            "8ee00c48-e617-4783-a39a-76237bc30f40"
+          ],
+          "model_invoked": false,
+          "phase_metrics": {},
+          "simulated_invocations": {
+            "lighting": 1,
+            "notice": 0
+          },
+          "context_memory_sources": []
+        },
+        {
+          "case": "separate_action_2",
+          "requester": "owner",
+          "conversation_id": "b51a4ab8-ec04-43a1-91c3-596889ba7e0f",
+          "request_id": "2eb45f9e-fda2-4745-8c3f-115f87e222f3",
+          "correlation_id": "49c6691a-ffa1-4b4a-96a4-d9dd647afbe1",
+          "elapsed_ms": 83782,
+          "http_status": 200,
+          "kind": "action",
+          "initial_kind": "action",
+          "text": "Verified capability result: {\"brightness\": 45, \"simulated\": true}",
+          "word_count": 7,
+          "error": null,
+          "memory_ids": [],
+          "provenance": {
+            "schema_version": 1,
+            "provider_id": "local.openai",
+            "model_id": "qwen3:4b-instruct",
+            "location": "local",
+            "destination": "http://127.0.0.1:11434/v1",
+            "invoked_at": "2026-10-12T02:06:28.227489Z",
+            "duration_ms": 83527
+          },
+          "task_id": "5b18273b-b580-4522-9388-35b9b11393bd",
+          "task_state": "COMPLETED",
+          "execution": {
+            "schema_version": 1,
+            "contract_type": "execution_result",
+            "proposal_id": "e55070a0-3e4d-4ce7-a7e0-7952845bd16a",
+            "task_id": "5b18273b-b580-4522-9388-35b9b11393bd",
+            "correlation_id": "49c6691a-ffa1-4b4a-96a4-d9dd647afbe1",
+            "status": "success",
+            "output": {
+              "brightness": 45,
+              "simulated": true
+            },
+            "error": null
+          },
+          "audit_ids": [
+            "a0ee7ec6-9cb0-414c-a773-2f65e2d977fa",
+            "d6582e94-5f46-498a-8922-989a47bc3e2e",
+            "807b83a5-8af5-41b2-85ce-fa19468da25c",
+            "1a8ae228-d17e-4578-8518-06239a6c6a9f",
+            "33335298-d7a9-4551-8599-644d1539b42d",
+            "528a4059-453d-4dad-adc5-1ebca89255c0",
+            "27c08201-17e9-4016-9d84-0c526b3573c8",
+            "b67d59ec-92e7-40dc-85e6-8bf39c70bf41",
+            "64bfccc8-b4bb-4e3c-ab74-b6dd91b5cf37",
+            "5358e191-5550-411f-b43c-f49dab629402",
+            "e9911673-f12c-4f85-807e-cc0b192925a9",
+            "b6b1e872-19a4-4413-932d-cb437ac29ce0",
+            "8b6897fe-fa75-4281-914d-600c5b7b97c7",
+            "f3e4a07b-45fb-4a61-9003-527165b31846",
+            "a1a2ff58-7228-42a2-86b8-7c8851337ba3"
+          ],
+          "model_invoked": true,
+          "phase_metrics": {
+            "model.input_tokens": 2008.0,
+            "model.output_tokens": 137.0,
+            "model.invoke_ms": 83527.62620100021,
+            "context.build_ms": 96.86534200000096
+          },
+          "simulated_invocations": {
+            "lighting": 2,
+            "notice": 0
+          },
+          "same_request_replay": true,
+          "context_memory_sources": [],
+          "backend_numeric_profile": {
+            "prefill_ms": 49232.43,
+            "decode_ms": 33939.0,
+            "total_ms": 83171.42
+          }
+        },
+        {
+          "case": "technical_3",
+          "requester": "owner",
+          "conversation_id": "d5becffa-3924-46c5-b007-8d4d61ba2771",
+          "request_id": "1fc45bb3-e6d0-4a01-9fb7-70398ee8a030",
+          "correlation_id": "4162769f-b58c-4caa-b7c0-b618641a9a8e",
+          "elapsed_ms": 76000,
+          "http_status": 200,
+          "kind": "direct",
+          "initial_kind": "direct",
+          "text": "Audio codecs are data compression formats used to encode and decode audio signals. They reduce the amount of data required to represent sound, enabling efficient storage and transmission over networks. Common audio codecs include MP3, AAC, WAV, FLAC, and OPUS. Each codec offers a trade-off between audio quality, file size, and computational complexity. For example, MP3 provides good compression with moderate quality loss, while FLAC offers lossless compression preserving original audio fidelity. Audio codecs are essential in applications such as streaming services, voice calls, and digital music files.",
+          "word_count": 88,
+          "error": null,
+          "memory_ids": [],
+          "provenance": {
+            "schema_version": 1,
+            "provider_id": "local.openai",
+            "model_id": "qwen3:4b-instruct",
+            "location": "local",
+            "destination": "http://127.0.0.1:11434/v1",
+            "invoked_at": "2026-10-12T02:07:52.126728Z",
+            "duration_ms": 75835
+          },
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "77c23215-6a6e-4f1a-8822-963766165a23",
+            "1771fabc-5721-470e-90ed-b4f6bef27811",
+            "440446be-18b9-4cf5-b3da-604cb4fe53a4",
+            "fe843ab0-4294-4e75-8f5f-0625f1a61ee2",
+            "a38746c9-8e52-40b6-9f88-6248812e1793",
+            "7c8ef92b-1e1d-4ecd-abd2-e914f1339a28"
+          ],
+          "model_invoked": true,
+          "phase_metrics": {
+            "model.invoke_ms": 75835.31400199991,
+            "context.build_ms": 104.2147219995968,
+            "model.input_tokens": 1829.0,
+            "model.output_tokens": 131.0
+          },
+          "simulated_invocations": {
+            "lighting": 2,
+            "notice": 0
+          },
+          "context_memory_sources": [],
+          "backend_numeric_profile": {
+            "prefill_ms": 41279.73,
+            "decode_ms": 34109.92,
+            "total_ms": 75389.65
+          }
+        },
+        {
+          "case": "combined_3",
+          "requester": "owner",
+          "conversation_id": "d5becffa-3924-46c5-b007-8d4d61ba2771",
+          "request_id": "d0c0b873-4d42-4542-a48c-1250421e6e45",
+          "correlation_id": "4cd2543c-2459-4056-aca8-6542dc60fa2e",
+          "elapsed_ms": 48,
+          "http_status": 200,
+          "kind": "clarification",
+          "initial_kind": "clarification",
+          "text": "This contains multiple requests. No action was submitted or executed for this request. Please send the question and each action separately.",
+          "word_count": 21,
+          "error": null,
+          "memory_ids": [],
+          "provenance": null,
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "bfd3d077-14d9-48b5-982a-2f34e6738c2b",
+            "4b2d5f95-f18c-4b7f-8683-64e91516af4f",
+            "c12003ac-a1d1-46ef-8985-e598cc106b89"
+          ],
+          "model_invoked": false,
+          "phase_metrics": {},
+          "simulated_invocations": {
+            "lighting": 2,
+            "notice": 0
+          },
+          "context_memory_sources": []
+        },
+        {
+          "case": "separate_action_3",
+          "requester": "owner",
+          "conversation_id": "d5becffa-3924-46c5-b007-8d4d61ba2771",
+          "request_id": "e6741e93-2433-4131-968a-9de7f4bdb898",
+          "correlation_id": "2a23cd85-03c2-469d-b3d2-f65c2fb6c607",
+          "elapsed_ms": 85137,
+          "http_status": 200,
+          "kind": "action",
+          "initial_kind": "action",
+          "text": "Verified capability result: {\"brightness\": 45, \"simulated\": true}",
+          "word_count": 7,
+          "error": null,
+          "memory_ids": [],
+          "provenance": {
+            "schema_version": 1,
+            "provider_id": "local.openai",
+            "model_id": "qwen3:4b-instruct",
+            "location": "local",
+            "destination": "http://127.0.0.1:11434/v1",
+            "invoked_at": "2026-10-12T02:09:08.358891Z",
+            "duration_ms": 84852
+          },
+          "task_id": "b9d57a3d-8580-473c-8e6d-b0736de0e599",
+          "task_state": "COMPLETED",
+          "execution": {
+            "schema_version": 1,
+            "contract_type": "execution_result",
+            "proposal_id": "2e739db6-07ef-4fe0-b9e9-94387d32aecd",
+            "task_id": "b9d57a3d-8580-473c-8e6d-b0736de0e599",
+            "correlation_id": "2a23cd85-03c2-469d-b3d2-f65c2fb6c607",
+            "status": "success",
+            "output": {
+              "brightness": 45,
+              "simulated": true
+            },
+            "error": null
+          },
+          "audit_ids": [
+            "0bdcdbea-b629-4f7b-9681-1ce611604e1d",
+            "1d151c1e-baef-46c2-aff8-7efd2feb05c3",
+            "2724104c-b2c2-4ad3-bc3d-ef4e007a92ba",
+            "0ac4fed4-961d-4db4-a9bd-aa60af9af6af",
+            "6bbb27b3-9763-4cca-99a1-66f0356b6013",
+            "5f056c51-828c-42ba-b37c-2cc68c35bffc",
+            "627a8947-18f3-450d-b225-bbff556914f1",
+            "4f1fec9f-8a2a-4801-bfab-7f4307534585",
+            "ad347f1b-baa8-4cee-802e-a1414e712343",
+            "0a900ac6-3a0e-406e-8ea8-e9320694b3d4",
+            "8291d441-275d-475b-bb66-33798c5f813b",
+            "634abd5a-4941-4fe4-8203-7b7e41f9f997",
+            "c2532d32-8681-476b-ac27-f6dc1053e120",
+            "6b19b506-f356-401c-96ae-838d5875c8a5",
+            "1936f55d-fe90-402a-8f0b-b33cfcafb8ae"
+          ],
+          "model_invoked": true,
+          "phase_metrics": {
+            "model.input_tokens": 2015.0,
+            "model.output_tokens": 139.0,
+            "model.invoke_ms": 84852.11028200001,
+            "context.build_ms": 84.3141000000287
+          },
+          "simulated_invocations": {
+            "lighting": 3,
+            "notice": 0
+          },
+          "same_request_replay": true,
+          "context_memory_sources": [],
+          "backend_numeric_profile": {
+            "prefill_ms": 50588.96,
+            "decode_ms": 33931.0,
+            "total_ms": 84519.96
+          }
+        },
+        {
+          "case": "project_reasoning",
+          "requester": "owner",
+          "conversation_id": "b3de661a-c8ff-44b8-aee0-3f9aa3afae90",
+          "request_id": "4de64d24-1395-4fa7-9b64-567c45c69155",
+          "correlation_id": "90e802c2-c380-4a95-946f-f516232464b5",
+          "elapsed_ms": 95997,
+          "http_status": 200,
+          "kind": "memory_grounded",
+          "initial_kind": "memory_grounded",
+          "text": "Audio codecs could help Slipstream by enabling efficient compression and transmission of audio data, such as intercom speech or navigation cues. Given that Slipstream is a provisional motorcycle concept with undecided design selections, using appropriate audio codecs might support features like real-time communication between riders or system feedback. Options include compressing intercom speech for bandwidth efficiency, storing recorded audio for playback, or streaming navigation cues to reduce latency. These are technical possibilities, not established project decisions. The current context does not specify any audio system or design goals for Slipstream, so these recommendations are based on general technical knowledge and the concept's potential use cases.",
+          "word_count": 105,
+          "error": null,
+          "memory_ids": [
+            "ddac6148-b3a1-4972-8c34-79194706aa00"
+          ],
+          "provenance": {
+            "schema_version": 1,
+            "provider_id": "local.openai",
+            "model_id": "qwen3:4b-instruct",
+            "location": "local",
+            "destination": "http://127.0.0.1:11434/v1",
+            "invoked_at": "2026-10-12T02:10:33.617331Z",
+            "duration_ms": 95786
+          },
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "61a250ce-32fe-4123-8e41-8467715af258",
+            "8e86fae1-fb4f-4e9c-993a-ae42874b044c",
+            "08b40c33-c573-4fd0-acf0-0cfffb10421d",
+            "2c040a59-30b6-45d2-8d7a-abc9fef6a9b7",
+            "d741ef02-39e0-43c7-8374-b437704947c3",
+            "058de189-1428-4b64-8bcf-6fb0888b0852"
+          ],
+          "model_invoked": true,
+          "phase_metrics": {
+            "model.input_tokens": 2128.0,
+            "model.output_tokens": 182.0,
+            "model.invoke_ms": 95786.55501499998,
+            "context.build_ms": 93.75404700040235
+          },
+          "simulated_invocations": {
+            "lighting": 3,
+            "notice": 0
+          },
+          "context_memory_sources": [
+            "acceptance:partial-project-scenario"
+          ],
+          "backend_numeric_profile": {
+            "prefill_ms": 49568.72,
+            "decode_ms": 45860.02,
+            "total_ms": 95428.74
+          }
+        },
+        {
+          "case": "guest_combined",
+          "requester": "guest",
+          "conversation_id": "0e31f2c1-e048-4f8d-8ff7-bcfc33f114d4",
+          "request_id": "0388ee25-0f80-4610-9f25-498dcb95e69a",
+          "correlation_id": "167d241a-1be4-452c-af62-607dc46df9d6",
+          "elapsed_ms": 46,
+          "http_status": 200,
+          "kind": "clarification",
+          "initial_kind": "clarification",
+          "text": "This contains multiple requests. No action was submitted or executed for this request. Please send the question and each action separately.",
+          "word_count": 21,
+          "error": null,
+          "memory_ids": [],
+          "provenance": null,
+          "task_id": null,
+          "task_state": null,
+          "execution": null,
+          "audit_ids": [
+            "6cf0603f-bc04-4ed1-be97-f647b0242f58",
+            "a2976862-5659-46d4-8359-0248abe5e747",
+            "1b81d0cb-fa6a-4deb-b5a6-e269b31edd84"
+          ],
+          "model_invoked": false,
+          "phase_metrics": {},
+          "simulated_invocations": {
+            "lighting": 3,
+            "notice": 0
+          },
+          "context_memory_sources": []
+        }
+      ],
+      "simulated_invocations": {
+        "lighting": 3,
+        "notice": 0
+      },
+      "rejection_diagnostics": [],
+      "brainstorm_valid_responses": 0,
+      "brainstorm_attempts": 0,
+      "semantic_review": "Required: JSON validity alone does not prove factual grounding or useful recommendations.",
+      "brainstorm_grounded_responses": 0,
+      "status": "completed"
+    }
+  ],
+  "summaries": [
+    {
+      "response_format": "json_schema",
+      "baseline": true,
+      "model_calls": 5,
+      "valid_model_responses": 4,
+      "end_to_end_ms": {
+        "min": 43054,
+        "max": 82748,
+        "mean": 65043
+      },
+      "context_ms": {
+        "min": 77.36673699992025,
+        "max": 151.88833000001978
+      },
+      "input_tokens": {
+        "min": 1111.0,
+        "max": 1657.0
+      },
+      "backend_prefill_ms": {
+        "min": 21867.69,
+        "max": 36175.82
+      },
+      "backend_decode_ms": {
+        "min": 20797.32,
+        "max": 46066.61
+      },
+      "task_ids": [
+        "f9af0fab-69e7-4817-bbdc-9239e82d3557"
+      ]
+    },
+    {
+      "response_format": "json_schema",
+      "baseline": false,
+      "model_calls": 7,
+      "valid_model_responses": 7,
+      "end_to_end_ms": {
+        "min": 52657,
+        "max": 87469,
+        "mean": 71493.57
+      },
+      "context_ms": {
+        "min": 68.65684600006716,
+        "max": 106.17457199987257
+      },
+      "input_tokens": {
+        "min": 1233.0,
+        "max": 1522.0
+      },
+      "backend_prefill_ms": {
+        "min": 27204.38,
+        "max": 44930.56
+      },
+      "backend_decode_ms": {
+        "min": 24848.37,
+        "max": 55534.12
+      },
+      "task_ids": [
+        "34d530f6-a0dd-458f-badd-ed46c24cbd51",
+        "aa73a9e4-cf98-4ede-8daf-a1aca773ce65",
+        "ae2c35f0-0abb-415d-9ed7-10282d66feb7"
+      ]
+    },
+    {
+      "response_format": "json_object",
+      "baseline": false,
+      "model_calls": 7,
+      "valid_model_responses": 7,
+      "end_to_end_ms": {
+        "min": 72725,
+        "max": 95997,
+        "mean": 83627.43
+      },
+      "context_ms": {
+        "min": 75.37465099994733,
+        "max": 104.2147219995968
+      },
+      "input_tokens": {
+        "min": 1826.0,
+        "max": 2128.0
+      },
+      "backend_prefill_ms": {
+        "min": 39860.97,
+        "max": 50588.96
+      },
+      "backend_decode_ms": {
+        "min": 32337.44,
+        "max": 45860.02
+      },
+      "task_ids": [
+        "ea196136-49b6-41ff-a15e-46f3ff286c80",
+        "5b18273b-b580-4522-9388-35b9b11393bd",
+        "b9d57a3d-8580-473c-8e6d-b0736de0e599"
+      ]
+    }
+  ],
+  "profiling_method": "Allowlisted timing numbers from the owned Ollama server, mapped by serial completed inference order (19 completions). The interrupted protocol-fixture setup call produced no completed timing record and is excluded.",
+  "environment": {
+    "python": "3.12.14",
+    "ollama": "0.40.3",
+    "model": "qwen3:4b-instruct",
+    "quantization": "Q4_K_M",
+    "processor": "100% CPU",
+    "cpu_quota": "400000/100000",
+    "inference_threads": 4,
+    "context_tokens": 4096,
+    "acceptance_timeout_seconds": 300
+  },
+  "validation": {
+    "baseline_full": {
+      "passed": 931,
+      "warnings": 1,
+      "seconds": 396.68
+    },
+    "final": "passed",
+    "affected_final": {
+      "passed": 69,
+      "warnings": 1,
+      "seconds": 43.46
+    },
+    "lint": "passed",
+    "format": {
+      "passed": true,
+      "files": 159
+    },
+    "build": "sdist and wheel built; isolated wheel installed; reporting module import and mixed/separate CLI verified",
+    "final_full": {
+      "passed": 961,
+      "warnings": 1,
+      "seconds": 428.55
+    },
+    "demonstrations": [
+      {
+        "mode": "checkout",
+        "command": "smoke",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 0.67
+      },
+      {
+        "mode": "checkout",
+        "command": "demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 0.66
+      },
+      {
+        "mode": "checkout",
+        "command": "recovery-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 3.47
+      },
+      {
+        "mode": "checkout",
+        "command": "memory-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 1.97
+      },
+      {
+        "mode": "checkout",
+        "command": "cognition-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 2.79
+      },
+      {
+        "mode": "checkout",
+        "command": "world-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 2.65
+      },
+      {
+        "mode": "checkout",
+        "command": "initiative-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 8.9
+      },
+      {
+        "mode": "checkout",
+        "command": "notification-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 5.69
+      },
+      {
+        "mode": "checkout",
+        "command": "runtime-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 9.5
+      },
+      {
+        "mode": "checkout",
+        "command": "voice-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 9.44
+      },
+      {
+        "mode": "checkout",
+        "command": "ambient-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 3.55
+      },
+      {
+        "mode": "installed_wheel",
+        "command": "smoke",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 0.63
+      },
+      {
+        "mode": "installed_wheel",
+        "command": "demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 0.62
+      },
+      {
+        "mode": "installed_wheel",
+        "command": "recovery-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 2.95
+      },
+      {
+        "mode": "installed_wheel",
+        "command": "memory-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 1.7
+      },
+      {
+        "mode": "installed_wheel",
+        "command": "cognition-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 2.3
+      },
+      {
+        "mode": "installed_wheel",
+        "command": "world-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 2.24
+      },
+      {
+        "mode": "installed_wheel",
+        "command": "initiative-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 7.17
+      },
+      {
+        "mode": "installed_wheel",
+        "command": "notification-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 4.34
+      },
+      {
+        "mode": "installed_wheel",
+        "command": "runtime-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 5.93
+      },
+      {
+        "mode": "installed_wheel",
+        "command": "voice-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 5.69
+      },
+      {
+        "mode": "installed_wheel",
+        "command": "ambient-demo",
+        "returncode": 0,
+        "structured_results": 1,
+        "seconds": 3.92
+      }
+    ],
+    "docs_check": {
+      "markdown_files": 44,
+      "internal_links": 139,
+      "generated_references": 3,
+      "openapi_paths": 25
+    }
+  },
+  "limitations": [
+    "Finite repetitions cannot prove reliability for every prompt or factual correctness.",
+    "The exact MacBook false completion was reproduced deterministically; the real pre-fix combined request here instead misdescribed the capability without executing it.",
+    "Conservative English lighting matching is not a universal intent or natural-language truth parser.",
+    "No physical microphone/speaker or original MacBook profiling was exercised in this follow-on."
+  ],
+  "rate_definition": "valid_model_responses counts coordinator responses without structured errors, not a separate raw JSON syntax measurement; baseline guest rejection was unverified_action_claim, not invalid JSON.",
+  "metric_notice": "Global scheduler sample rings are omitted; per-request allowlisted context/model/token samples and numeric backend timings are retained."
+}

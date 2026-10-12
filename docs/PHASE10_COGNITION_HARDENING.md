@@ -4,6 +4,11 @@ This is a follow-on to Phase 10, under provisional ADR-T06/T11. COG-002 and INT-
 remain PROPOSED; production identity, final schemas/model stack, retention,
 hardware and latency targets remain OPEN. No new architectural decision is accepted.
 
+The later [mixed-request follow-on](PHASE10_MIXED_INTENT.md) closes the reported
+“were set” presentation hole and adds trusted separation, history/replay/voice
+projection and repeated acceptance for both configured structured-output modes.
+Historical measurements below describe the earlier hardening milestone.
+
 ## Confirmed causes and reproduction limits
 
 The pre-change code was inspected before implementation. The existing 889-test
