@@ -64,7 +64,7 @@ def reported_turn(turn: ConversationTurn) -> ConversationTurn:
     An accepted action whose task link is missing may already have effects. Leave it
     untouched; only a turn with no accepted action and no task can assert no submission.
     """
-    if turn.response is None or turn.task_id is not None:
+    if turn.response is None or turn.task_id is not None or turn.plan is not None:
         return turn
     if turn.decision is not None and turn.decision.action is not None:
         return turn

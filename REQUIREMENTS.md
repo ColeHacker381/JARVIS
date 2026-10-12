@@ -763,3 +763,10 @@ reporting, including historical/replayed/spoken responses (COG-001, provisional
 COG-002/INT-002, CAP-003, IAM-004, PER-001, TASK-001/002, MEM-002/003/006,
 SEC-001–003, REL-001/002, DEV-003). Actual task outcomes remain authoritative.
 See [mixed-request acceptance](docs/PHASE10_MIXED_INTENT.md); statuses stay unchanged.
+
+The authorized Phase 10 multi-intent follow-on extends COG-001 and provisional
+COG-002/INT-002 with one-model/four-intent plans, current independent authorization,
+durable child tasks, trusted partial composition, source-bound consent and voice
+presentation (ARCH-001/003/004, IAM-004/007, PER-001–003, CAP-001–003, TASK-001/002,
+MEM-001–004/006, SEC-001–004, REL-001/002, DEV-003). See
+[bounded orchestration](docs/PHASE10_MULTI_INTENT.md) and provisional ADR-T12.

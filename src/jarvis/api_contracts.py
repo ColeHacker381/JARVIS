@@ -6,7 +6,7 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, ConfigDict, Field, JsonValue, model_validator
 
-from jarvis.core.cognitive_records import CognitiveResponse, explicit_versions
+from jarvis.core.cognitive_records import CognitiveReply, explicit_versions
 from jarvis.core.contracts import Contract, ErrorDetail
 from jarvis.core.memory_records import MemoryCursor
 from jarvis.core.notification_records import Notification
@@ -79,7 +79,7 @@ class HistoryEntry(Contract):
     created_at: AwareDatetime
     user_text: str
     state: str
-    response: CognitiveResponse | None
+    response: CognitiveReply | None
     task_id: UUID | None
 
 

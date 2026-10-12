@@ -367,6 +367,11 @@ question/lighting commands, suppresses unsubmitted execution claims, and verifie
 both configured local structured-output modes. Generalized intent planning remains
 deferred; MacBook and physical voice acceptance are still operator gates.
 
+The user-authorized [bounded multi-intent follow-on](docs/PHASE10_MULTI_INTENT.md)
+preserves questions alongside independently authorized actions, partial outcomes and
+restart-safe child checkpoints. General conditional planning and autonomous loops
+remain deferred under provisional ADR-T12; this remains Phase 10.
+
 ## Deferred recommendation — Deployment Identity and Genuine Local-Model Acceptance
 
 Validate an available real local model end to end; decide production owner

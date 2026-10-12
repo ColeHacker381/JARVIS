@@ -4,6 +4,10 @@ This follow-on retains provisional ADR-T06/T11 and all v1 contracts. COG-002 and
 INT-002 remain PROPOSED. Production identity, final model stack, generalized intent
 planning, schemas and latency targets remain OPEN.
 
+Fresh mixed requests are now extended by [bounded orchestration](PHASE10_MULTI_INTENT.md).
+The results below document the earlier safe-deferral milestone; old request IDs and
+stored evidence retain their historical meaning and never trigger retroactive actions.
+
 ## Confirmed cause
 
 A deterministic provider returned a valid `direct` decision saying “The simulated

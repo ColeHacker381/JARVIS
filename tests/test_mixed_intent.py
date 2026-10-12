@@ -57,18 +57,26 @@ def send(core, text, who="owner", **kwargs):
         "Dim the lights to 45% and then set the lights to 50%",
     ],
 )
-def test_mixed_requests_defer_without_model_memory_egress_or_task(core, who, text):
+def test_mixed_requests_compose_answers_and_independently_authorize_actions(core, who, text):
     app, model, tokens, convs = core
     request_id = uuid4()
     result = send(core, text, who, request_id=request_id)
-    assert result.kind == "clarification" and result.text == SEPARATE_REQUESTS
-    assert result.task_id is result.execution is result.provenance is None
-    assert result.audit_ids and not result.memory_ids
-    assert not model.requests and not app.tasks.store.all() and not app.lighting.calls
+    assert result.kind == "composed" and len(result.intents) == 2
+    assert result.task_id is result.execution is None
+    assert result.provenance.location == "fake" and result.audit_ids
+    assert len(model.requests) == 1
+    actions = [i.response for i in result.intents if i.response.task_id]
+    assert actions
+    if who == "owner":
+        assert all(a.execution.status == "success" for a in actions)
+        assert app.lighting.calls == ([45, 50] if "then" in text else [45])
+    else:
+        assert all(a.execution.status == "denied" for a in actions)
+        assert not app.lighting.calls and not model.requests[0].memories
     assert send(core, text, who, request_id=request_id) == result
     turn = app.conversations.recent(convs[who], session_token=tokens[who])[-1]
     assert turn.state == "COMPLETED" and turn.response == result
-    assert turn.correlation_id == result.correlation_id and not turn.memory_ids
+    assert turn.correlation_id == result.correlation_id
 
 
 @pytest.mark.parametrize(
@@ -102,7 +110,7 @@ def test_spontaneous_lighting_claim_in_explanation_is_not_authoritative(core, te
 
 def test_separate_requests_execute_only_validated_action_and_replay_once(core):
     app, model, _, _ = core
-    assert send(core, MIXED).text == SEPARATE_REQUESTS
+    assert send(core, MIXED).kind == "composed"
     model.output = CognitiveDecision(
         kind="direct", text="A codec encodes and decodes audio."
     ).model_dump_json()
@@ -114,9 +122,9 @@ def test_separate_requests_execute_only_validated_action_and_replay_once(core):
     assert action.execution.output == {"brightness": 45, "simulated": True}
     assert action.execution.task_id == action.task_id
     assert send(core, "Dim the lights to 45%.", request_id=request_id) == action
-    assert len(model.requests) == 2 and app.lighting.calls == [45]
+    assert len(model.requests) == 3 and app.lighting.calls == [45, 45]
     denied = send(core, "Dim the lights to 45%.", "guest")
-    assert denied.execution.status == "denied" and app.lighting.calls == [45]
+    assert denied.execution.status == "denied" and app.lighting.calls == [45, 45]
 
 
 def seed_old_unsubmitted_turn(core):

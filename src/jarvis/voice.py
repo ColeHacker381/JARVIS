@@ -348,12 +348,13 @@ class VoiceService:
             self.context.participating(context)
             if synthesizer is not None:
                 start = time.perf_counter()
-                audio = await synthesizer.synthesize(response.text)
+                spoken_text = getattr(response, "spoken_text", response.text)
+                audio = await synthesizer.synthesize(spoken_text)
                 self.metric("tts_ms", start)
                 spoken = SpokenResponse(
                     conversation_id=response.conversation_id,
                     request_id=response.request_id,
-                    text=response.text,
+                    text=spoken_text,
                     provider=audio.provider,
                     simulated=audio.simulated,
                     duration_ms=audio.duration_ms,

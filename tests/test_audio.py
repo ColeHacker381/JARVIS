@@ -318,18 +318,22 @@ def test_verified_response_memory_action_followup_and_spoken_outcome(audio):
     assert follow["spoken"].text == follow["response"].text
 
 
-def test_mixed_voice_request_speaks_trusted_deferral_without_action(audio):
+def test_mixed_voice_request_speaks_answer_and_verified_action(audio):
     result = speak(
         audio,
         "JARVIS, how could audio codecs help Slipstream? Also, dim the lights to 45%.",
         synthesizer=FakeSpeechSynthesizer(),
         playback=FakeAudioPlayback(),
     )
-    assert result["response"].kind == "clarification"
+    assert result["response"].kind == "composed" and result["response"].status == "completed"
     assert result["response"].task_id is result["response"].execution is None
-    assert result["spoken"].text == result["response"].text
-    assert "No action was submitted or executed" in result["spoken"].text
-    assert not audio.app.lighting.calls and not audio.app.tasks.store.all()
+    assert result["spoken"].text == result["response"].spoken_text
+    assert "Opus" in result["spoken"].text and "COMPLETED" in result["spoken"].text
+    assert result["response"].intents[1].response.execution.output == {
+        "brightness": 45,
+        "simulated": True,
+    }
+    assert audio.app.lighting.calls == [45] and len(audio.app.tasks.store.all()) == 1
 
 
 def test_spoken_lighting_success_cannot_come_from_direct_model_prose(audio):

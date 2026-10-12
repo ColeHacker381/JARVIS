@@ -30,7 +30,7 @@ from jarvis.api_contracts import (
     TaskSummary,
 )
 from jarvis.conversations import ConversationError
-from jarvis.core.cognitive_records import CognitiveResponse, Conversation
+from jarvis.core.cognitive_records import CognitiveReply, Conversation
 from jarvis.core.contracts import ErrorDetail
 from jarvis.core.initiative_records import InitiativeRecord
 from jarvis.core.memory_records import MemoryQuery, MemoryRecord, MemorySearchResult
@@ -308,7 +308,7 @@ def create_api(runtime):
 
     @routes.post(
         "/conversations/{conversation_id}/messages",
-        response_model=ApiResponse[CognitiveResponse],
+        response_model=ApiResponse[CognitiveReply],
         tags=["conversations"],
         description=(
             "Persisted request_id is the owner/conversation-bound idempotency key. "

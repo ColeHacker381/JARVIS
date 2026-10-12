@@ -4,22 +4,27 @@ import asyncio
 import json
 import logging
 import re
+import time
 from typing import Protocol
-from uuid import uuid4
+from uuid import uuid4, uuid5
 
 from pydantic import ValidationError
 
 from jarvis.action_reporting import (
-    SEPARATE_REQUESTS,
+    NO_ACTION,
     no_action_decision,
     reported_turn,
-    request_shape,
 )
 from jarvis.conversations import ConversationError, contains_secret
 from jarvis.core.cognitive_records import (
     CognitiveDecision,
     CognitiveResponse,
+    ComposedResponse,
+    IntentOutcome,
+    IntentPlan,
+    ModelMessage,
     ModelProvenance,
+    PlannedIntent,
     decode_cognitive,
 )
 from jarvis.core.contracts import ActionProposal, AuditRecord, ErrorDetail, Session
@@ -27,6 +32,7 @@ from jarvis.core.task_records import TaskStep
 from jarvis.execution import validate_capability_arguments
 from jarvis.identity import IdentityError
 from jarvis.initiative import InitiativeError, describe_initiatives, is_initiative_question
+from jarvis.intents import action_matches_source, execution_claim, requested_action
 from jarvis.memory import MemoryError
 from jarvis.model_output import output_shape, validation_stage
 from jarvis.models import ModelError
@@ -226,6 +232,99 @@ class CognitiveCoordinator:
         # prose for recognized action requests, irrespective of wording or tense.
         return no_action_decision(decision, request.messages[-1].content)
 
+    def _validate_plan(self, serialized, request):
+        started = time.monotonic()
+        try:
+            try:
+                plan = decode_cognitive(serialized)
+                if not isinstance(plan, IntentPlan) or len(plan.intents) != len(
+                    request.intent_inputs
+                ):
+                    raise ValueError("plan input count mismatch")
+            except (ValueError, TypeError) as exc:
+                errors = (
+                    exc.errors(include_input=False, include_context=False)
+                    if isinstance(exc, ValidationError)
+                    else ()
+                )
+                raise ModelError(
+                    "intent_decomposition_invalid",
+                    diagnostic=output_shape(serialized, stage="intent_schema", errors=errors),
+                ) from exc
+            accepted = []
+            for item, source in zip(plan.intents, request.intent_inputs, strict=True):
+                scoped = request.model_copy(
+                    update={
+                        "intent_inputs": (),
+                        "messages": (
+                            *request.messages[:-1],
+                            ModelMessage(role="user", content=source.text),
+                        ),
+                    }
+                )
+                try:
+                    if item.action is None and execution_claim(item.text):
+                        raise ModelError("unverified_action_claim")
+                    decision = self._validate(item.decision().model_dump_json(), scoped)
+                    if decision.action and not action_matches_source(decision.action, source.text):
+                        raise ModelError("intent_action_not_requested")
+                    if len(decision.text) > 1200:
+                        raise ModelError("intent_answer_too_large")
+                    if requested_action(source.text) and decision.action is None:
+                        logging.getLogger("jarvis").warning(
+                            "model.intent_unresolved",
+                            extra={
+                                "correlation_id": request.correlation_id,
+                                "reason_code": "intent_action_missing",
+                                "model_diagnostic": output_shape(
+                                    item.model_dump_json(), stage="intent_action_missing"
+                                ),
+                            },
+                        )
+                        decision = CognitiveDecision(
+                            kind="unsupported"
+                            if decision.kind == "unsupported"
+                            else "clarification",
+                            text="No task was submitted for this requested operation; "
+                            "it is unavailable or needs clarification.",
+                        )
+                    if decision.text == NO_ACTION and not decision.action:
+                        decision = decision.model_copy(
+                            update={
+                                "text": "This part was not answered: no executable proposal "
+                                "or verified action claim was accepted."
+                            }
+                        )
+                except ModelError as exc:
+                    if exc.code in {
+                        "proposal_context_mismatch",
+                        "proposal_context_invalid",
+                        "sensitive_output_rejected",
+                    }:
+                        raise
+                    decision = CognitiveDecision(
+                        kind="failure",
+                        text=f"Intent rejected: {exc.code}.",
+                        error=ErrorDetail(code=exc.code, message=exc.code),
+                    )
+                purpose = (
+                    "clarification"
+                    if decision.kind in {"failure", "unsupported", "clarification"}
+                    else item.purpose
+                )
+                accepted.append(
+                    PlannedIntent(
+                        **decision.model_dump(exclude={"contract_type"}),
+                        intent_index=item.intent_index,
+                        purpose=purpose,
+                    )
+                )
+            return IntentPlan(intents=tuple(accepted))
+        finally:
+            self.context.metrics.record(
+                "cognition.plan_validation_ms", (time.monotonic() - started) * 1000
+            )
+
     async def respond(
         self, conversation_id, text, *, session_token, request_id=None, response_style="text"
     ):
@@ -236,6 +335,8 @@ class CognitiveCoordinator:
                 turn, fresh = self.conversations.begin(
                     conversation_id, request_id, text, session_token=session_token
                 )
+                if turn.parent_request_id is not None:
+                    raise ConversationError("request_conflict")
                 if turn.response is not None:
                     self.context.ensure_current(
                         turn.memory_ids,
@@ -247,37 +348,6 @@ class CognitiveCoordinator:
                     return reported_turn(turn).response  # Never repeat model calls or actions.
                 if not fresh and turn.state == "RECEIVED":
                     raise ModelError("interrupted_model_request")
-                if fresh and request_shape(turn.user_text)[1]:
-                    # One v1 request is not a multi-intent execution plan. Ask for
-                    # separate requests before model inference, memory egress or
-                    # task submission. Recognition can only defer, never execute.
-                    write_audit(
-                        self.audit,
-                        AuditRecord(
-                            principal_id=turn.owner_id,
-                            session_id=turn.session_id,
-                            correlation_id=turn.correlation_id,
-                            action="cognition.clarification",
-                            outcome="succeeded",
-                            reason_code="separate_requests_required",
-                        ),
-                    )
-                    turn = self.conversations._save(
-                        turn,
-                        session_token=session_token,
-                        state="DECIDED",
-                        decision=CognitiveDecision(kind="clarification", text=SEPARATE_REQUESTS),
-                    )
-                    response = self._response(
-                        turn,
-                        kind="clarification",
-                        text=SEPARATE_REQUESTS,
-                        audit_ids=self._refs(turn.correlation_id),
-                    )
-                    self.conversations._save(
-                        turn, session_token=session_token, state="COMPLETED", response=response
-                    )
-                    return response
                 if fresh:
                     built = self.context.build(
                         turn, session_token=session_token, response_style=response_style
@@ -332,12 +402,19 @@ class CognitiveCoordinator:
                         initiative_refs=built.initiative_refs,
                         notification_refs=built.notification_refs,
                     )
-                    decision = self._validate(raw, built.request)
+                    plan = (
+                        self._validate_plan(raw, built.request)
+                        if built.request.intent_inputs
+                        else None
+                    )
+                    decision = None if plan else self._validate(raw, built.request)
                     turn = self.conversations._save(
                         turn,
                         session_token=session_token,
                         state="DECIDED",
                         decision=decision,
+                        plan=plan,
+                        intent_inputs=built.request.intent_inputs,
                         provenance=provenance,
                         memory_ids=built.memory_ids,
                         world_refs=built.world_refs,
@@ -351,6 +428,8 @@ class CognitiveCoordinator:
                     initiative_refs=turn.initiative_refs,
                     notification_refs=turn.notification_refs,
                 )
+                if turn.plan is not None:
+                    return self._run_plan(turn, session_token)
                 if turn.decision.action is None:
                     # Also protect a pre-upgrade DECIDED turn resumed after a crash.
                     # Preserve its stored decision as evidence; render safely.
@@ -411,7 +490,12 @@ class CognitiveCoordinator:
                 # Do not terminally discard submitted actions on storage/authority failures.
                 # The task and accepted decision remain recoverable, with their stable IDs.
                 try:
-                    if turn.task_id is None and (turn.decision is None or not turn.decision.action):
+                    if (
+                        turn.parent_request_id is None
+                        and turn.plan is None
+                        and turn.task_id is None
+                        and (turn.decision is None or not turn.decision.action)
+                    ):
                         self.conversations._save(
                             turn, session_token=session_token, state="FAILED", response=response
                         )
@@ -422,6 +506,164 @@ class CognitiveCoordinator:
             if turn is not None:
                 response = reported_turn(turn.model_copy(update={"response": response})).response
             return response
+
+    def _run_plan(self, parent, token):
+        """Finite ordered pass; accepted child checkpoints and tasks survive crashes."""
+        started = time.monotonic()
+        try:
+            outcomes = []
+            blocked = False
+            for item in parent.plan.intents:
+                self.context.ensure_current(
+                    parent.memory_ids,
+                    session_token=token,
+                    world_refs=parent.world_refs,
+                    initiative_refs=parent.initiative_refs,
+                    notification_refs=parent.notification_refs,
+                )
+                if blocked and item.action is not None:
+                    response = CognitiveResponse(
+                        conversation_id=parent.conversation_id,
+                        request_id=uuid5(parent.request_id, f"intent:{item.intent_index}"),
+                        correlation_id=parent.correlation_id,
+                        provenance=parent.provenance,
+                        kind="pending",
+                        text="This action is waiting for the earlier action's verified outcome; "
+                        "no task has been submitted for this part.",
+                    )
+                    outcomes.append(
+                        IntentOutcome(
+                            intent_index=item.intent_index, purpose=item.purpose, response=response
+                        )
+                    )
+                    continue
+                child, _ = self.conversations._begin_intent(
+                    parent, item.intent_index, session_token=token
+                )
+                if child.state == "RECEIVED":
+                    child = self.conversations._save(
+                        child,
+                        session_token=token,
+                        state="DECIDED",
+                        decision=item.decision(),
+                        provenance=parent.provenance,
+                        memory_ids=parent.memory_ids,
+                        world_refs=parent.world_refs,
+                        initiative_refs=parent.initiative_refs,
+                        notification_refs=parent.notification_refs,
+                    )
+                if child.response is not None:
+                    response = child.response
+                elif child.decision.action is not None:
+                    response = self._action(child, token)
+                else:
+                    decision = child.decision
+                    response = self._response(
+                        child,
+                        kind=decision.kind,
+                        text=decision.text,
+                        memory_ids=decision.memory_ids,
+                        world_refs=child.world_refs,
+                        error=decision.error,
+                        audit_ids=self._refs(parent.correlation_id),
+                    )
+                    self.conversations._save(
+                        child, session_token=token, state="COMPLETED", response=response
+                    )
+                outcomes.append(
+                    IntentOutcome(
+                        intent_index=item.intent_index, purpose=item.purpose, response=response
+                    )
+                )
+                if item.action is not None and (
+                    response.kind == "pending"
+                    or response.task_state == "NEEDS_REVIEW"
+                    or (response.kind == "failure" and response.task_state is None)
+                ):
+                    blocked = True
+            self.context.ensure_current(
+                parent.memory_ids,
+                session_token=token,
+                world_refs=parent.world_refs,
+                initiative_refs=parent.initiative_refs,
+                notification_refs=parent.notification_refs,
+            )
+            pending = blocked or any(
+                o.response.kind == "pending"
+                or (
+                    o.purpose == "action"
+                    and o.response.kind == "failure"
+                    and o.response.task_state is None
+                )
+                for o in outcomes
+            )
+            successes = sum(
+                o.response.kind in {"direct", "memory_grounded", "world_grounded", "action"}
+                for o in outcomes
+            )
+            status = (
+                "pending"
+                if pending
+                else "completed"
+                if successes == len(outcomes)
+                else "partial"
+                if successes
+                else "failed"
+            )
+            text = "\n".join(
+                f"{o.intent_index + 1}. "
+                + (
+                    "Execution denied: "
+                    if o.response.execution and o.response.execution.status == "denied"
+                    else ""
+                )
+                + o.response.text
+                + (
+                    f" [Task {o.response.task_id}: "
+                    f"{o.response.task_state or 'completion unconfirmed'}]"
+                    if o.response.task_id
+                    else ""
+                )
+                for o in outcomes
+            )
+            response = ComposedResponse(
+                conversation_id=parent.conversation_id,
+                request_id=parent.request_id,
+                correlation_id=parent.correlation_id,
+                provenance=parent.provenance,
+                text=text,
+                spoken_text="\n".join(
+                    f"{o.intent_index + 1}. "
+                    + (
+                        "Execution denied: "
+                        if o.response.execution and o.response.execution.status == "denied"
+                        else ""
+                    )
+                    + o.response.text
+                    + (
+                        f" [Task state: {o.response.task_state or 'completion unconfirmed'}]"
+                        if o.response.task_id
+                        else ""
+                    )
+                    for o in outcomes
+                ),
+                status=status,
+                intents=tuple(outcomes),
+                memory_ids=tuple(dict.fromkeys(m for o in outcomes for m in o.response.memory_ids)),
+                world_refs=parent.world_refs,
+                initiative_refs=parent.initiative_refs,
+                notification_refs=parent.notification_refs,
+                audit_ids=self._refs(parent.correlation_id),
+            )
+            if not pending:
+                self.conversations._save(
+                    parent, session_token=token, state="COMPLETED", response=response
+                )
+            return response
+        finally:
+            self.context.metrics.record(
+                "cognition.orchestration_ms", (time.monotonic() - started) * 1000
+            )
 
     def _action(self, turn, token):
         task_id = turn.task_id

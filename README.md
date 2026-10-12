@@ -263,6 +263,10 @@ Qwen reproductions, optional local JSON Schema output, grounded brainstorming,
 scoped project continuity, fixture migration and normal playback cancellation.
 Voice presentation requests concise generation without truncating verified results.
 
-[Mixed-request reporting](docs/PHASE10_MIXED_INTENT.md) explains why question-plus-lighting
-requests ask for separate messages, how unsubmitted action prose is suppressed, and
-how both chat and serve select JSON Schema mode without changing execution authority.
+[Mixed-request reporting](docs/PHASE10_MIXED_INTENT.md) records the earlier safe-deferral
+milestone and protection of historical unsubmitted action claims. Fresh mixed requests
+use the bounded orchestration below; both chat and serve support JSON Schema mode.
+
+[Multi-intent orchestration](docs/PHASE10_MULTI_INTENT.md) now handles explicit mixed
+questions and supported actions, with independent durable tasks and trusted partial
+results. Storage version 10 requires an explicit runtime-store migration before serve.

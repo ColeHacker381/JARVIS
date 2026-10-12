@@ -108,6 +108,7 @@ class SQLiteConversationStore:
         with self.database.transaction() as connection:
             rows = connection.execute(
                 "SELECT * FROM conversation_turns WHERE conversation_id=? AND owner_id=? "
+                "AND json_extract(data, '$.parent_request_id') IS NULL "
                 "ORDER BY sequence DESC LIMIT ?",
                 (str(conversation_id), str(owner_id), limit),
             ).fetchall()
@@ -165,6 +166,7 @@ class SQLiteConversationStore:
                 "correlation_id",
                 "created_at",
                 "user_text",
+                "parent_request_id",
             ):
                 if getattr(previous, name) != getattr(turn, name):
                     raise ConversationError("immutable_turn")
@@ -172,6 +174,10 @@ class SQLiteConversationStore:
                 raise ConversationError("turn_transition_invalid")
             if previous.decision is not None and previous.decision != turn.decision:
                 raise ConversationError("immutable_decision")
+            if previous.plan is not None and (
+                previous.plan != turn.plan or previous.intent_inputs != turn.intent_inputs
+            ):
+                raise ConversationError("immutable_plan")
             connection.execute(
                 "UPDATE conversation_turns SET revision=?,state=?,data=? WHERE request_id=?",
                 (turn.revision, turn.state, turn.model_dump_json(), str(turn.request_id)),

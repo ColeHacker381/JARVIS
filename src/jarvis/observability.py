@@ -101,6 +101,9 @@ METRIC_NAMES = frozenset(
         "model.prompt_ms",
         "model.generation_ms",
         "model.tokens_per_second",
+        "model.schema_bytes",
+        "cognition.plan_validation_ms",
+        "cognition.orchestration_ms",
     }
 )
 

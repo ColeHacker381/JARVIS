@@ -3,7 +3,7 @@
 import re
 from contextlib import contextmanager
 from typing import Protocol
-from uuid import UUID
+from uuid import UUID, uuid5
 
 from jarvis.action_reporting import reported_turn
 from jarvis.core.cognitive_records import Conversation, ConversationTurn
@@ -136,6 +136,31 @@ class ConversationService:
                 raise ConversationError("sensitive_output_rejected")
             self._store._save(updated, turn.revision, access=self._access)
             return updated
+
+    def _begin_intent(self, parent, intent_index, *, session_token):
+        """Trusted coordinator checkpoint, not a public request/identity import API."""
+        if parent.plan is None or parent.state != "DECIDED":
+            raise ConversationError("intent_parent_invalid")
+        with self._authenticated(session_token) as session:
+            self._owned(parent.conversation_id, session)
+            if session.principal_id != parent.owner_id:
+                raise ConversationError("conversation_unavailable")
+            turn = ConversationTurn(
+                request_id=uuid5(parent.request_id, f"intent:{intent_index}"),
+                parent_request_id=parent.request_id,
+                conversation_id=parent.conversation_id,
+                owner_id=parent.owner_id,
+                session_id=parent.session_id,
+                correlation_id=parent.correlation_id,
+                user_text=parent.intent_inputs[intent_index].text,
+            )
+            previous, fresh = self._store._begin(turn, access=self._access)
+            if (
+                previous.parent_request_id != parent.request_id
+                or previous.correlation_id != parent.correlation_id
+            ):
+                raise ConversationError("intent_checkpoint_conflict")
+            return previous, fresh
 
     @contextmanager
     def claim(self, conversation_id, *, session_token):

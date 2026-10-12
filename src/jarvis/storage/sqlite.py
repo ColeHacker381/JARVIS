@@ -17,7 +17,7 @@ from jarvis.identity import IdentityError
 from jarvis.storage.errors import StorageError
 from jarvis.tasks import TaskBusyError, TaskConflictError
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 
 
 class DuplicateEventError(StorageError):
@@ -316,6 +316,10 @@ MIGRATIONS[9] = (
     "REFERENCES security_principals(principal_id), data TEXT NOT NULL)",
     "CREATE INDEX voice_session_owner ON voice_sessions(owner_id,voice_session_id)",
 )
+
+# Reader/writer compatibility barrier for versioned intent plans and child-turn metadata.
+# Existing rows, authority, tasks and grants are unchanged; older binaries refuse this store.
+MIGRATIONS[10] = ()
 
 
 @contextmanager

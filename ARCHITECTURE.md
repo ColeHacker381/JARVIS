@@ -504,8 +504,16 @@ consistency rules; the original strict decoder/executor remain decisive. Optiona
 voice presentation influences generation, never permission or execution results.
 See [cognition hardening](docs/PHASE10_COGNITION_HARDENING.md).
 
-Conservative request separation occurs before context/model invocation for recognized
-mixed lighting requests. Non-action reporting and authenticated historical projections
+The earlier milestone deferred recognized mixed lighting requests before model invocation.
+Non-action reporting and authenticated historical projections
 cannot establish execution; accepted proposals and actual task outcomes keep the
 existing executor/recovery path. Stored evidence is unchanged. See
 [mixed-request reporting](docs/PHASE10_MIXED_INTENT.md) for scope and limitations.
+
+Fresh explicit mixed requests now use provisional ADR-T12: one bounded model call,
+source-indexed plans, durable private child checkpoints and existing independently
+authorized tasks. Trusted composition preserves answers and actual per-intent outcomes;
+pending/ambiguous effects block later actions. ComposedResponse is a distinct v1
+envelope; legacy single-decision replies and historical evidence remain supported.
+Storage 10 is a metadata-only compatibility barrier. See
+[multi-intent orchestration](docs/PHASE10_MULTI_INTENT.md).

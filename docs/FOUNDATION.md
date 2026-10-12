@@ -267,7 +267,13 @@ contracts and model-independent authorization, permits labeled engineering optio
 with partial authorized evidence, adds scoped project continuity and content-free
 validation stages, and treats intentional playback interruption as cancelled.
 
-[Mixed-request hardening](PHASE10_MIXED_INTENT.md) adds trusted separation before
+[Mixed-request hardening](PHASE10_MIXED_INTENT.md) records earlier separation before
 inference, safe reporting of unsubmitted lighting requests, and protected historical
 presentation without rewriting evidence. Replay, accepted-action recovery, authorization
 and task results retain their existing boundaries; both local structured modes are tested.
+
+The [multi-intent follow-on](PHASE10_MULTI_INTENT.md) adds distinct v1 plan/composition
+contracts, four-source limits, immutable parent plans, private child checkpoints and
+existing independent tasks. Storage 10 preserves old rows/authority while refusing
+older readers; provisional ADR-T12 extends the single-action bound without adding
+automatic authority, a reasoning loop or an external integration.

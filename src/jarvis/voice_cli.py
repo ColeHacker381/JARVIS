@@ -248,6 +248,11 @@ async def voice_client(args):
                         json.dumps(
                             {
                                 "kind": response["kind"],
+                                **(
+                                    {"status": response["status"], "intents": response["intents"]}
+                                    if response["kind"] == "composed"
+                                    else {}
+                                ),
                                 "task_state": response.get("task_state"),
                                 "task_id": response.get("task_id"),
                                 "request_id": str(segment.segment_id),
@@ -258,7 +263,7 @@ async def voice_client(args):
                             }
                         )
                     )
-                    audio = await tts.synthesize(response["text"])
+                    audio = await tts.synthesize(response.get("spoken_text", response["text"]))
                     control.validate(args.source, session.voice_session_id, token)
                     rate, generated_pcm = validate_wave(audio.wav)
                     print(

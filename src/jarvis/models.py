@@ -11,18 +11,26 @@ from typing import TYPE_CHECKING, Protocol
 from urllib.parse import urlsplit
 
 import httpx
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import ValidationError as SchemaError
 
 from jarvis.core.cognitive_records import (
     CognitiveDecision,
+    IntentPlan,
     ModelIdentity,
     ModelProvenance,
     ModelRequest,
+    PlannedIntent,
 )
 from jarvis.core.contracts import ActionProposal
 from jarvis.initiative import describe_initiatives
+from jarvis.intents import echo_arguments, interaction_inventory, requested_action
 from jarvis.model_output import (
     action_example,
     decision_schema,
+    plan_instructions,
+    plan_schema,
+    plan_wire_schema,
     safe_diagnostic,
     structured_decision_schema,
 )
@@ -45,7 +53,7 @@ class ModelProvider(Protocol):
     identity: ModelIdentity
 
     async def complete(self, request: ModelRequest) -> str:
-        """Return untrusted CognitiveDecision JSON. Respect cancellation/deadlines."""
+        """Return untrusted CognitiveDecision or IntentPlan JSON; respect deadlines."""
         ...
 
 
@@ -72,6 +80,79 @@ class FakeModel:
         self.propose_unavailable = propose_unavailable
 
     async def complete(self, request: ModelRequest) -> str:
+        if request.intent_inputs:
+            intents = []
+            for source in request.intent_inputs:
+                scoped = request.model_copy(
+                    update={
+                        "intent_inputs": (),
+                        "messages": (
+                            *request.messages[:-1],
+                            request.messages[-1].model_copy(update={"content": source.text}),
+                        ),
+                    }
+                )
+                decision = CognitiveDecision.model_validate_json(
+                    await FakeModel.complete(self, scoped)
+                )
+                echo = echo_arguments(source.text)
+                if echo is not None:
+                    decision = CognitiveDecision(
+                        kind="action",
+                        text="Proposed echo, not executed.",
+                        action=ActionProposal(
+                            session_id=request.session_id,
+                            correlation_id=request.correlation_id,
+                            capability_id="development.echo",
+                            arguments=echo,
+                            origin="model",
+                            source_ref="development.fake",
+                        ),
+                    )
+                if decision.kind == "memory_grounded" and re.search(
+                    r"codecs?|opus", source.text, re.I
+                ):
+                    decision = decision.model_copy(
+                        update={
+                            "text": decision.text
+                            + " Development reasoning fixture: intercom, recording and navigation "
+                            "audio are hypothetical codec options, not established features."
+                        }
+                    )
+                if requested_action(source.text) and decision.action is None:
+                    decision = CognitiveDecision(
+                        kind="unsupported",
+                        text="Development fixture: this operation is unavailable or unclear.",
+                    )
+                elif not requested_action(source.text) and decision.action is not None:
+                    decision = CognitiveDecision(
+                        kind="clarification",
+                        text="Development fixture: the question needs a conversational answer.",
+                    )
+                elif not requested_action(source.text) and decision.kind == "clarification":
+                    decision = CognitiveDecision(
+                        kind="direct",
+                        text="Development explanation fixture, not AI reasoning: Opus compresses "
+                        "speech and music with low latency. Codecs can reduce intercom, recording "
+                        "or streaming bandwidth; these are options, not existing project features.",
+                    )
+                purpose = (
+                    "action"
+                    if decision.action
+                    else "clarification"
+                    if decision.kind in {"clarification", "unsupported", "failure"}
+                    else "memory"
+                    if decision.memory_ids
+                    else "conversation"
+                )
+                intents.append(
+                    PlannedIntent(
+                        **decision.model_dump(exclude={"contract_type"}),
+                        intent_index=source.intent_index,
+                        purpose=purpose,
+                    )
+                )
+            return IntentPlan(intents=tuple(intents)).model_dump_json()
         text = request.messages[-1].content.casefold()
         if "light" in text:
             capability = next(
@@ -292,6 +373,27 @@ class OpenAILocalModel:
                     + json.dumps(example, separators=(",", ":"))
                 )
         instructions += action_example(request, self.identity.provider_id)
+        if request.intent_inputs:
+            schema = (
+                plan_wire_schema(request, self.identity.provider_id)
+                if self.response_format == "json_schema"
+                else plan_schema(request, self.identity.provider_id)
+            )
+            instructions = plan_instructions(
+                request,
+                self.identity.provider_id,
+                schema if self.response_format == "json_object" else None,
+                slots=self.response_format == "json_schema",
+            )
+        generation_schema = (
+            schema
+            if request.intent_inputs or self.response_format == "json_object"
+            else structured_decision_schema(schema)
+        )
+        self.metrics.record(
+            "model.schema_bytes",
+            float(len(json.dumps(generation_schema, separators=(",", ":")).encode())),
+        )
         messages = [{"role": "system", "content": instructions}]
         # Some local servers lack developer-role support; preserve priority in system messages.
         messages.extend(
@@ -313,6 +415,8 @@ class OpenAILocalModel:
                 i.model_dump(mode="json") for i in request.initiatives
             ],
             "observed_task_states": [t.model_dump(mode="json") for t in request.tasks],
+            "intent_inputs": [i.model_dump(mode="json") for i in request.intent_inputs],
+            "interaction_inventory": interaction_inventory(request.capabilities),
         }
         messages.append(
             {
@@ -343,8 +447,10 @@ class OpenAILocalModel:
                             else {
                                 "type": "json_schema",
                                 "json_schema": {
-                                    "name": "cognitive_decision",
-                                    "schema": structured_decision_schema(schema),
+                                    "name": "intent_plan"
+                                    if request.intent_inputs
+                                    else "cognitive_decision",
+                                    "schema": generation_schema,
                                 },
                             }
                         ),
@@ -369,6 +475,23 @@ class OpenAILocalModel:
             if not isinstance(content, str) or not content or len(content) > 16384:
                 raise ModelError("model_output_invalid", diagnostic={"stage": "completion_content"})
             self._report_metrics(envelope)
+            if request.intent_inputs and self.response_format == "json_schema":
+                value = json.loads(content)
+                try:
+                    Draft202012Validator(generation_schema).validate(value)
+                except SchemaError:
+                    raise ModelError(
+                        "model_output_invalid", diagnostic={"stage": "provider_envelope"}
+                    ) from None
+                content = json.dumps(
+                    {
+                        "schema_version": value["schema_version"],
+                        "contract_type": "intent_plan",
+                        "intents": [
+                            value["intents"][str(i)] for i in range(len(request.intent_inputs))
+                        ],
+                    }
+                )
             return content
         except httpx.TimeoutException:
             raise ModelError("model_timeout") from None
@@ -392,7 +515,7 @@ class OpenAILocalModel:
         fields = {
             "model.input_tokens": usage.get("prompt_tokens"),
             "model.output_tokens": usage.get("completion_tokens"),
-            "model.load_ms": envelope.get("load_duration", 0) / 1e6
+            "model.load_ms": envelope.get("load_duration") / 1e6
             if type(envelope.get("load_duration")) in (int, float)
             else None,
             "model.prompt_ms": timings.get("prompt_ms"),

@@ -29,6 +29,10 @@ BRAINSTORM = (
     "we could use audio codecs in the Slipstream project."
 )
 MIXED_REQUEST = "How could audio codecs help Slipstream? Also, dim the lights to 45%."
+ORCHESTRATION_REQUEST = (
+    "How could we use audio codecs in the Slipstream project? "
+    "Also, could you dim the lights to around 45%?"
+)
 
 
 def validate(args):
@@ -132,6 +136,17 @@ def validate(args):
                     headers,
                     data,
                 )
+            if data["kind"] == "composed":
+                deadline = time.monotonic() + 20
+                while data["status"] == "pending" and time.monotonic() < deadline:
+                    time.sleep(0.1)
+                    data = api_data(
+                        client.post(
+                            f"/api/v1/conversations/{conversation}/messages",
+                            headers=headers,
+                            json=request,
+                        )
+                    )
             # Persist the validated final fixture response, not raw provider envelopes or prompts.
             record = {
                 "case": label,
@@ -152,6 +167,8 @@ def validate(args):
                 "task_state": data.get("task_state"),
                 "execution": data.get("execution"),
                 "audit_ids": data.get("audit_ids", []),
+                "status": data.get("status"),
+                "intents": data.get("intents", []),
             }
             status = api_data(
                 client.get("/api/v1/status", headers={"Authorization": "Bearer " + tokens["owner"]})
@@ -161,6 +178,9 @@ def validate(args):
                 "model.invoke_ms",
                 "model.input_tokens",
                 "model.output_tokens",
+                "model.schema_bytes",
+                "cognition.plan_validation_ms",
+                "cognition.orchestration_ms",
             }
             latest = {name: value for name, value in status.get("metrics", []) if name in names}
             previous = {name: value for name, value in prior if name in names}
@@ -179,6 +199,42 @@ def validate(args):
             )
             return conversation, request, data
 
+        if args.scope == "orchestration":
+            for i in range(args.repeats):
+                conversation, request, result = message(
+                    f"orchestration_{i + 1}", ORCHESTRATION_REQUEST, voice=True
+                )
+                replay = api_data(
+                    client.post(
+                        f"/api/v1/conversations/{conversation}/messages",
+                        headers={"Authorization": "Bearer " + tokens["owner"]},
+                        json=request,
+                    )
+                )
+                report["records"][-1]["same_request_replay"] = replay == result
+                save()
+            if not args.only_mixed:
+                message(
+                    "two_questions",
+                    "Explain Opus audio compression and describe audio codecs.",
+                    voice=True,
+                )
+                message("guest_orchestration", ORCHESTRATION_REQUEST, who="guest", voice=True)
+                message(
+                    "unsupported_plus_question",
+                    "Send a Slack message and explain Opus audio compression.",
+                    voice=True,
+                )
+                message(
+                    "multiple_actions",
+                    "Set simulated lights to 25% and then dim simulated lights to 45%.",
+                )
+                message(
+                    "capability_awareness",
+                    "What capabilities can I use through this chat, "
+                    "and which are simulated or unavailable?",
+                    voice=True,
+                )
         if args.scope == "mixed":
             for i in range(args.repeats):
                 conversation, _, _ = message(f"technical_{i + 1}", "What are audio codecs?")
@@ -280,7 +336,7 @@ def validate(args):
             record = json.loads(line)
         except ValueError:
             continue
-        if record.get("event") == "model.output_rejected":
+        if record.get("event") in {"model.output_rejected", "model.intent_unresolved"}:
             diagnostics.append(
                 {k: record[k] for k in ("reason_code", "model_diagnostic") if k in record}
             )
@@ -294,6 +350,19 @@ def validate(args):
         "Required: JSON validity alone does not prove factual grounding or useful recommendations."
     )
     report["brainstorm_grounded_responses"] = sum(r["kind"] == "memory_grounded" for r in attempts)
+    mixed = [r for r in report["records"] if r["case"].startswith("orchestration_")]
+    report["orchestration_attempts"] = len(mixed)
+    report["orchestration_valid_plans"] = sum(r["kind"] == "composed" for r in mixed)
+    report["orchestration_verified_completions"] = sum(
+        r.get("status") == "completed"
+        and any(
+            i["response"].get("task_state") == "COMPLETED"
+            and (i["response"].get("execution") or {}).get("output")
+            == {"brightness": 45, "simulated": True}
+            for i in r.get("intents", [])
+        )
+        for r in mixed
+    )
     report["status"] = "completed"  # Execution completed; failures remain visible in records/rates.
     save()
     return report
@@ -306,11 +375,16 @@ def main():
     parser.add_argument(
         "--response-format", choices=["json_object", "json_schema"], default="json_object"
     )
-    parser.add_argument("--scope", choices=["all", "brainstorm", "actions", "mixed"], default="all")
+    parser.add_argument(
+        "--scope", choices=["all", "brainstorm", "actions", "mixed", "orchestration"], default="all"
+    )
     parser.add_argument(
         "--partial-context",
         action="store_true",
         help="seed a labeled synthetic partial project scenario in the new isolated store",
+    )
+    parser.add_argument(
+        "--only-mixed", action="store_true", help="probe only the mixed orchestration request"
     )
     parser.add_argument("--repeats", type=int, choices=range(1, 11), default=3)
     parser.add_argument("--timeout", type=float, default=300)
@@ -325,6 +399,9 @@ def main():
                     "brainstorm_valid_responses",
                     "brainstorm_grounded_responses",
                     "brainstorm_attempts",
+                    "orchestration_attempts",
+                    "orchestration_valid_plans",
+                    "orchestration_verified_completions",
                 )
             }
         )

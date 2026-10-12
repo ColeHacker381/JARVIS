@@ -12,6 +12,7 @@ from jarvis.core.notification_records import NotificationReference
 from jarvis.core.world_records import WorldContext, WorldReference
 from jarvis.identity import IdentityError
 from jarvis.initiative import InitiativeError
+from jarvis.intents import split_intents
 from jarvis.memory import MemoryError
 from jarvis.notifications import NotificationError
 from jarvis.observability import NullMetrics
@@ -206,6 +207,22 @@ class ContextBuilder:
             self.conversations.get(turn.conversation_id, session_token=session_token)
             if session.principal_id != turn.owner_id or session.authentication_ref is None:
                 raise IdentityError("unauthenticated")
+            try:
+                inputs = split_intents(turn.user_text)
+            except ValueError:
+                raise ConversationError("intent_limit_exceeded") from None
+            developer = (
+                _DEVELOPER
+                if not inputs
+                else (
+                    "Return IntentPlan v1, one planned_intent per supplied input in index order. "
+                    "Answer every question and propose only requested actions; no inferred "
+                    "subgoals or loop. Never mix execution claims into conversational text. "
+                    "Use authorized citations for recall/reasoning plus general knowledge; "
+                    "preserve uncertainty, fixture provenance and unavailable integrations. "
+                    "For voice aim for 25-40 words per answer; preserve essential qualifications."
+                )
+            )
             request = ModelRequest(
                 request_id=turn.request_id,
                 session_id=session.session_id,
@@ -214,10 +231,19 @@ class ContextBuilder:
                     ModelMessage(role="system", content=_SYSTEM),
                     ModelMessage(
                         role="developer",
-                        content=_DEVELOPER + (" " + _VOICE if response_style == "voice" else ""),
+                        content=developer
+                        + (
+                            " Voice response: 25-40 words per answer; keep essential uncertainty, "
+                            "provenance and outcomes. Do not truncate critical results."
+                            if response_style == "voice" and inputs
+                            else " " + _VOICE
+                            if response_style == "voice"
+                            else ""
+                        ),
                     ),
                     ModelMessage(role="user", content=turn.user_text),
                 ),
+                intent_inputs=inputs,
             )
 
             def fits(candidate):
@@ -360,18 +386,24 @@ class ContextBuilder:
             # Only IDs/states from this authenticated conversation, not global task payloads.
             seen_tasks = set()
             for previous in reversed(history):
-                if not previous.task_id or previous.task_id in seen_tasks or self.tasks is None:
-                    continue
-                task = self.tasks.store.get(previous.task_id)
-                if task is None or task.owner_id != session.principal_id:
-                    continue
-                summary = TaskContext(
-                    task_id=task.task_id, state=task.state, updated_at=task.updated_at
-                )
-                candidate = request.model_copy(update={"tasks": (*request.tasks, summary)})
-                if fits(candidate):
-                    request = candidate
-                    seen_tasks.add(task.task_id)
+                ids = [previous.task_id]
+                if previous.response and previous.response.contract_type == "composed_response":
+                    ids.extend(o.response.task_id for o in reversed(previous.response.intents))
+                for task_id in ids:
+                    if not task_id or task_id in seen_tasks or self.tasks is None:
+                        continue
+                    task = self.tasks.store.get(task_id)
+                    if task is None or task.owner_id != session.principal_id:
+                        continue
+                    summary = TaskContext(
+                        task_id=task.task_id, state=task.state, updated_at=task.updated_at
+                    )
+                    candidate = request.model_copy(update={"tasks": (*request.tasks, summary)})
+                    if fits(candidate):
+                        request = candidate
+                        seen_tasks.add(task.task_id)
+                    if len(seen_tasks) == 3:
+                        break
                 if len(seen_tasks) == 3:
                     break
             # Budget recent permitted pairs first; final message order stays chronological.

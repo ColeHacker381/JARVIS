@@ -167,11 +167,26 @@
         "title": "ApiFailure",
         "type": "object"
       },
-      "ApiResponse_CognitiveResponse_": {
+      "ApiResponse_Annotated_Union_CognitiveResponse__ComposedResponse___FieldInfo_annotation_NoneType__required_True__discriminator__contract_type____": {
         "additionalProperties": false,
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/CognitiveResponse"
+            "discriminator": {
+              "mapping": {
+                "cognitive_response": "#/components/schemas/CognitiveResponse",
+                "composed_response": "#/components/schemas/ComposedResponse"
+              },
+              "propertyName": "contract_type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CognitiveResponse"
+              },
+              {
+                "$ref": "#/components/schemas/ComposedResponse"
+              }
+            ],
+            "title": "Data"
           },
           "request_id": {
             "format": "uuid",
@@ -189,7 +204,7 @@
           "request_id",
           "data"
         ],
-        "title": "ApiResponse[CognitiveResponse]",
+        "title": "ApiResponse[Annotated[Union[CognitiveResponse, ComposedResponse], FieldInfo(annotation=NoneType, required=True, discriminator='contract_type')]]",
         "type": "object"
       },
       "ApiResponse_Conversation_": {
@@ -788,6 +803,187 @@
         "title": "CognitiveResponse",
         "type": "object"
       },
+      "ComposedResponse": {
+        "additionalProperties": false,
+        "description": "New explicit envelope; existing single-decision response v1 is unchanged.",
+        "properties": {
+          "audit_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Audit Ids",
+            "type": "array"
+          },
+          "contract_type": {
+            "const": "composed_response",
+            "default": "composed_response",
+            "title": "Contract Type",
+            "type": "string"
+          },
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "correlation_id": {
+            "format": "uuid",
+            "title": "Correlation Id",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "execution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExecutionResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "initiative_refs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/InitiativeReference"
+            },
+            "maxItems": 63,
+            "title": "Initiative Refs",
+            "type": "array"
+          },
+          "intents": {
+            "items": {
+              "$ref": "#/components/schemas/IntentOutcome"
+            },
+            "maxItems": 4,
+            "minItems": 2,
+            "title": "Intents",
+            "type": "array"
+          },
+          "kind": {
+            "const": "composed",
+            "default": "composed",
+            "title": "Kind",
+            "type": "string"
+          },
+          "memory_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Memory Ids",
+            "type": "array"
+          },
+          "notification_refs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/NotificationReference"
+            },
+            "maxItems": 63,
+            "title": "Notification Refs",
+            "type": "array"
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelProvenance"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "spoken_text": {
+            "maxLength": 8192,
+            "minLength": 1,
+            "title": "Spoken Text",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "completed",
+              "partial",
+              "pending",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "task_state": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "pattern": "^\\S(?:.*\\S)?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task State"
+          },
+          "text": {
+            "maxLength": 8192,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "world_refs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/WorldReference"
+            },
+            "maxItems": 105,
+            "title": "World Refs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "request_id",
+          "correlation_id",
+          "text",
+          "status",
+          "spoken_text",
+          "intents"
+        ],
+        "title": "ComposedResponse",
+        "type": "object"
+      },
       "Conversation": {
         "additionalProperties": false,
         "properties": {
@@ -1110,12 +1306,27 @@
           "response": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/CognitiveResponse"
+                "discriminator": {
+                  "mapping": {
+                    "cognitive_response": "#/components/schemas/CognitiveResponse",
+                    "composed_response": "#/components/schemas/ComposedResponse"
+                  },
+                  "propertyName": "contract_type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/CognitiveResponse"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ComposedResponse"
+                  }
+                ]
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Response"
           },
           "schema_version": {
             "const": 1,
@@ -1827,6 +2038,50 @@
           "source_principal_id"
         ],
         "title": "InitiativeTrigger",
+        "type": "object"
+      },
+      "IntentOutcome": {
+        "additionalProperties": false,
+        "properties": {
+          "contract_type": {
+            "const": "intent_outcome",
+            "default": "intent_outcome",
+            "title": "Contract Type",
+            "type": "string"
+          },
+          "intent_index": {
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Intent Index",
+            "type": "integer"
+          },
+          "purpose": {
+            "enum": [
+              "conversation",
+              "memory",
+              "reasoning",
+              "action",
+              "clarification"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "response": {
+            "$ref": "#/components/schemas/CognitiveResponse"
+          },
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "title": "Schema Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "intent_index",
+          "purpose",
+          "response"
+        ],
+        "title": "IntentOutcome",
         "type": "object"
       },
       "JobSummary": {
@@ -4239,7 +4494,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResponse_CognitiveResponse_"
+                  "$ref": "#/components/schemas/ApiResponse_Annotated_Union_CognitiveResponse__ComposedResponse___FieldInfo_annotation_NoneType__required_True__discriminator__contract_type____"
                 }
               }
             },

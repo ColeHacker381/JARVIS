@@ -87,6 +87,17 @@ def test_loopback_endpoint_is_pinned(endpoint):
     assert "localhost" not in model.endpoint
 
 
+def test_unreported_backend_timings_are_missing_not_zero():
+    metrics = InMemoryMetrics()
+    provider = OpenAILocalModel(metrics=metrics)
+    provider._report_metrics({"usage": {"prompt_tokens": 20, "completion_tokens": 10}})
+    assert ("model.input_tokens", 20) in metrics.samples
+    assert ("model.output_tokens", 10) in metrics.samples
+    assert ("model.load_ms", None) in metrics.samples
+    assert ("model.prompt_ms", None) in metrics.samples
+    assert ("model.generation_ms", None) in metrics.samples
+
+
 @pytest.mark.parametrize(
     "response,expected",
     [
