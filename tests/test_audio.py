@@ -353,6 +353,35 @@ def test_multi_microphone_dedup_scoped_to_room_and_session(audio):
     assert one["conversation"].conversation_id != two["conversation"].conversation_id
 
 
+def test_production_acoustic_duplicate_window_still_expires(audio):
+    speak(audio, "JARVIS, set lights to 25")
+    audio.clock.now += timedelta(seconds=3)
+    later = speak(audio, "JARVIS, set lights to 25", source="computer")
+    assert not later["suppressed_duplicate"] and audio.app.lighting.calls == [25, 25]
+
+
+def test_offline_demo_duplicate_frames_are_independent_of_slow_inference(tmp_path, monkeypatch):
+    from jarvis.runtime_cli import initialize_development
+    from jarvis.runtime_config import RuntimeSettings
+    from jarvis.voice_demo import _ambient_scenarios
+
+    complete = FakeModel.complete
+
+    async def delayed(self, request):
+        if "Set lights to 25" in request.messages[-1].content:
+            await asyncio.sleep(2.1)
+        return await complete(self, request)
+
+    monkeypatch.setattr(FakeModel, "complete", delayed)
+    manifest = initialize_development(
+        RuntimeSettings(data_dir=tmp_path / "dev", model_provider="fake")
+    )
+    report = asyncio.run(
+        _ambient_scenarios(RuntimeSettings.load(Path(manifest["config"])), manifest)
+    )
+    assert report["lighting_calls"] == [25] and report["suppressed_duplicates"] == 1
+
+
 def test_background_room_followup_and_quiet_policy(audio):
     first = speak(audio, "JARVIS, hello")
     other = speak(audio, "Set lights to 25", source="dining")
@@ -807,7 +836,10 @@ Path(sys.argv[sys.argv.index('-of')+1]+'.json').write_text(
     )
 
 
-def test_one_shot_wav_uses_authenticated_http_and_cleans_session(tmp_path, monkeypatch, capsys):
+@pytest.mark.parametrize("cancel_playback", [False, True])
+def test_one_shot_wav_uses_authenticated_http_and_cleans_session(
+    tmp_path, monkeypatch, capsys, cancel_playback
+):
     import jarvis.voice_cli as cli
     from jarvis.local_credentials import read_private_json, write_private_json
     from jarvis.runtime_cli import initialize_development
@@ -837,16 +869,26 @@ def test_one_shot_wav_uses_authenticated_http_and_cleans_session(tmp_path, monke
     )
     wav = tmp_path / "speech.wav"
     wav.write_bytes(pcm_wave(b"\0\0" * 1600))
+
     # Explicit simulation isolates HTTP wiring; genuine inference is the optional probe.
+    class CancelledPlayback(FakeAudioPlayback):
+        async def play(self, audio):
+            self.cancel()
+            await super().play(audio)
+
     monkeypatch.setattr(
         cli,
         "providers",
         lambda args: (
             FakeSpeechRecognizer(["Set lights to 25"]),
             FakeSpeechSynthesizer(),
-            FakeAudioPlayback(),
+            CancelledPlayback() if cancel_playback else FakeAudioPlayback(),
         ),
     )
+    if cancel_playback:
+        import select
+
+        monkeypatch.setattr(select, "select", lambda *args: ([], [], []))
     monkeypatch.setattr(cli, "LocalMicrophone", lambda *a, **k: pytest.fail("WAV opened a mic"))
     with running_runtime(config, None, tmp_path / "runtime.log") as (client, _):
         client_config = tmp_path / "client.json"
@@ -865,19 +907,89 @@ def test_one_shot_wav_uses_authenticated_http_and_cleans_session(tmp_path, monke
                 "fixture",
                 "--wav",
                 str(wav),
-                "--no-playback",
+                *([] if cancel_playback else ["--no-playback"]),
             ]
         )
         asyncio.run(cli.voice_client(args))
         output = capsys.readouterr().out
         assert '"mode": "local_audio_file"' in output
         assert '"task_state": "COMPLETED"' in output
-        assert '"playback": "disabled"' in output
+        if cancel_playback:
+            assert (
+                '"status": "cancelled"' in output
+                and '"reason_code": "playback_cancelled"' in output
+            )
+            assert '"status": "failed"' not in output
+        else:
+            assert '"playback": "disabled"' in output
         status = api_data(
             client.get("/api/v1/status", headers={"Authorization": "Bearer " + token})
         )
         assert status["simulated_invocations"]["lighting"] == 1
         assert control.sessions(session_token=token) == ()
+
+
+def test_playback_interruption_releases_device_and_preserves_completed_task_once(
+    audio, monkeypatch
+):
+    import jarvis.speech as module
+
+    streams = []
+    playback = LocalAudioPlayback()
+
+    class Stream:
+        def __init__(self, **kwargs):
+            self.closed = False
+            self.writes = 0
+            streams.append(self)
+
+        def __enter__(self):
+            return self
+
+        def write(self, chunk):
+            self.writes += 1
+            playback.cancel()
+
+        def __exit__(self, *args):
+            self.closed = True
+
+    monkeypatch.setattr(
+        module,
+        "sounddevice_module",
+        lambda: SimpleNamespace(RawOutputStream=Stream, PortAudioError=OSError),
+    )
+    speech = segment(audio)
+
+    async def turn():
+        return await audio.voice.process(
+            speech,
+            session_token=audio.owner.token,
+            interaction_token=audio.owner.token,
+            recognizer=FakeSpeechRecognizer(["JARVIS, set lights to 25"]),
+            synthesizer=FakeSpeechSynthesizer(),
+            playback=playback,
+        )
+
+    result = asyncio.run(turn())
+    assert result["spoken"].status == "cancelled"
+    assert result["response"].task_state == "COMPLETED" and audio.app.lighting.calls == [25]
+    assert streams and streams[0].closed and streams[0].writes == 1
+    playback.cancelled = False
+    replay = asyncio.run(turn())
+    # The short acoustic deduplication window may expire. The durable request remains idempotent.
+    assert audio.app.lighting.calls == [25]
+    if not replay["suppressed_duplicate"]:
+        assert replay["response"].task_id == result["response"].task_id
+        assert all(stream.closed for stream in streams)
+    persisted = asyncio.run(
+        audio.app.coordinator.respond(
+            audio.session.conversation_id,
+            "set lights to 25",
+            session_token=audio.owner.token,
+            request_id=speech.segment_id,
+        )
+    )
+    assert persisted.task_id == result["response"].task_id and audio.app.lighting.calls == [25]
 
 
 def test_one_shot_rejects_fake_real_conflict_before_http(tmp_path):

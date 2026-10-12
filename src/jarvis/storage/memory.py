@@ -150,6 +150,7 @@ class SQLiteMemoryStore:
         now: datetime,
         *,
         access: object,
+        project_only: bool = False,
     ):
         self._guard(access)
         # Authorization, lifecycle, and filters precede ORDER/LIMIT; no global count/ranking.
@@ -160,6 +161,8 @@ class SQLiteMemoryStore:
             "(SELECT 1 FROM memory_readers r WHERE r.memory_id=m.memory_id AND r.principal_id=?)))",
         ]
         params = [_time(now), str(principal_id), str(principal_id)]
+        if project_only:
+            conditions.append("m.project_ref IS NOT NULL")
         if not household:
             conditions.append("m.scope_kind!='household'")
         if not query.historical:

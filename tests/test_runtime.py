@@ -25,7 +25,7 @@ from jarvis.local_credentials import (
 )
 from jarvis.runtime_cli import doctor, initialize_development
 from jarvis.runtime_config import RuntimeSettings
-from jarvis.runtime_demo import _environment, _wait, api_data, running_runtime
+from jarvis.runtime_demo import _environment, _wait, api_data, running_runtime, settle_action
 from jarvis.runtime_service import RuntimeService
 from jarvis.storage.errors import StorageError
 from jarvis.storage.sqlite import MIGRATIONS, SCHEMA_VERSION, SQLiteDatabase
@@ -71,6 +71,28 @@ def test_single_composition_start_stop_and_runtime_claim(configured):
         await reopened.stop()
 
     asyncio.run(run())
+
+
+def test_demo_waits_for_durable_scheduler_result_and_replays_without_new_effect(configured):
+    settings, manifest = configured
+    runtime = RuntimeService(settings)
+    token = read_private_json(Path(manifest["credentials"]["owner"]["path"]))["token"]
+    headers = {"Authorization": "Bearer " + token}
+    with TestClient(create_api(runtime), base_url="http://127.0.0.1:8765") as client:
+        runtime.application.coordinator.defer_actions = True
+        conversation = api_data(
+            client.post("/api/v1/conversations", headers=headers, json={"schema_version": 1})
+        )
+        path = f"/api/v1/conversations/{conversation['conversation_id']}/messages"
+        body = {"schema_version": 1, "request_id": str(uuid4()), "text": "Set lights to 25"}
+        initial = api_data(client.post(path, headers=headers, json=body))
+        assert initial["kind"] == "pending"
+        result = settle_action(client, path, body, headers, initial)
+        assert result["kind"] == "action" and result["task_state"] == "COMPLETED"
+        assert result["task_id"] == initial["task_id"]
+        assert result["execution"]["output"] == {"brightness": 25, "simulated": True}
+        assert api_data(client.post(path, headers=headers, json=body)) == result
+        assert runtime.application.lighting.calls == [25]
 
 
 def test_startup_cancellation_drains_live_construction_and_releases_claim(configured):

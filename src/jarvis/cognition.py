@@ -2,8 +2,12 @@
 
 import asyncio
 import json
+import logging
+import re
 from typing import Protocol
 from uuid import uuid4
+
+from pydantic import ValidationError
 
 from jarvis.conversations import ConversationError, contains_secret
 from jarvis.core.cognitive_records import (
@@ -18,6 +22,7 @@ from jarvis.execution import validate_capability_arguments
 from jarvis.identity import IdentityError
 from jarvis.initiative import InitiativeError, describe_initiatives, is_initiative_question
 from jarvis.memory import MemoryError
+from jarvis.model_output import output_shape, validation_stage
 from jarvis.models import ModelError
 from jarvis.notifications import NotificationError, describe_notifications, is_notification_question
 from jarvis.observability import AuditWriteError, write_audit
@@ -85,13 +90,50 @@ class CognitiveCoordinator:
             decision = decode_cognitive(serialized)
             if not isinstance(decision, CognitiveDecision):
                 raise ValueError()
-        except (ValueError, TypeError, AttributeError):
-            raise ModelError("model_output_invalid") from None
+        except (ValueError, TypeError, AttributeError) as exc:
+            errors = (
+                exc.errors(include_input=False, include_context=False)
+                if isinstance(exc, ValidationError)
+                else ()
+            )
+            raise ModelError(
+                "model_output_invalid",
+                diagnostic=output_shape(serialized, stage=validation_stage(exc), errors=errors),
+            ) from None
         if contains_secret(serialized):
             raise ModelError("sensitive_output_rejected")
+        if (
+            decision.action is None
+            and re.search(
+                r"\b(set|turn|switch|dim|brighten)\b.*\b(lights?|lighting|brightness)\b",
+                request.messages[-1].content.casefold(),
+            )
+            and (
+                re.search(
+                    r"\b(lights?|lighting|brightness)\b.*\b(?:have been|has been|are now|is now) "
+                    r"(?:set|turned|switched|at|dimmed|changed)\b",
+                    decision.text.casefold(),
+                )
+                or (
+                    decision.kind == "direct"
+                    and re.search(
+                        r"\b(setting|turning|switching|dimming|changing)\b.*"
+                        r"\b(lights?|lighting|brightness)\b",
+                        decision.text.casefold(),
+                    )
+                )
+            )
+        ):
+            # Output-integrity guard for the reproduced false lighting completion.
+            # This never establishes intent/permission or submits an action. Free-text
+            # factual correctness in general still cannot be proven by a regex.
+            raise ModelError(
+                "unverified_action_claim",
+                diagnostic=output_shape(serialized, stage="unverified_action_claim"),
+            )
         available_memories = {m.memory_id for m in request.memories}
         if not set(decision.memory_ids) <= available_memories:
-            raise ModelError("memory_reference_invalid")
+            raise ModelError("memory_reference_invalid", diagnostic={"stage": "memory_citation"})
         if not set(decision.world_ids) <= {s.state_id for s in request.world_states}:
             raise ModelError("world_reference_invalid")
         if self.context.initiatives is not None and is_initiative_question(
@@ -146,18 +188,39 @@ class CognitiveCoordinator:
                 action.session_id != request.session_id
                 or action.correlation_id != request.correlation_id
             ):
-                raise ModelError("proposal_context_mismatch")
-            if action.origin != "model" or action.task_id is not None:
-                raise ModelError("proposal_context_invalid")
+                raise ModelError(
+                    "proposal_context_mismatch", diagnostic={"stage": "proposal_identity_binding"}
+                )
+            if action.origin != "model":
+                raise ModelError(
+                    "proposal_context_invalid", diagnostic={"stage": "proposal_origin"}
+                )
+            if action.task_id is not None:
+                raise ModelError(
+                    "proposal_context_invalid", diagnostic={"stage": "proposal_task_id"}
+                )
             try:
                 self.context.registry.get(action.capability_id)
             except KeyError:
                 raise ModelError("capability_unknown") from None
             # Input validation/current policy are always performed by the executor;
             # even a known off-catalogue proposal cannot bypass it or invoke a handler.
+        elif decision.kind != "failure" and any(
+            memory.source_ref.startswith("development.") for memory in request.memories
+        ):
+            warning = (
+                "Development fixture context is unverified and is not established project truth. "
+            )
+            # Deterministic provenance survives a model omitting its own fixture disclaimer.
+            if len(warning + decision.text) <= 4096:
+                decision = decision.model_copy(update={"text": warning + decision.text})
+            else:
+                raise ModelError("fixture_provenance_missing")
         return decision
 
-    async def respond(self, conversation_id, text, *, session_token, request_id=None):
+    async def respond(
+        self, conversation_id, text, *, session_token, request_id=None, response_style="text"
+    ):
         request_id = request_id or uuid4()
         turn = None
         try:
@@ -177,7 +240,9 @@ class CognitiveCoordinator:
                 if not fresh and turn.state == "RECEIVED":
                     raise ModelError("interrupted_model_request")
                 if fresh:
-                    built = self.context.build(turn, session_token=session_token)
+                    built = self.context.build(
+                        turn, session_token=session_token, response_style=response_style
+                    )
                     provenance = ModelProvenance(**self.models.identity().model_dump())
                     # Metadata only. Never persist the complete prompt or private reasoning trace.
                     write_audit(
@@ -279,6 +344,16 @@ class CognitiveCoordinator:
                 or getattr(exc, "reason_code", None)
                 or ("task_conflict" if isinstance(exc, TaskConflictError) else "audit_unavailable")
             )
+            if isinstance(exc, ModelError) and exc.diagnostic is not None:
+                # Numeric/type/allowlisted shape metadata only; no prompts or validator inputs.
+                logging.getLogger("jarvis").warning(
+                    "model.output_rejected",
+                    extra={
+                        "correlation_id": turn.correlation_id if turn else request_id,
+                        "reason_code": code,
+                        "model_diagnostic": exc.diagnostic,
+                    },
+                )
             response = CognitiveResponse(
                 conversation_id=conversation_id,
                 request_id=request_id,
@@ -287,7 +362,9 @@ class CognitiveCoordinator:
                 text=f"Request failed: {code}.",
                 provenance=turn.provenance if turn else None,
                 task_id=turn.task_id if turn else None,
-                error=ErrorDetail(code=code, message=code),
+                error=ErrorDetail(
+                    code=code, message=exc.message if isinstance(exc, ModelError) else code
+                ),
             )
             if turn is not None and turn.response is None:
                 # Do not terminally discard submitted actions on storage/authority failures.

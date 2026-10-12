@@ -105,10 +105,11 @@ is enabled. Conversations use `.jarvis/chat/journal.sqlite3` by default. Resume
 the printed ID with `--conversation <uuid>`; `--identity owner|friend|guest` is
 **development-only trusted host selection**, never production authentication.
 See [docs/PHASE5.md](docs/PHASE5.md) for contracts, setup, context/security rules,
-examples and validation limits. Genuine inference in this cloud environment is
-unverified in the Phase 5 cloud acceptance, when weight downloads were blocked.
-Current acceptance exercises fake and local HTTP protocol backends; genuine
-inference remains unverified. See the current local-model guide above.
+examples and validation limits. Phase 5 cloud acceptance used fake and local HTTP
+protocol backends because weight downloads were blocked. Follow-on Phase 10
+acceptance exercises genuine local Qwen through the authenticated text API;
+see [the cognition hardening report](docs/PHASE10_COGNITION_HARDENING.md) for measured
+results, setup and limitations. Physical MacBook voice acceptance remains pending.
 
 The `world-demo` command runs real ingestion/policy/SQLite world projections in two
 processes. It shows camera evidence versus inferred occupancy, corroboration,
@@ -256,3 +257,8 @@ run `uv run jarvis voice --help`. [MacBook acceptance and real-model results](do
 cover verified Linux whisper.cpp/eSpeak NG inference and the still-unverified
 Gemma/microphone/speaker workflow. Runtime integration tests select owned ephemeral ports,
 so an existing development server on port 8765 can remain running.
+
+[Phase 10 cognition hardening](docs/PHASE10_COGNITION_HARDENING.md) documents real
+Qwen reproductions, optional local JSON Schema output, grounded brainstorming,
+scoped project continuity, fixture migration and normal playback cancellation.
+Voice presentation requests concise generation without truncating verified results.

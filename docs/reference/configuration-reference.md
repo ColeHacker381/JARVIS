@@ -31,6 +31,7 @@ Numeric JSON examples are numbers; environment equivalents are plain text.
 | `model_provider` (string) | Explicit local AI or deterministic fake; no automatic fallback; example `"local"` | `"local"` | `JARVIS_MODEL_PROVIDER` | `--model-provider` | Yes | `{"enum": ["local", "fake"]}` |
 | `local_model_endpoint` (string) | Pinned loopback compatible API base, no credentials/proxy/redirect; example `"http://127.0.0.1:11434/v1"` | `"http://127.0.0.1:11434/v1"` | `JARVIS_LOCAL_MODEL_ENDPOINT` | `--local-endpoint` | Yes | `{}` |
 | `local_model_name` (string) | Exact advertised installed model ID; availability is not inference; example `"qwen2.5:3b"` | `"qwen2.5:3b"` | `JARVIS_LOCAL_MODEL_NAME` | `--local-model` | Yes | `{}` |
+| `local_model_response_format` (string) | JSON syntax or explicit JSON Schema mode; core validation always applies; example `"json_object"` | `"json_object"` | `JARVIS_LOCAL_MODEL_RESPONSE_FORMAT` | `--local-response-format` | Yes | `{"enum": ["json_object", "json_schema"]}` |
 | `model_timeout_seconds` (number) | Bound model call/provider resource lifetime; example `60.0` | `60.0` | `JARVIS_MODEL_TIMEOUT_SECONDS` | `file/env` | Yes | `{"exclusiveMinimum": 0, "maximum": 300}` |
 | `mode` (string) | Development only; production mode rejected; example `"development"` | `"development"` | `JARVIS_MODE` | `file/env` | Yes | `{"const": "development"}` |
 | `runtime_host` (string) | Loopback listener; public addresses rejected; example `"127.0.0.1"` | `"127.0.0.1"` | `JARVIS_RUNTIME_HOST` | `--host` | Yes | `{"enum": ["127.0.0.1", "::1"]}` |

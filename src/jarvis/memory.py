@@ -68,6 +68,7 @@ class MemoryStore(Protocol):
         now: datetime,
         *,
         access: object,
+        project_only: bool = False,
     ) -> tuple[MemoryRecord, ...]: ...
 
     def _commit(
@@ -268,6 +269,18 @@ class MemoryService:
             return record
 
     def search(self, query: MemoryQuery, *, session_token: str) -> MemorySearchResult:
+        return self._search_authorized(query, session_token=session_token)
+
+    def search_projects(self, *, session_token: str, limit=5) -> MemorySearchResult:
+        """Bounded current project context; same read/scope/lifecycle boundary as search.
+
+        A trusted structured filter, not a new public wire contract or unrestricted scan.
+        """
+        return self._search_authorized(
+            MemoryQuery(limit=limit), session_token=session_token, project_only=True
+        )
+
+    def _search_authorized(self, query, *, session_token, project_only=False):
         with self._request(session_token, "memory.search") as session:
             query = MemoryQuery.model_validate(query.model_dump()).model_copy(deep=True)
             required = ("memory.read",) + (
@@ -278,10 +291,17 @@ class MemoryService:
                 self._permissions.current_grants(session.principal_id, ("memory.household.read",))
             )
             records = self._store._search(
-                session.principal_id, household, query, utc_now(), access=self._access
+                session.principal_id,
+                household,
+                query,
+                utc_now(),
+                access=self._access,
+                project_only=project_only,
             )
             # Defense in depth: backend selection must never expand domain scope.
             for record in records:
+                if project_only and record.project_ref is None:
+                    raise StorageError("memory_project_filter_invalid")
                 scope = record.access_scope
                 if not (
                     session.principal_id == scope.owner_id

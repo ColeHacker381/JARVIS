@@ -313,6 +313,8 @@ def create_api(runtime):
         description=(
             "Persisted request_id is the owner/conversation-bound idempotency key. "
             "One model call, at most one validated action."
+            " Optional Prefer: response-style=voice requests concise speech-oriented guidance; "
+            "it grants no authority and never truncates verified execution results."
         ),
     )
     async def message(
@@ -321,7 +323,15 @@ def create_api(runtime):
         result = await runtime.call(
             lambda: asyncio.run(
                 runtime.application.coordinator.respond(
-                    conversation_id, body.text, session_token=token, request_id=body.request_id
+                    conversation_id,
+                    body.text,
+                    session_token=token,
+                    request_id=body.request_id,
+                    response_style=(
+                        "voice"
+                        if request.headers.get("prefer") == "response-style=voice"
+                        else "text"
+                    ),
                 )
             )
         )
@@ -595,6 +605,9 @@ def create_api(runtime):
         ):
             raise HTTPException(403, "operational_status_denied")
         summary = await runtime.call(runtime.operational_summary, token)
+        # Internal telemetry retains None for unavailable provider fields. Status v1
+        # exposes numeric samples only; missing timing is never fabricated as zero.
+        summary["metrics"] = [sample for sample in summary["metrics"] if sample[1] is not None]
         return wrap(request, OperationalStatus.model_validate_json(json.dumps(summary)))
 
     @routes.get("/openapi.json", tags=["documentation"])

@@ -260,3 +260,9 @@ identity/retention/hardware remain unverified. Follow-on Linux validation exerci
 real verified whisper.cpp and eSpeak NG through existing authenticated services;
 Gemma and physical microphone/speaker acceptance remain unverified. See the
 [operator checklist](VOICE_ACCEPTANCE.md) and measured report linked in Phase 10.
+
+The Phase 10 [cognition hardening](PHASE10_COGNITION_HARDENING.md) follow-on exercises
+genuine local Qwen inference separately from deterministic tests. It preserves v1
+contracts and model-independent authorization, permits labeled engineering options
+with partial authorized evidence, adds scoped project continuity and content-free
+validation stages, and treats intentional playback interruption as cancelled.

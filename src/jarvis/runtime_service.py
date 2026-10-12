@@ -103,6 +103,7 @@ class RuntimeService:
             endpoint=self.settings.local_model_endpoint,
             model=self.settings.local_model_name,
             timeout=self.settings.model_timeout_seconds,
+            response_format=self.settings.local_model_response_format,
             identities_factory=LocalDevelopmentIdentityRepository,
             initialize=False,
             notification_channels=None if self.settings.simulated_notification_channels else (),

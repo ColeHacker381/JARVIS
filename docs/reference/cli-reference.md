@@ -104,7 +104,9 @@ usage: jarvis [-h] [--config CONFIG] [--data-dir DATA_DIR]
                    [--port PORT] [--worker-credentials WORKER_CREDENTIALS]
                    [--model-provider {fake,local}]
                    [--local-endpoint LOCAL_ENDPOINT]
-                   [--local-model LOCAL_MODEL] [--demo-fixtures]
+                   [--local-model LOCAL_MODEL]
+                   [--local-response-format {json_object,json_schema}]
+                   [--no-memory-fixture] [--demo-fixtures]
                    [--identity {owner,friend,guest}] [--principal PRINCIPAL]
                    [--permission PERMISSION]
                    [--credential-file CREDENTIAL_FILE]
@@ -131,6 +133,8 @@ options:
   --model-provider {fake,local}
   --local-endpoint LOCAL_ENDPOINT
   --local-model LOCAL_MODEL
+  --local-response-format {json_object,json_schema}
+  --no-memory-fixture   new runtime: do not seed Slipstream demo memory
   --demo-fixtures       explicit simulated source and approval policy (init
                         only)
   --identity {owner,friend,guest}

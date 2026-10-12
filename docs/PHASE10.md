@@ -425,3 +425,10 @@ tests/demos retain deterministic fake/protocol fixtures and need no models/devic
 Fresh and cached installer runs both succeeded, including fresh checksum-verified
 model download; PortAudio discovery succeeds with the documented workspace
 library paths and returns zero devices. Hardware/Gemma acceptance remains pending.
+
+## Cognitive integration follow-on
+
+See [cognition hardening](PHASE10_COGNITION_HARDENING.md) for real Qwen lighting/
+escalation reproductions, grounded design reasoning, bounded project retrieval,
+content-free validator diagnostics, optional schema-constrained output, fixture
+migration and cancelled playback. Existing contracts/authorization are preserved.

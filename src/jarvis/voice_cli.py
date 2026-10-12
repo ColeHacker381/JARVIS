@@ -235,6 +235,7 @@ async def voice_client(args):
                     response = api_data(
                         await client.post(
                             f"/api/v1/conversations/{conversation_id}/messages",
+                            headers={"Prefer": "response-style=voice"},
                             json={
                                 "schema_version": 1,
                                 "request_id": str(segment.segment_id),
@@ -253,6 +254,7 @@ async def voice_client(args):
                                 "correlation_id": response.get("correlation_id"),
                                 "audit_ids": response.get("audit_ids", []),
                                 "model": response.get("provenance"),
+                                "error": response.get("error"),
                             }
                         )
                     )
@@ -288,7 +290,13 @@ async def voice_client(args):
                         await task
                 except (AudioError, AssertionError, httpx.HTTPError) as exc:
                     code = exc.code if isinstance(exc, AudioError) else "voice_api_unavailable"
-                    print(json.dumps({"status": "failed", "error": {"code": code}}))
+                    print(
+                        json.dumps(
+                            {"status": "cancelled", "reason_code": code, "stage": "playback"}
+                            if code == "playback_cancelled"
+                            else {"status": "failed", "error": {"code": code}}
+                        )
+                    )
                 if args.fake or fixture_pcm is not None:
                     break
                 # Reopen a short-lived capture session without changing the durable conversation.

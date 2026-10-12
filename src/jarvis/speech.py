@@ -316,6 +316,8 @@ class LocalAudioPlayback:
                         self.cancelled = True
                         await work
                         raise
+                if self.cancelled:
+                    raise AudioError("playback_cancelled")
         except sd.PortAudioError:
             raise AudioError("playback_device_unavailable") from None
 

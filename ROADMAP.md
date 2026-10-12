@@ -357,6 +357,11 @@ speaker acceptance remains the next operator gate; use
 [the acceptance checklist](docs/VOICE_ACCEPTANCE.md). Do not advance to automatic
 ambient capture/profiling or claim real diarization from the heuristic simulations.
 
+The authorized Phase 10 cognition-hardening follow-on adds real local Qwen acceptance,
+grounded engineering reasoning, scoped project continuity, fixture migration,
+schema guidance and normal interrupted playback. See
+[the hardening report](docs/PHASE10_COGNITION_HARDENING.md); this is not Phase 11.
+
 ## Deferred recommendation — Deployment Identity and Genuine Local-Model Acceptance
 
 Validate an available real local model end to end; decide production owner

@@ -495,3 +495,11 @@ HTTP authentication; no alternate executor or grants are added. Non-speech/digit
 silence and invalid audio/text fail before becoming requests/playback. Linux speech
 inference is measured; Gemma/hardware acceptance is pending in
 [VOICE_ACCEPTANCE.md](docs/VOICE_ACCEPTANCE.md).
+
+Phase 10 hardening permits general technical reasoning with clearly labeled retrieved
+claims and proposed options. Existing memory service adds a bounded current project
+filter and revalidates prior source snippets; cognition still receives only authorized
+context. Local schema guidance derives from existing v1 contracts, including their
+consistency rules; the original strict decoder/executor remain decisive. Optional
+voice presentation influences generation, never permission or execution results.
+See [cognition hardening](docs/PHASE10_COGNITION_HARDENING.md).

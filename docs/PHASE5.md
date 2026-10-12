@@ -1,5 +1,10 @@
 # Phase 5: bounded cognitive coordination and local text interaction
 
+For current Phase 10 model guidance, grounded reasoning, project retrieval,
+fixture handling and genuine Qwen results, see
+[cognition hardening](PHASE10_COGNITION_HARDENING.md). The Phase 5 acceptance counts
+and initially blocked model downloads below are historical milestone evidence.
+
 This milestone adds a functioning offline text assistant using the existing Phase
 2 executor/policy, Phase 3 tasks/journal/audits and Phase 4 scoped memory. A real
 local model uses an interchangeable OpenAI-compatible adapter. Authentication,

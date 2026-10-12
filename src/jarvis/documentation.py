@@ -22,6 +22,9 @@ PURPOSES = {
     "model_provider": "Explicit local AI or deterministic fake; no automatic fallback",
     "local_model_endpoint": "Pinned loopback compatible API base, no credentials/proxy/redirect",
     "local_model_name": "Exact advertised installed model ID; availability is not inference",
+    "local_model_response_format": (
+        "JSON syntax or explicit JSON Schema mode; core validation always applies"
+    ),
     "model_timeout_seconds": "Bound model call/provider resource lifetime",
     "mode": "Development only; production mode rejected",
     "runtime_host": "Loopback listener; public addresses rejected",
@@ -50,6 +53,7 @@ ALIASES = {
     "model_provider": "--model-provider",
     "local_model_endpoint": "--local-endpoint",
     "local_model_name": "--local-model",
+    "local_model_response_format": "--local-response-format",
 }
 
 

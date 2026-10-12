@@ -4210,7 +4210,7 @@
     },
     "/api/v1/conversations/{conversation_id}/messages": {
       "post": {
-        "description": "Persisted request_id is the owner/conversation-bound idempotency key. One model call, at most one validated action.",
+        "description": "Persisted request_id is the owner/conversation-bound idempotency key. One model call, at most one validated action. Optional Prefer: response-style=voice requests concise speech-oriented guidance; it grants no authority and never truncates verified execution results.",
         "operationId": "message_api_v1_conversations__conversation_id__messages_post",
         "parameters": [
           {

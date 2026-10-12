@@ -19,6 +19,7 @@ async def _chat(args):
         endpoint=args.local_endpoint or settings.local_model_endpoint,
         model=args.local_model or settings.local_model_name,
         timeout=settings.model_timeout_seconds,
+        response_format=settings.local_model_response_format,
     )
     credentials = runtime.credentials(args.identity)
     try:

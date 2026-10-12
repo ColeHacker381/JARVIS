@@ -342,6 +342,7 @@ class VoiceService:
                 text,
                 session_token=interaction_token,
                 request_id=segment.segment_id,
+                response_style="voice",
             )
             self.metric("cognition_ms", start)
             self.context.participating(context)
@@ -361,9 +362,16 @@ class VoiceService:
                 self.control.validate(source.source_id, session.voice_session_id, interaction_token)
                 if playback is not None:
                     start = time.perf_counter()
-                    await playback.play(audio)
-                    self.metric("playback_ms", start)
-                    spoken = spoken.model_copy(update={"status": "played"})
+                    try:
+                        await playback.play(audio)
+                    except AudioError as exc:
+                        if exc.code != "playback_cancelled":
+                            raise
+                        spoken = spoken.model_copy(update={"status": "cancelled"})
+                    else:
+                        spoken = spoken.model_copy(update={"status": "played"})
+                    finally:
+                        self.metric("playback_ms", start)
         audit = AuditRecord(
             principal_id=session.owner_id,
             session_id=self.application.identities.resolve_session(session_token).session_id,

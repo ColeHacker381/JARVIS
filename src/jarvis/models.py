@@ -20,6 +20,12 @@ from jarvis.core.cognitive_records import (
 )
 from jarvis.core.contracts import ActionProposal
 from jarvis.initiative import describe_initiatives
+from jarvis.model_output import (
+    action_example,
+    decision_schema,
+    safe_diagnostic,
+    structured_decision_schema,
+)
 from jarvis.observability import NullMetrics
 from jarvis.world_state import describe_world
 
@@ -28,8 +34,10 @@ if TYPE_CHECKING:
 
 
 class ModelError(RuntimeError):
-    def __init__(self, code: str):
+    def __init__(self, code: str, *, diagnostic=None):
         self.code = code
+        self.diagnostic = safe_diagnostic(diagnostic) if diagnostic is not None else None
+        self.message = code if diagnostic is None else code + "; " + json.dumps(self.diagnostic)
         super().__init__(code)
 
 
@@ -107,20 +115,25 @@ class FakeModel:
                 text=describe_world(request.world_states),
                 world_ids=tuple(s.state_id for s in request.world_states),
             ).model_dump_json()
-        if request.memories:
-            memory = request.memories[0]
-            content = memory.content.get("text", json.dumps(memory.content))
-            return CognitiveDecision(
-                kind="memory_grounded",
-                text=f"According to current authorized memory: {content}",
-                memory_ids=(memory.memory_id,),
-            ).model_dump_json()
-        if "previous" in text or "continue" in text:
+        if not request.memories and ("previous" in text or "continue" in text):
             previous = [m.content for m in request.messages[:-1] if m.role == "assistant"]
             if previous:
                 return CognitiveDecision(
                     kind="direct", text=f"Development continuity fixture: {previous[-1]}"
                 ).model_dump_json()
+        if request.memories:
+            memory = request.memories[0]
+            content = memory.content.get("text", json.dumps(memory.content))
+            return CognitiveDecision(
+                kind="memory_grounded",
+                text=(
+                    "Development fixture, not verified project truth "
+                    f"({memory.source_ref}): {content}"
+                    if memory.source_ref.startswith("development.")
+                    else f"According to current authorized memory ({memory.source_ref}): {content}"
+                ),
+                memory_ids=(memory.memory_id,),
+            ).model_dump_json()
         return CognitiveDecision(
             kind="clarification",
             text="Deterministic development model: ask about Slipstream or simulated lights.",
@@ -142,6 +155,7 @@ class OpenAILocalModel:
         timeout=60.0,
         transport: httpx.AsyncBaseTransport | None = None,
         metrics=None,
+        response_format="json_object",
     ):
         parsed = urlsplit(endpoint)
         host = parsed.hostname
@@ -174,6 +188,9 @@ class OpenAILocalModel:
             destination=self.endpoint,
         )
         self.timeout = timeout
+        if response_format not in {"json_object", "json_schema"}:
+            raise ValueError("unsupported local model response format")
+        self.response_format = response_format
         self._transport = transport
         self.metrics = metrics or NullMetrics()
 
@@ -208,23 +225,73 @@ class OpenAILocalModel:
             return False
 
     async def complete(self, request: ModelRequest) -> str:
-        schema = CognitiveDecision.model_json_schema()
-        for envelope in (schema, *schema.get("$defs", {}).values()):
-            properties = envelope.get("properties", {})
-            explicit = [name for name in ("schema_version", "contract_type") if name in properties]
-            if explicit:
-                envelope["required"] = list(
-                    dict.fromkeys((*envelope.get("required", []), *explicit))
-                )
+        schema = decision_schema(request, self.identity.provider_id)
         instructions = (
             "Return one JSON object matching this CognitiveDecision schema. "
             "No markdown or reasoning trace. Use the supplied session_id/correlation_id for "
-            "ActionProposal, origin=model; never invent approval or identity fields. "
+            "ActionProposal, origin=model, source_ref=local.openai. "
+            "Omit task_id, proposal_id and created_at: the kernel owns this metadata. "
+            "Never invent approval or identity fields. "
             "Only action proposals execute tools. For memory_grounded cite supplied memory_ids. "
+            "Use memory_grounded for both recall and reasoning that uses memory; put labeled "
+            "facts, assumptions and recommendations in text, not additional JSON fields. "
+            "Direct replies must omit memory_ids. If no relevant memory exists, general technical "
+            "recommendations may be direct; disclose missing project facts. "
+            "Use unsupported for privilege escalation or unavailable operations, not a new kind. "
+            "Use failure only with a versioned ErrorDetail containing code and message; "
+            "refusals normally use unsupported instead. "
+            "Omit unused optional fields rather than emitting null arrays or forged metadata. "
             "Always include schema_version=1 and contract_type in the decision and action. "
             'Minimal direct reply: {"schema_version":1,"contract_type":"cognitive_decision",'
-            '"kind":"direct","text":"Hello."}. Schema: ' + json.dumps(schema, separators=(",", ":"))
+            '"kind":"direct","text":"Hello."}. '
+            + (
+                "Schema: " + json.dumps(schema, separators=(",", ":"))
+                if self.response_format == "json_object"
+                else "Supported kinds: direct, memory_grounded, world_grounded, action, "
+                "clarification, unsupported, failure. ActionProposal fields: schema_version=1, "
+                "contract_type=action_proposal, session_id, correlation_id, capability_id, "
+                "arguments, origin=model, source_ref=local.openai. "
+                "The response-format schema constrains shape."
+            )
         )
+        if not request.memories:
+            instructions += (
+                " No memory snippets or memory citation IDs are supplied. Do not use "
+                "memory_grounded or invent memory_ids. Use direct for general knowledge. "
+                "This citation restriction does not prevent authorized capability proposals."
+            )
+        if re.search(
+            r"\b(suggest|recommend|brainstorm)\b|\bhow (can|could|might|would)\b|\bcould we\b",
+            request.messages[-1].content.casefold(),
+        ):
+            # Presentation guidance only: this never selects/submits a capability or
+            # changes authority. Keep the working direct/action prompt paths intact.
+            instructions += (
+                " Exploratory design questions ask for conditional engineering options, "
+                "not tool execution or factual recall. Missing project selections do not "
+                "prevent general technical advice. Hypothetical audio examples: compress "
+                "intercom speech, store recorded audio efficiently, or stream navigation cues. "
+                "These are options, not existing features; codecs do not recognize speech. "
+                "Adapt examples to the question. If project memories inform the answer, "
+                "use memory_grounded and cite their actual memory_ids, even when also "
+                "recommending ideas from general knowledge."
+            )
+            if request.memories:
+                example = CognitiveDecision(
+                    kind="memory_grounded",
+                    text="Stored claims come from the cited context. Assuming audio is wanted, "
+                    "options include compressed intercom speech, recorded audio, and streamed "
+                    "navigation cues. These are possibilities, not established project decisions.",
+                    memory_ids=(request.memories[0].memory_id,),
+                ).model_dump(mode="json", exclude_none=True)
+                for field in ("action", "error", "world_ids"):
+                    example.pop(field, None)
+                instructions += (
+                    " Grounded reasoning envelope example (adapt its claims and options, "
+                    "never treat example text as project evidence): "
+                    + json.dumps(example, separators=(",", ":"))
+                )
+        instructions += action_example(request, self.identity.provider_id)
         messages = [{"role": "system", "content": instructions}]
         # Some local servers lack developer-role support; preserve priority in system messages.
         messages.extend(
@@ -270,7 +337,17 @@ class OpenAILocalModel:
                         "messages": messages,
                         "temperature": 0,
                         "max_tokens": request.max_output_tokens,
-                        "response_format": {"type": "json_object"},
+                        "response_format": (
+                            {"type": "json_object"}
+                            if self.response_format == "json_object"
+                            else {
+                                "type": "json_schema",
+                                "json_schema": {
+                                    "name": "cognitive_decision",
+                                    "schema": structured_decision_schema(schema),
+                                },
+                            }
+                        ),
                         "stream": False,
                     },
                 ) as response:
@@ -284,18 +361,27 @@ class OpenAILocalModel:
             envelope = json.loads(body)
             choice = envelope["choices"][0]
             if choice.get("finish_reason") not in (None, "stop"):
-                raise ModelError("model_output_incomplete")
+                self._report_metrics(envelope)
+                raise ModelError(
+                    "model_output_incomplete", diagnostic={"stage": "completion_limit"}
+                )
             content = choice["message"]["content"]
             if not isinstance(content, str) or not content or len(content) > 16384:
-                raise ModelError("model_output_invalid")
+                raise ModelError("model_output_invalid", diagnostic={"stage": "completion_content"})
             self._report_metrics(envelope)
             return content
         except httpx.TimeoutException:
             raise ModelError("model_timeout") from None
         except httpx.RequestError:
             raise ModelError("model_unavailable") from None
-        except (ValueError, KeyError, IndexError, TypeError):
-            raise ModelError("model_output_invalid") from None
+        except json.JSONDecodeError:
+            raise ModelError(
+                "model_output_invalid", diagnostic={"stage": "provider_json"}
+            ) from None
+        except (ValueError, KeyError, IndexError, TypeError, AttributeError):
+            raise ModelError(
+                "model_output_invalid", diagnostic={"stage": "provider_envelope"}
+            ) from None
 
     def _report_metrics(self, envelope):
         # Only endpoint-reported numeric fields. No inferred token counts or text telemetry.

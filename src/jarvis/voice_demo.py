@@ -30,6 +30,10 @@ async def _ambient_scenarios(settings, manifest):
     await runtime.start()
     try:
         app, voice = runtime.application, runtime.application.audio
+        # These sequential fixture frames represent simultaneous microphones. Inference
+        # latency must not advance their acoustic duplicate window in this offline demo.
+        acoustic_time = utc_now()
+        voice.router.clock = lambda: acoustic_time
         owner = read_private_json(Path(manifest["credentials"]["owner"]["path"]))["token"]
         guest = read_private_json(Path(manifest["credentials"]["guest"]["path"]))["token"]
         owner_id = app.identities.resolve_session(owner).principal_id

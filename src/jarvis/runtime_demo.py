@@ -50,6 +50,28 @@ def api_data(reply, *, status=200):
     return body.get("data", body)
 
 
+def settle_action(client, message_path, body, headers, response):
+    """A scheduler may own a submitted task; wait and replay its original request.
+
+    Never resubmit under a new ID or infer completion from model/conversation text.
+    Non-pending failures pass through for callers to report/assert their real outcome.
+    """
+    if response.get("kind") != "pending":
+        return response
+    task_id = response.get("task_id")
+    if not task_id:
+        raise AssertionError("runtime_demo_pending_task_missing")
+
+    def completed():
+        task = api_data(client.get(f"/api/v1/tasks/{task_id}", headers=headers))
+        if task["state"] in {"FAILED", "CANCELLED", "NEEDS_REVIEW"}:
+            raise AssertionError("runtime_demo_task_terminal: " + task["state"])
+        return task["state"] == "COMPLETED"
+
+    _wait(completed)
+    return api_data(client.post(message_path, headers=headers, json=body))
+
+
 @contextmanager
 def running_runtime(
     config, port, log_path, *, expected_exit_codes=(0, -signal.SIGTERM), require_graceful=True
@@ -213,6 +235,7 @@ def run_quickstart(directory, *, verbose=False):
         assert answer["kind"] == "memory_grounded" and "microcontroller B" in answer["text"]
         action_body = {"schema_version": 1, "request_id": str(uuid4()), "text": "Set lights to 25"}
         action = request(client, "POST", message_path, action_body)
+        action = settle_action(client, "/api/v1" + message_path, action_body, headers, action)
         assert action["task_state"] == "COMPLETED" and action["execution"]["status"] == "success"
         task_id, memory_id = action["task_id"], answer["memory_ids"][0]
         task = request(client, "GET", f"/tasks/{task_id}")
@@ -314,7 +337,11 @@ def run_quickstart(directory, *, verbose=False):
             client,
             "POST",
             message_path,
-            {"schema_version": 1, "request_id": str(uuid4()), "text": "Continue with Slipstream"},
+            {
+                "schema_version": 1,
+                "request_id": str(uuid4()),
+                "text": "Continue: what do you remember about Slipstream?",
+            },
         )
         assert "microcontroller B" in resumed["text"]
     summary = {

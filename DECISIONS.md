@@ -764,3 +764,12 @@ participant consent, physical purge, hardware/model selection, actual diarizatio
 acoustic deduplication, satellite transport and latency SLOs remain OPEN. Offline
 fixtures and executable protocol tests do not establish real speech intelligence.
 See docs/PHASE10.md and tests/test_audio.py for exercised scope and remaining limits.
+
+Phase 10 cognition hardening stays within ADR-T06/T11: existing v1 decisions support
+grounded reasoning with general knowledge and labeled uncertainty; the local provider's
+generation schema projects existing fields/consistency constraints. Optional JSON
+Schema output is explicit, while full strict validation and current executor policy
+remain authoritative. Bounded project filtering and current history source lookup
+reuse MemoryService; source fixtures are not relabeled as verified truth. Playback
+cancellation uses the already defined cancelled status. No final contract, policy,
+provider, truth-verification, biometric or hardware decision is accepted here.

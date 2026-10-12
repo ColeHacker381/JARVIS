@@ -6,6 +6,7 @@ from typing import Protocol, TextIO
 
 from jarvis.core.contracts import AuditRecord
 from jarvis.core.time import utc_now
+from jarvis.model_output import safe_diagnostic
 
 
 class AuditSink(Protocol):
@@ -54,6 +55,10 @@ class JsonFormatter(logging.Formatter):
                 data[key] = str(getattr(record, key))
         if record.exc_info and record.exc_info[0] is not None:
             data["exception_type"] = record.exc_info[0].__name__
+        diagnostic = getattr(record, "model_diagnostic", None)
+        if isinstance(diagnostic, dict):
+            # Trusted callers supply only model_output's content-free diagnostics.
+            data["model_diagnostic"] = safe_diagnostic(diagnostic)
         return json.dumps(data)
 
 

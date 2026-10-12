@@ -749,3 +749,11 @@ ARCH-001/003/004, COG-001, IAM-004/007, PER-001–003, CAP-002/003, TASK-001/002
 SEC-001–003, REL-001/002, DEV-001/003). Existing authority and recovery are reused.
 Gemma and physical microphone/speaker acceptance remain unverified; see
 [the operator checklist](docs/VOICE_ACCEPTANCE.md). Requirement/ADR statuses are unchanged.
+
+Phase 10 cognition hardening extends COG-001 and provisional COG-002/INT-002 with
+real Qwen reproductions, optional local schema guidance, permitted general technical
+reasoning, scoped project/history source retrieval, explicit fixture provenance and
+normal playback cancellation. ARCH-001/003/004, MEM-001–004/006, IAM-004/007,
+PER-001, CAP-001–003, TASK-001/002, SEC-001–003, REL-001/002 and DEV-003 retain
+their boundaries and gain regressions. See [the hardening report](docs/PHASE10_COGNITION_HARDENING.md)
+for actual inference versus deterministic coverage; no status is promoted.
