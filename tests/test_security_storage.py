@@ -336,3 +336,23 @@ def test_mismatched_task_security_state_and_forged_step_key_are_rejected(securit
             context=InvocationContext(intent.task_id, "step", uuid4(), "other-operation-key"),
         )
     assert calls == []
+
+
+def test_sqlite_failure_categories_do_not_expose_exception_messages(tmp_path):
+    from jarvis.storage.sqlite import _storage_failure
+
+    db = tmp_path / "locked.sqlite3"
+    first = sqlite3.connect(db, timeout=0)
+    second = sqlite3.connect(db, timeout=0)
+    try:
+        first.execute("CREATE TABLE example (value INTEGER)")
+        first.execute("BEGIN EXCLUSIVE")
+        with pytest.raises(sqlite3.OperationalError) as failure:
+            second.execute("INSERT INTO example VALUES (1)")
+        assert _storage_failure(failure.value).code == "database_locked"
+        assert _storage_failure(sqlite3.OperationalError("secret path or SQL")).code == (
+            "storage_unavailable"
+        )
+    finally:
+        first.close()
+        second.close()

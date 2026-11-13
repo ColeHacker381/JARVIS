@@ -2,9 +2,10 @@
 
 Stores use SQLite WAL, FULL commits, foreign keys and short transactions. Keep them
 on one private local POSIX filesystem with the database and claim paths intact.
-Database schema **8** is independent of task/memory/observation v2 and other v1
+Database schema **10** is independent of task/memory/observation v2 and other v1
 contracts. Migration 8 adds local credential bindings without issuing credentials,
-bootstrapping authority, regranting or resetting state. All migrations 1–7 remain.
+bootstrapping authority, regranting or resetting state. Migration 10 is a metadata-only
+compatibility barrier; existing migrations and data remain intact.
 
 Use explicit paths. The following example assumes the quickstart database and
 **new** backup/restore destinations:
@@ -71,3 +72,25 @@ Automated validation verifies a backup and separate restore, preserves credentia
 revocation, refuses destination overwrite, repeats schema initialization and proves
 no authority is issued during migration. It does not simulate power loss/storage
 hardware corruption or certify stale-backup authority as current.
+
+## Diagnosing security startup failures
+
+`security_state_unavailable` still denies startup. The CLI may include a sanitized
+`storage_code`, and `doctor` lists the same category: `database_locked` means a
+SQLite busy/locked result; `database_access_denied` indicates a reported open,
+permission or missing-path failure; `database_corrupt` indicates SQLite reported a
+corrupt or non-database file; `database_schema_invalid` indicates SQLite reported a
+schema error; `database_version_unsupported` or `database_uninitialized` indicates
+the schema version is incompatible or absent. `storage_unavailable` remains an
+unknown failure, not proof of a lock. These categories contain no SQL, stored data,
+credentials or paths. Other authority errors must not be treated as storage errors.
+
+Verify the configured database path and running code version first. For a lock,
+identify and stop the legitimate writer or wait for it; do not delete lock or WAL
+files. For access problems, inspect the database and parent-directory ownership and
+permissions. For a version mismatch, follow the backup and explicit migration steps
+above with a compatible release. For corruption or unknown failures, preserve the
+files, collect sanitized diagnostics and investigate a separate backup with the owner.
+Never reset or rebootstrap the authority to make startup succeed. A historical
+`security_state_unavailable` without a preserved underlying category cannot be
+diagnosed retrospectively from that code alone.

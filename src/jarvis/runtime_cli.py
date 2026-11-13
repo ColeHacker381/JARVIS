@@ -216,8 +216,11 @@ async def doctor(settings):
                 repo, settings.worker_credentials_file, settings.max_worker_principals
             )
             result["workers"] = True
-    except (StorageError, IdentityError, ValueError, OSError, TypeError):
+    except (StorageError, IdentityError, ValueError, OSError, TypeError) as exc:
         result["errors"].append("storage_authority_or_worker_configuration_unavailable")
+        diagnostic = getattr(exc, "storage_code", getattr(exc, "code", None))
+        if diagnostic:
+            result["errors"].append(diagnostic)
     if settings.model_provider == "fake":
         result["model_available"] = True
     else:
@@ -411,9 +414,18 @@ def run_runtime_cli(argv):
             }
         ):
             code = exc.args[0]
+        diagnostic = getattr(exc, "storage_code", None)
         print(
             json.dumps(
-                {"status": "failed", "error": {"code": code, "message": code, "fields": fields}}
+                {
+                    "status": "failed",
+                    "error": {
+                        "code": code,
+                        "message": code,
+                        "fields": fields,
+                        **({"storage_code": diagnostic} if diagnostic else {}),
+                    },
+                }
             )
         )
         raise SystemExit(1) from None

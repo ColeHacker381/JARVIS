@@ -702,3 +702,66 @@ server.serve_forever()
             unrelated.terminate()
             unrelated.wait(timeout=10)
         listener.close()
+
+
+def test_authority_storage_diagnostic_is_sanitized_and_fail_closed(configured, monkeypatch):
+    settings, _ = configured
+    repo = LocalDevelopmentIdentityRepository(
+        SQLiteDatabase(settings.resolved_runtime_database_path)
+    )
+
+    def unavailable(*args, **kwargs):
+        raise StorageError("database_locked")
+
+    monkeypatch.setattr(repo.database, "transaction", unavailable)
+    with pytest.raises(IdentityError) as failure:
+        repo.validate_authority()
+    assert failure.value.reason_code == "security_state_unavailable"
+    assert failure.value.storage_code == "database_locked"
+    assert str(failure.value) == "security_state_unavailable"
+    monkeypatch.setattr(SQLiteDatabase, "transaction", unavailable)
+    result = asyncio.run(doctor(settings))
+    assert result["authority"] is False
+    assert "database_locked" in result["errors"]
+
+
+def test_existing_v9_authority_migrates_and_runtime_restarts(configured):
+    settings, manifest = configured
+    path = settings.resolved_runtime_database_path
+    token = read_private_json(Path(manifest["credentials"]["owner"]["path"]))["token"]
+    with sqlite3.connect(path) as connection:
+        tables = (
+            "security_authority",
+            "security_principals",
+            "security_sessions",
+            "security_grants",
+            "local_api_credentials",
+            "events",
+            "tasks",
+            "memories",
+        )
+        before = {
+            t: connection.execute(f"SELECT * FROM {t} ORDER BY rowid").fetchall() for t in tables
+        }
+        connection.execute("PRAGMA user_version=9")
+    database = SQLiteDatabase(path)
+    with pytest.raises(IdentityError) as failure:
+        LocalDevelopmentIdentityRepository(database).validate_authority()
+    assert failure.value.storage_code == "database_version_unsupported"
+    database.initialize()
+    database.verify()
+    with sqlite3.connect(path) as connection:
+        assert {
+            t: connection.execute(f"SELECT * FROM {t} ORDER BY rowid").fetchall() for t in tables
+        } == before
+    repo = LocalDevelopmentIdentityRepository(database)
+    repo.validate_authority()
+    repo.resolve_kind(token, "client")
+
+    async def restart():
+        for _ in range(2):
+            runtime = RuntimeService(settings)
+            await runtime.start()
+            await runtime.stop()
+
+    asyncio.run(restart())

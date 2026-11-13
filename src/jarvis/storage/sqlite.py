@@ -1,5 +1,6 @@
 """Provisional local SQLite journal, atomic task checkpoints, and payload-free audit."""
 
+import errno
 import hashlib
 import json
 import os
@@ -18,6 +19,23 @@ from jarvis.storage.errors import StorageError
 from jarvis.tasks import TaskBusyError, TaskConflictError
 
 SCHEMA_VERSION = 10
+
+
+def _storage_failure(exc: Exception) -> StorageError:
+    """Classify known OS/SQLite failures without exposing paths or SQL content."""
+    code = getattr(exc, "sqlite_errorcode", None)
+    primary = code & 0xFF if isinstance(code, int) else None
+    if primary in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED):
+        return StorageError("database_locked")
+    if primary in (sqlite3.SQLITE_CORRUPT, sqlite3.SQLITE_NOTADB):
+        return StorageError("database_corrupt")
+    if primary in (sqlite3.SQLITE_SCHEMA,):
+        return StorageError("database_schema_invalid")
+    if primary in (sqlite3.SQLITE_CANTOPEN, sqlite3.SQLITE_READONLY, sqlite3.SQLITE_PERM):
+        return StorageError("database_access_denied")
+    if isinstance(exc, OSError) and exc.errno in (errno.EACCES, errno.EPERM, errno.ENOENT):
+        return StorageError("database_access_denied")
+    return StorageError()
 
 
 class DuplicateEventError(StorageError):
@@ -329,15 +347,15 @@ def _file_lock(path: Path, *, blocking: bool = False) -> Iterator[None]:
 
     try:
         descriptor = os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
-    except OSError:
-        raise StorageError() from None
+    except OSError as exc:
+        raise _storage_failure(exc) from None
     try:
         try:
             fcntl.flock(descriptor, fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB))
         except BlockingIOError:
             raise TaskBusyError("task_busy") from None
-        except OSError:
-            raise StorageError() from None
+        except OSError as exc:
+            raise _storage_failure(exc) from None
         yield
     finally:
         os.close(descriptor)
@@ -363,10 +381,10 @@ class SQLiteDatabase:
             connection.execute("PRAGMA synchronous = FULL")
             connection.execute("PRAGMA busy_timeout = 5000")
             return connection
-        except (sqlite3.Error, OSError):
+        except (sqlite3.Error, OSError) as exc:
             if connection is not None:
                 connection.close()
-            raise StorageError() from None
+            raise _storage_failure(exc) from None
 
     def initialize(self) -> None:
         """Explicit, idempotent migrations; refuse future versions without touching data."""
@@ -394,8 +412,8 @@ class SQLiteDatabase:
                     except BaseException:
                         connection.rollback()
                         raise
-        except (sqlite3.Error, OSError):
-            raise StorageError() from None
+        except (sqlite3.Error, OSError) as exc:
+            raise _storage_failure(exc) from None
         finally:
             # sqlite3's context manager commits/rolls back but does not close.
             if "connection" in locals():
@@ -416,7 +434,7 @@ class SQLiteDatabase:
         except BaseException as exc:
             connection.rollback()
             if isinstance(exc, (sqlite3.Error, OSError)) and not isinstance(exc, IdentityError):
-                raise StorageError() from None
+                raise _storage_failure(exc) from None
             raise
         finally:
             connection.close()
