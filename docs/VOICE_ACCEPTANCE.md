@@ -1,5 +1,11 @@
 # Phase 10 real speech validation and MacBook acceptance
 
+The [2026-11-13 MacBook acceptance report](PHASE10_MAC_ACCEPTANCE.md) records
+genuine Qwen/Whisper/say execution, repaired speaker lifecycle and speech-harness
+acceptance, and a preserved schema-10 migration. The physical audible round trip
+and an expired existing worker session remain open. The cloud results and original
+operator procedure below are retained as historical evidence.
+
 **Real-audio acceptance is pending.** Linux CPU STT/TTS and authenticated
 audio-file integration were exercised with actual binaries and verified weights.
 Cognition in those tests was explicitly fake. The cloud container has no audio

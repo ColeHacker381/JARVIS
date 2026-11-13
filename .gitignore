@@ -7,3 +7,5 @@ dist/
 *.egg-info/
 .env
 .jarvis/
+# Generated local macOS acceptance measurements; summaries belong in Markdown.
+docs/reports/phase10-mac-*.json

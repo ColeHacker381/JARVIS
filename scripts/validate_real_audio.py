@@ -172,7 +172,7 @@ def fixtures(args):
     for name, text, voice in (
         ("short_command", "Please adjust the lights to 25.", "en-us"),
         ("jarvis", "Jarvis, what does Slipstream use?", "en-us"),
-        ("slipstream", "Continue with Slipstream.", "en-gb"),
+        ("slipstream", "What do you remember about Slipstream?", "en-gb"),
     ):
         output = args.output / (name + "-tts.wav")
         result = measure(
@@ -425,6 +425,23 @@ def main():
     args.output.mkdir(mode=0o700, parents=True, exist_ok=False)
     fixture_records, tts = fixtures(args)
     stt = []
+    report_path = args.output / "report.json"
+    report = {
+        "status": "incomplete",
+        "stage": "recognition",
+        "validation": "real STT/TTS, fake cognition; physical hardware not accessed",
+        "whisper_commit": commit,
+        "model_checksums": {m.name: digest(m) for m in args.models},
+        "public_jfk_sha256": digest(args.whisper_root / "samples/jfk.wav"),
+        "fixtures": fixture_records,
+        "stt": stt,
+        "tts": tts,
+    }
+    write_private_json(report_path, report)
+
+    def save():
+        report_path.write_text(json.dumps(report, indent=2) + "\n")
+
     for model in args.models:
         for fixture in fixture_records:
             result = measure(
@@ -446,6 +463,9 @@ def main():
                 }
             )
             print(model.name, fixture["name"], result.get("text", result.get("error")), flush=True)
+            save()
+    report["stage"] = "synthesis_and_failure_probes"
+    save()
     for rate in (100, 250):
         tts.append(
             {
@@ -474,6 +494,8 @@ def main():
             "timeout": 0.001,
         }
     )
+    report["timeout"] = timeout
+    save()
     assert timeout.get("error") == "speech_provider_timeout", timeout
     tts_timeout = measure(
         {
@@ -484,6 +506,8 @@ def main():
             "timeout": 0.001,
         }
     )
+    report["tts_timeout"] = tts_timeout
+    save()
     assert tts_timeout.get("error") == "speech_provider_timeout", tts_timeout
     invalid_voice = measure(
         {
@@ -493,7 +517,11 @@ def main():
             "voice": "jarvis-invalid-voice",
         }
     )
-    assert invalid_voice.get("error") == "speech_provider_failed", invalid_voice
+    report["invalid_voice"] = invalid_voice
+    save()
+    assert invalid_voice.get("error") == (
+        "tts_voice_unavailable" if sys.platform == "darwin" else "speech_provider_failed"
+    ), invalid_voice
     corrupt = args.output / "deliberately-invalid-model.bin"
     corrupt.write_bytes(b"invalid model: explicit failure probe, not speech weights")
     invalid_model = measure(
@@ -505,25 +533,15 @@ def main():
         }
     )
     assert invalid_model.get("error") == "speech_provider_failed", invalid_model
-    report = {
-        "validation": "real STT/TTS, fake cognition; hardware/Gemma unverified",
-        "whisper_commit": commit,
-        "model_checksums": {m.name: digest(m) for m in args.models},
-        "public_jfk_sha256": digest(args.whisper_root / "samples/jfk.wav"),
-        "fixtures": fixture_records,
-        "stt": stt,
-        "tts": tts,
-        "timeout": timeout,
-        "tts_timeout": tts_timeout,
-        "invalid_voice": invalid_voice,
-        "invalid_model": invalid_model,
-        "cancellation": asyncio.run(cancellation(args)),
-    }
-    # Preserve measured recognition errors even if the pipeline cannot satisfy an assertion.
-    report_path = args.output / "report.json"
-    write_private_json(report_path, report)
+    report["invalid_model"] = invalid_model
+    save()
+    report["cancellation"] = asyncio.run(cancellation(args))
+    report["stage"] = "pipeline"
+    save()
     report["pipeline"] = pipeline(args)
-    report_path.write_text(json.dumps(report, indent=2) + "\n")
+    report["stage"] = "completed"
+    report["status"] = "passed"
+    save()
     print("Measured report:", report_path)
 
 

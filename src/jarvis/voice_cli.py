@@ -284,13 +284,19 @@ async def voice_client(args):
 
                         playback.cancelled = False
                         task = asyncio.create_task(playback.play(audio))
+                        input_open = True
                         while not task.done():
                             if (
                                 not args.fake
+                                and input_open
                                 and select.select([__import__("sys").stdin], [], [], 0)[0]
                             ):
-                                __import__("sys").stdin.readline()
-                                playback.cancel()
+                                # EOF is always readable on a closed pipe. It is
+                                # not an Enter key and must not cancel playback.
+                                if __import__("sys").stdin.readline():
+                                    playback.cancel()
+                                else:
+                                    input_open = False
                             await asyncio.sleep(0.05)
                         await task
                 except (AudioError, AssertionError, httpx.HTTPError) as exc:

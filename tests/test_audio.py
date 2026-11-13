@@ -5,7 +5,6 @@ import base64
 import json
 import sqlite3
 import sys
-from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path
 from types import SimpleNamespace
@@ -872,8 +871,9 @@ Path(sys.argv[sys.argv.index('-of')+1]+'.json').write_text(
 
 
 @pytest.mark.parametrize("cancel_playback", [False, True])
+@pytest.mark.parametrize("closed_stdin", [False, True])
 def test_one_shot_wav_uses_authenticated_http_and_cleans_session(
-    tmp_path, monkeypatch, capsys, cancel_playback
+    tmp_path, monkeypatch, capsys, cancel_playback, closed_stdin
 ):
     import jarvis.voice_cli as cli
     from jarvis.local_credentials import read_private_json, write_private_json
@@ -911,16 +911,27 @@ def test_one_shot_wav_uses_authenticated_http_and_cleans_session(
             self.cancel()
             await super().play(audio)
 
+    class DelayedPlayback(FakeAudioPlayback):
+        async def play(self, audio):
+            await asyncio.sleep(0.1)
+            await super().play(audio)
+
     monkeypatch.setattr(
         cli,
         "providers",
         lambda args: (
             FakeSpeechRecognizer(["Set lights to 25"]),
             FakeSpeechSynthesizer(),
-            CancelledPlayback() if cancel_playback else FakeAudioPlayback(),
+            CancelledPlayback() if cancel_playback else DelayedPlayback(),
         ),
     )
-    if cancel_playback:
+    if closed_stdin:
+        import io
+        import select
+
+        monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+        monkeypatch.setattr(select, "select", lambda *args: ([sys.stdin], [], []))
+    elif cancel_playback:
         import select
 
         monkeypatch.setattr(select, "select", lambda *args: ([], [], []))
@@ -942,7 +953,7 @@ def test_one_shot_wav_uses_authenticated_http_and_cleans_session(
                 "fixture",
                 "--wav",
                 str(wav),
-                *([] if cancel_playback else ["--no-playback"]),
+                *([] if cancel_playback or closed_stdin else ["--no-playback"]),
             ]
         )
         asyncio.run(cli.voice_client(args))
@@ -977,7 +988,8 @@ def test_one_shot_wav_uses_authenticated_http_and_cleans_session(
             )
             assert '"status": "failed"' not in output
         else:
-            assert '"playback": "disabled"' in output
+            assert f'"playback": "{"requested" if closed_stdin else "disabled"}"' in output
+            assert '"status": "cancelled"' not in output
         status = api_data(
             client.get("/api/v1/status", headers={"Authorization": "Bearer " + token})
         )
@@ -988,32 +1000,24 @@ def test_one_shot_wav_uses_authenticated_http_and_cleans_session(
 def test_playback_interruption_releases_device_and_preserves_completed_task_once(
     audio, monkeypatch
 ):
-    import jarvis.speech as module
-
-    streams = []
+    children = []
     playback = LocalAudioPlayback()
+    original = asyncio.create_subprocess_exec
 
-    class Stream:
-        def __init__(self, **kwargs):
-            self.closed = False
-            self.writes = 0
-            streams.append(self)
+    async def launch(*args, **kwargs):
+        child = await original(
+            sys.executable,
+            "-c",
+            "import sys,time; from pathlib import Path; sys.stdin.buffer.read(); "
+            "p=Path(sys.argv[1]);\nwhile not p.exists(): time.sleep(.005)\nsys.exit(2)",
+            args[-1],
+            **kwargs,
+        )
+        children.append(child)
+        playback.cancel()
+        return child
 
-        def __enter__(self):
-            return self
-
-        def write(self, chunk):
-            self.writes += 1
-            playback.cancel()
-
-        def __exit__(self, *args):
-            self.closed = True
-
-    monkeypatch.setattr(
-        module,
-        "sounddevice_module",
-        lambda: SimpleNamespace(RawOutputStream=Stream, PortAudioError=OSError),
-    )
+    monkeypatch.setattr("jarvis.speech.asyncio.create_subprocess_exec", launch)
     speech = segment(audio)
 
     async def turn():
@@ -1029,14 +1033,14 @@ def test_playback_interruption_releases_device_and_preserves_completed_task_once
     result = asyncio.run(turn())
     assert result["spoken"].status == "cancelled"
     assert result["response"].task_state == "COMPLETED" and audio.app.lighting.calls == [25]
-    assert streams and streams[0].closed and streams[0].writes == 1
+    assert children and children[0].returncode == 2
     playback.cancelled = False
     replay = asyncio.run(turn())
     # The short acoustic deduplication window may expire. The durable request remains idempotent.
     assert audio.app.lighting.calls == [25]
     if not replay["suppressed_duplicate"]:
         assert replay["response"].task_id == result["response"].task_id
-        assert all(stream.closed for stream in streams)
+        assert all(child.returncode == 2 for child in children)
     persisted = asyncio.run(
         audio.app.coordinator.respond(
             audio.session.conversation_id,
@@ -1086,7 +1090,7 @@ def test_device_listing_exposes_actual_indices_without_opening_streams(monkeypat
     assert devices[1]["index"] == 1 and devices[1]["max_output_channels"] == 2
 
 
-def test_microphone_release_level_and_playback_cancel_with_device_fixture(monkeypatch):
+def test_microphone_release_level_with_device_fixture(monkeypatch):
     import jarvis.speech as module
 
     class Stream:
@@ -1107,9 +1111,6 @@ def test_microphone_release_level_and_playback_cancel_with_device_fixture(monkey
             mic.cancel()
             return b"\0\x20" * count, False
 
-        def write(self, data):
-            player.cancel()
-
     monkeypatch.setattr(
         module,
         "sounddevice_module",
@@ -1119,13 +1120,6 @@ def test_microphone_release_level_and_playback_cancel_with_device_fixture(monkey
     )
     mic = LocalMicrophone(2)
     assert len(mic.capture()) == 3200 and mic.level > 0 and Stream.closed
-    player = LocalAudioPlayback(3)
-    audio = replace(
-        asyncio.run(FakeSpeechSynthesizer().synthesize("text")), wav=pcm_wave(b"\0\0" * 3200)
-    )
-    with pytest.raises(AudioError, match="cancelled"):
-        asyncio.run(player.play(audio))
-    assert Stream.closed
 
 
 def test_audio_buffers_admit_at_most_sixteen_streams(audio):

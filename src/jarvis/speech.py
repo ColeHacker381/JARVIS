@@ -56,7 +56,7 @@ def validate_wave(data):
         raise AudioError("speech_output_format_invalid") from None
 
 
-async def local_process(argv, *, timeout=60, stdin=None):
+async def local_process(argv, *, timeout=60, stdin=None, stdout=None):
     """No shell or cloud fallback. Deadline/cancellation waits for the owned child."""
     if not 0 < timeout <= 300:
         raise ValueError("speech_timeout_invalid")
@@ -64,7 +64,7 @@ async def local_process(argv, *, timeout=60, stdin=None):
         process = await asyncio.create_subprocess_exec(
             *map(str, argv),
             stdin=asyncio.subprocess.PIPE if stdin is not None else None,
-            stdout=asyncio.subprocess.DEVNULL,
+            stdout=stdout if stdout is not None else asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,
         )
     except OSError:
@@ -195,6 +195,22 @@ class SystemSpeechSynthesizer:
         with tempfile.TemporaryDirectory(prefix="jarvis-tts-") as directory:
             target = Path(directory) / "speech.wav"
             if self.macos:
+                # macOS say can silently use its default for an unknown voice.
+                # Require an exact installed name before creating speech.
+                voices = Path(directory) / "voices.txt"
+                with voices.open("wb") as output:
+                    await local_process(
+                        [self.executable, "-v", "?"], timeout=self.timeout, stdout=output
+                    )
+                if voices.stat().st_size > 65536:
+                    raise AudioError("tts_voice_list_invalid")
+                names = set()
+                for line in voices.read_text().splitlines():
+                    fields = line.split("#", 1)[0].rsplit(None, 1)
+                    if len(fields) == 2:
+                        names.add(fields[0].strip())
+                if self.voice not in names:
+                    raise AudioError("tts_voice_unavailable")
                 script = Path(directory) / "text.txt"
                 script.write_text(text)
                 script.chmod(0o600)
@@ -298,28 +314,79 @@ class LocalAudioPlayback:
 
     async def play(self, audio):
         rate, pcm = validate_wave(audio.wav)
-        sd = sounddevice_module()
-        try:
-            with sd.RawOutputStream(
-                device=self.device, samplerate=rate, channels=1, dtype="int16", blocksize=rate // 10
-            ) as stream:
-                for offset in range(0, len(pcm), rate // 10 * 2):
+        if self.cancelled:
+            raise AudioError("playback_cancelled")
+        # Native stop/close can deadlock inside a device driver. A thread cannot
+        # be safely interrupted there. Only an owned, reaped child opens playback;
+        # success requires that child to finish normal stop AND close.
+        with tempfile.TemporaryDirectory(prefix="jarvis-playback-") as directory:
+            cancel = Path(directory) / "cancel"
+            launch = asyncio.create_task(
+                asyncio.create_subprocess_exec(
+                    sys.executable,
+                    "-m",
+                    "jarvis.audio_playback",
+                    str(self.device) if self.device is not None else "default",
+                    str(cancel),
+                    stdin=asyncio.subprocess.PIPE,
+                    stdout=asyncio.subprocess.DEVNULL,
+                    stderr=asyncio.subprocess.DEVNULL,
+                )
+            )
+            try:
+                child = await asyncio.shield(launch)
+            except asyncio.CancelledError:
+                child = await launch
+                if child.returncode is None:
+                    child.kill()
+                await child.wait()
+                raise
+            except OSError:
+                raise AudioError("playback_process_unavailable") from None
+            work = asyncio.create_task(child.communicate(audio.wav))
+            deadline = time.monotonic() + len(pcm) / (rate * 2) + 10
+
+            async def finish_cancel():
+                cancel.touch(mode=0o600)
+                try:
+                    await asyncio.wait_for(asyncio.shield(work), 3)
+                except TimeoutError:
+                    if child.returncode is None:
+                        child.kill()
+                    await work
+                    raise AudioError("playback_cleanup_timeout") from None
+
+            try:
+                while not work.done():
                     if self.cancelled:
-                        raise AudioError("playback_cancelled")
-                    # Finite 100 ms device writes do not run on the runtime scheduler.
-                    work = asyncio.create_task(
-                        asyncio.to_thread(stream.write, pcm[offset : offset + rate // 10 * 2])
-                    )
-                    try:
-                        await asyncio.shield(work)
-                    except asyncio.CancelledError:
-                        self.cancelled = True
+                        await finish_cancel()
+                        break
+                    if time.monotonic() >= deadline:
+                        if child.returncode is None:
+                            child.kill()
                         await work
-                        raise
-                if self.cancelled:
-                    raise AudioError("playback_cancelled")
-        except sd.PortAudioError:
-            raise AudioError("playback_device_unavailable") from None
+                        raise AudioError("playback_device_timeout")
+                    await asyncio.sleep(0.02)
+                await work
+            except asyncio.CancelledError:
+                self.cancelled = True
+                await finish_cancel()
+                raise
+            finally:
+                if child.returncode is None:
+                    child.kill()
+                await work
+            errors = {
+                2: "playback_cancelled",
+                3: "playback_device_unavailable",
+                4: "audio_dependency_or_portaudio_missing",
+                5: "playback_device_timeout",
+                6: "playback_underflow",
+            }
+            if child.returncode:
+                raise AudioError(errors.get(child.returncode, "playback_process_failed"))
+            if self.cancelled:
+                raise AudioError("playback_cancelled")
 
 
 class FakeAudioPlayback:
