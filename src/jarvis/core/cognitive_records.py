@@ -2,7 +2,7 @@
 
 import json
 import types
-from typing import Annotated, Literal, Self, get_args, get_origin
+from typing import Annotated, Literal, Self, Union, get_args, get_origin
 from uuid import UUID, uuid4
 
 from pydantic import AwareDatetime, Field, JsonValue, model_validator
@@ -42,6 +42,13 @@ class MemoryContext(Contract):
     status: Literal["current"] = "current"
 
 
+class IntentInput(Contract):
+    contract_type: Literal["intent_input"] = "intent_input"
+    intent_index: Annotated[int, Field(ge=0, le=3)]
+    text: Annotated[str, Field(min_length=1, max_length=4096)]
+    action_requested: bool = False
+
+
 class ModelRequest(Contract):
     contract_type: Literal["model_request"] = "model_request"
     request_id: UUID
@@ -55,6 +62,7 @@ class ModelRequest(Contract):
     initiatives: Annotated[tuple[InitiativeContext, ...], Field(max_length=3)] = ()
     notifications: Annotated[tuple[NotificationContext, ...], Field(max_length=3)] = ()
     max_output_tokens: Annotated[int, Field(ge=64, le=4096)] = 1024
+    intent_inputs: Annotated[tuple[IntentInput, ...], Field(max_length=4)] = ()
 
 
 class TaskContext(Contract):
@@ -112,6 +120,40 @@ class CognitiveDecision(Contract):
         return self
 
 
+class PlannedIntent(CognitiveDecision):
+    contract_type: Literal["planned_intent"] = "planned_intent"
+    intent_index: Annotated[int, Field(ge=0, le=3)]
+    purpose: Literal["conversation", "memory", "reasoning", "action", "clarification"]
+    text: Annotated[str, Field(min_length=1, max_length=1200)]
+
+    @model_validator(mode="after")
+    def purpose_binding(self) -> Self:
+        if (self.purpose == "action") != (self.action is not None):
+            raise ValueError("intent action purpose mismatch")
+        if (
+            self.kind in {"unsupported", "clarification", "failure"}
+            and self.purpose != "clarification"
+        ):
+            raise ValueError("unresolved intents require clarification purpose")
+        return self
+
+    def decision(self) -> CognitiveDecision:
+        return CognitiveDecision.model_validate(
+            self.model_dump(exclude={"contract_type", "intent_index", "purpose"})
+        )
+
+
+class IntentPlan(Contract):
+    contract_type: Literal["intent_plan"] = "intent_plan"
+    intents: Annotated[tuple[PlannedIntent, ...], Field(min_length=2, max_length=4)]
+
+    @model_validator(mode="after")
+    def ordered(self) -> Self:
+        if tuple(i.intent_index for i in self.intents) != tuple(range(len(self.intents))):
+            raise ValueError("intent indexes must be complete and ordered")
+        return self
+
+
 class CognitiveResponse(Contract):
     contract_type: Literal["cognitive_response"] = "cognitive_response"
     conversation_id: UUID
@@ -161,6 +203,42 @@ class CognitiveResponse(Contract):
         return self
 
 
+class IntentOutcome(Contract):
+    contract_type: Literal["intent_outcome"] = "intent_outcome"
+    intent_index: Annotated[int, Field(ge=0, le=3)]
+    purpose: Literal["conversation", "memory", "reasoning", "action", "clarification"]
+    response: CognitiveResponse
+
+
+class ComposedResponse(CognitiveResponse):
+    """New explicit envelope; existing single-decision response v1 is unchanged."""
+
+    contract_type: Literal["composed_response"] = "composed_response"
+    kind: Literal["composed"] = "composed"
+    status: Literal["completed", "partial", "pending", "failed"]
+    spoken_text: Text
+    intents: Annotated[tuple[IntentOutcome, ...], Field(min_length=2, max_length=4)]
+
+    @model_validator(mode="after")
+    def outcome_bindings(self) -> Self:
+        if self.task_id is not None or self.task_state is not None or self.execution is not None:
+            raise ValueError("composed tasks belong to individual outcomes")
+        if tuple(i.intent_index for i in self.intents) != tuple(range(len(self.intents))):
+            raise ValueError("composed outcome indexes mismatch")
+        if any(
+            i.response.conversation_id != self.conversation_id
+            or i.response.correlation_id != self.correlation_id
+            for i in self.intents
+        ):
+            raise ValueError("composed outcome identity mismatch")
+        return self
+
+
+CognitiveReply = Annotated[
+    CognitiveResponse | ComposedResponse, Field(discriminator="contract_type")
+]
+
+
 class Conversation(Contract):
     contract_type: Literal["conversation"] = "conversation"
     conversation_id: UUID = Field(default_factory=uuid4)
@@ -181,6 +259,9 @@ class ConversationTurn(Contract):
     revision: Annotated[int, Field(ge=0)] = 0
     state: Literal["RECEIVED", "DECIDED", "ACTION_PENDING", "COMPLETED", "FAILED"] = "RECEIVED"
     decision: CognitiveDecision | None = None
+    plan: IntentPlan | None = None
+    intent_inputs: Annotated[tuple[IntentInput, ...], Field(max_length=4)] = ()
+    parent_request_id: UUID | None = None
     provenance: ModelProvenance | None = None
     # All context dependencies, including those inherited through recent history.
     memory_ids: tuple[UUID, ...] = ()
@@ -188,13 +269,21 @@ class ConversationTurn(Contract):
     initiative_refs: Annotated[tuple[InitiativeReference, ...], Field(max_length=63)] = ()
     notification_refs: Annotated[tuple[NotificationReference, ...], Field(max_length=63)] = ()
     task_id: UUID | None = None
-    response: CognitiveResponse | None = None
+    response: CognitiveReply | None = None
 
     @model_validator(mode="after")
     def consistent(self) -> Self:
         if self.updated_at < self.created_at:
             raise ValueError("turn update precedes creation")
-        if self.state in {"DECIDED", "ACTION_PENDING", "COMPLETED"} and self.decision is None:
+        if self.decision is not None and self.plan is not None:
+            raise ValueError("a turn cannot carry both a decision and plan")
+        if self.plan is not None and len(self.plan.intents) != len(self.intent_inputs):
+            raise ValueError("plan input count mismatch")
+        if (
+            self.state in {"DECIDED", "ACTION_PENDING", "COMPLETED"}
+            and self.decision is None
+            and self.plan is None
+        ):
             raise ValueError("decided turns require validated intent")
         if self.state == "ACTION_PENDING" and self.task_id is None:
             raise ValueError("pending actions require a durable task")
@@ -226,6 +315,11 @@ COGNITIVE_TYPES = {
         CognitiveResponse,
         Conversation,
         ConversationTurn,
+        IntentPlan,
+        PlannedIntent,
+        ComposedResponse,
+        IntentInput,
+        IntentOutcome,
     )
 }
 
@@ -256,8 +350,29 @@ def explicit_versions(value, model):
         # Only declared contracts; content/argument objects are data, not envelopes.
         annotation = field.annotation
         origin = get_origin(annotation)
-        if origin is types.UnionType:
-            annotation = next((a for a in get_args(annotation) if a is not type(None)), None)
+        if origin in (types.UnionType, Union):
+            candidates = [a for a in get_args(annotation) if a is not type(None)]
+            expanded = []
+            for candidate in candidates:
+                if get_origin(candidate) is Annotated:
+                    candidate = get_args(candidate)[0]
+                if get_origin(candidate) in (types.UnionType, Union):
+                    expanded.extend(get_args(candidate))
+                else:
+                    expanded.append(candidate)
+            candidates = expanded
+            annotation = next(
+                (
+                    a
+                    for a in candidates
+                    if isinstance(a, type)
+                    and issubclass(a, Contract)
+                    and isinstance(nested, dict)
+                    and "contract_type" in a.model_fields
+                    and a.model_fields["contract_type"].default == nested.get("contract_type")
+                ),
+                candidates[0],
+            )
             origin = get_origin(annotation)
         if origin is tuple:
             item_type = get_args(annotation)[0]

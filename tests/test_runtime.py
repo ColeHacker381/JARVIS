@@ -25,7 +25,7 @@ from jarvis.local_credentials import (
 )
 from jarvis.runtime_cli import doctor, initialize_development
 from jarvis.runtime_config import RuntimeSettings
-from jarvis.runtime_demo import _environment, _wait, running_runtime
+from jarvis.runtime_demo import _environment, _wait, api_data, running_runtime, settle_action
 from jarvis.runtime_service import RuntimeService
 from jarvis.storage.errors import StorageError
 from jarvis.storage.sqlite import MIGRATIONS, SCHEMA_VERSION, SQLiteDatabase
@@ -71,6 +71,28 @@ def test_single_composition_start_stop_and_runtime_claim(configured):
         await reopened.stop()
 
     asyncio.run(run())
+
+
+def test_demo_waits_for_durable_scheduler_result_and_replays_without_new_effect(configured):
+    settings, manifest = configured
+    runtime = RuntimeService(settings)
+    token = read_private_json(Path(manifest["credentials"]["owner"]["path"]))["token"]
+    headers = {"Authorization": "Bearer " + token}
+    with TestClient(create_api(runtime), base_url="http://127.0.0.1:8765") as client:
+        runtime.application.coordinator.defer_actions = True
+        conversation = api_data(
+            client.post("/api/v1/conversations", headers=headers, json={"schema_version": 1})
+        )
+        path = f"/api/v1/conversations/{conversation['conversation_id']}/messages"
+        body = {"schema_version": 1, "request_id": str(uuid4()), "text": "Set lights to 25"}
+        initial = api_data(client.post(path, headers=headers, json=body))
+        assert initial["kind"] == "pending"
+        result = settle_action(client, path, body, headers, initial)
+        assert result["kind"] == "action" and result["task_state"] == "COMPLETED"
+        assert result["task_id"] == initial["task_id"]
+        assert result["execution"]["output"] == {"brightness": 25, "simulated": True}
+        assert api_data(client.post(path, headers=headers, json=body)) == result
+        assert runtime.application.lighting.calls == [25]
 
 
 def test_startup_cancellation_drains_live_construction_and_releases_claim(configured):
@@ -497,24 +519,24 @@ def test_real_process_signal_releases_runtime_claim_and_preserves_credentials(
     write_private_json(config, settings.model_dump(mode="json"))
     with running_runtime(
         config,
-        settings.runtime_port,
+        None,
         tmp_path / "log.txt",
         expected_exit_codes=(-signal.SIGKILL,) if stop_signal == signal.SIGKILL else (0,),
         require_graceful=stop_signal != signal.SIGKILL,
     ) as (client, process):
         token = read_private_json(Path(manifest["credentials"]["owner"]["path"]))["token"]
         headers = {"Authorization": "Bearer " + token}
-        conversation = client.post(
-            "/api/v1/conversations", headers=headers, json={"schema_version": 1}
-        ).json()["data"]
+        conversation = api_data(
+            client.post("/api/v1/conversations", headers=headers, json={"schema_version": 1})
+        )
         process.send_signal(stop_signal)
         process.wait(timeout=10)
         assert process.returncode == (-signal.SIGKILL if stop_signal == signal.SIGKILL else 0)
-    with running_runtime(config, settings.runtime_port, tmp_path / "reopened.log") as (client, _):
+    with running_runtime(config, None, tmp_path / "reopened.log") as (client, _):
         reply = client.get(
             f"/api/v1/conversations/{conversation['conversation_id']}/history", headers=headers
         )
-        assert reply.status_code == 200 and reply.json()["data"] == []
+        assert api_data(reply) == []
 
 
 def test_installed_operator_cli_does_not_print_tokens(configured, tmp_path):
@@ -575,20 +597,171 @@ def test_runtime_recovers_actual_crashed_pure_attempt_but_reviews_ambiguous_ligh
     config = tmp_path / "recovery-runtime.json"
     write_private_json(config, settings.model_dump(mode="json"))
     token = read_private_json(Path(manifest["credentials"]["owner"]["path"]))["token"]
-    with running_runtime(config, settings.runtime_port, tmp_path / "recovery.log") as (client, _):
+    with running_runtime(config, None, tmp_path / "recovery.log") as (client, _):
         headers = {"Authorization": "Bearer " + token}
 
         def finished_echo():
-            record = client.get("/api/v1/tasks/" + ids["echo"], headers=headers).json()["data"]
+            record = api_data(client.get("/api/v1/tasks/" + ids["echo"], headers=headers))
             return record if record["state"] == "COMPLETED" else None
 
         echo = _wait(finished_echo)
 
         def reviewed_lighting():
-            record = client.get("/api/v1/tasks/" + ids["lighting"], headers=headers).json()["data"]
+            record = api_data(client.get("/api/v1/tasks/" + ids["lighting"], headers=headers))
             return record if record["state"] == "NEEDS_REVIEW" else None
 
         lighting = _wait(reviewed_lighting)
         assert echo["state"] == "COMPLETED" and lighting["state"] == "NEEDS_REVIEW"
-        status = client.get("/api/v1/status", headers=headers).json()["data"]
+        status = api_data(client.get("/api/v1/status", headers=headers))
         assert status["simulated_invocations"]["lighting"] == 0
+
+
+def test_http_diagnostics_report_status_and_code_without_private_body():
+    import httpx
+
+    reply = httpx.Response(401, json={"error": {"code": "invalid_session"}, "secret": "private"})
+    with pytest.raises(AssertionError, match="HTTP 401.*invalid_session") as error:
+        api_data(reply)
+    assert "private" not in str(error.value)
+
+
+def test_cleanup_preserves_primary_assertion_and_notes_owned_child_failure(configured, tmp_path):
+    _, manifest = configured
+    with pytest.raises(AssertionError, match="original_failure") as error:
+        with running_runtime(
+            Path(manifest["config"]), None, tmp_path / "primary.log", expected_exit_codes=(99,)
+        ):
+            raise AssertionError("original_failure")
+    assert any(
+        "Owned child cleanup: runtime_demo_process_failed" in n for n in error.value.__notes__
+    )
+    with pytest.raises(RuntimeError, match="runtime_demo_process_failed"):
+        with running_runtime(
+            Path(manifest["config"]), None, tmp_path / "cleanup.log", expected_exit_codes=(99,)
+        ):
+            pass
+
+
+@pytest.mark.parametrize("stop_signal", [signal.SIGKILL, signal.SIGINT])
+def test_real_process_checks_with_unrelated_default_port_listener(
+    configured, tmp_path, stop_signal
+):
+    import errno
+    import socket
+
+    import httpx
+
+    # Own only the listener we create. If a developer already occupies 8765,
+    # exercise isolation against that process without touching its lifecycle.
+    listener = socket.socket()
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    unrelated = None
+    try:
+        try:
+            listener.bind(("127.0.0.1", 8765))
+        except OSError as exc:
+            if exc.errno != errno.EADDRINUSE:
+                raise
+        else:
+            listener.listen(8)
+            script = """
+import json, socket, sys
+from http.server import HTTPServer, BaseHTTPRequestHandler
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, *args): pass
+    def do_GET(self):
+        body = json.dumps({'ready':True}).encode()
+        self.send_response(200); self.send_header('Content-Length',str(len(body)))
+        self.end_headers(); self.wfile.write(body)
+    def do_POST(self):
+        body = b'{"error":{"code":"unrelated_invalid_session"}}'
+        self.send_response(401); self.send_header('Content-Length',str(len(body)))
+        self.end_headers(); self.wfile.write(body)
+server = HTTPServer(('127.0.0.1',8765), Handler, bind_and_activate=False)
+server.socket.close(); server.socket=socket.socket(fileno=int(sys.argv[1]))
+server.serve_forever()
+"""
+            unrelated = subprocess.Popen(
+                [sys.executable, "-c", script, str(listener.fileno())],
+                pass_fds=(listener.fileno(),),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            with httpx.Client(trust_env=False, timeout=5) as probe:
+                assert probe.get("http://127.0.0.1:8765/health/ready").json()["ready"]
+        test_real_process_signal_releases_runtime_claim_and_preserves_credentials(
+            configured, tmp_path, stop_signal
+        )
+        test_runtime_recovers_actual_crashed_pure_attempt_but_reviews_ambiguous_lighting(
+            configured, tmp_path
+        )
+        if unrelated is not None:
+            assert unrelated.poll() is None
+    finally:
+        if unrelated is not None:
+            unrelated.terminate()
+            unrelated.wait(timeout=10)
+        listener.close()
+
+
+def test_authority_storage_diagnostic_is_sanitized_and_fail_closed(configured, monkeypatch):
+    settings, _ = configured
+    repo = LocalDevelopmentIdentityRepository(
+        SQLiteDatabase(settings.resolved_runtime_database_path)
+    )
+
+    def unavailable(*args, **kwargs):
+        raise StorageError("database_locked")
+
+    monkeypatch.setattr(repo.database, "transaction", unavailable)
+    with pytest.raises(IdentityError) as failure:
+        repo.validate_authority()
+    assert failure.value.reason_code == "security_state_unavailable"
+    assert failure.value.storage_code == "database_locked"
+    assert str(failure.value) == "security_state_unavailable"
+    monkeypatch.setattr(SQLiteDatabase, "transaction", unavailable)
+    result = asyncio.run(doctor(settings))
+    assert result["authority"] is False
+    assert "database_locked" in result["errors"]
+
+
+def test_existing_v9_authority_migrates_and_runtime_restarts(configured):
+    settings, manifest = configured
+    path = settings.resolved_runtime_database_path
+    token = read_private_json(Path(manifest["credentials"]["owner"]["path"]))["token"]
+    with sqlite3.connect(path) as connection:
+        tables = (
+            "security_authority",
+            "security_principals",
+            "security_sessions",
+            "security_grants",
+            "local_api_credentials",
+            "events",
+            "tasks",
+            "memories",
+        )
+        before = {
+            t: connection.execute(f"SELECT * FROM {t} ORDER BY rowid").fetchall() for t in tables
+        }
+        connection.execute("PRAGMA user_version=9")
+    database = SQLiteDatabase(path)
+    with pytest.raises(IdentityError) as failure:
+        LocalDevelopmentIdentityRepository(database).validate_authority()
+    assert failure.value.storage_code == "database_version_unsupported"
+    database.initialize()
+    database.verify()
+    with sqlite3.connect(path) as connection:
+        assert {
+            t: connection.execute(f"SELECT * FROM {t} ORDER BY rowid").fetchall() for t in tables
+        } == before
+    repo = LocalDevelopmentIdentityRepository(database)
+    repo.validate_authority()
+    repo.resolve_kind(token, "client")
+
+    async def restart():
+        for _ in range(2):
+            runtime = RuntimeService(settings)
+            await runtime.start()
+            await runtime.stop()
+
+    asyncio.run(restart())

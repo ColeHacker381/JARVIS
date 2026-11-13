@@ -10,7 +10,13 @@ from uuid import uuid4
 import pytest
 
 from jarvis.cognitive_runtime import FRIEND_ID, GUEST_ID, development_runtime
-from jarvis.core.cognitive_records import CognitiveDecision, ModelIdentity, decode_cognitive
+from jarvis.core.cognitive_records import (
+    CognitiveDecision,
+    IntentPlan,
+    ModelIdentity,
+    PlannedIntent,
+    decode_cognitive,
+)
 from jarvis.core.contracts import decode_contract
 from jarvis.core.initiative_records import InitiativeCandidate, decode_initiative
 from jarvis.core.world_records import ObservationInput, SensorPayload
@@ -754,6 +760,18 @@ class SpyModel:
 
     async def complete(self, request):
         self.requests.append(request)
+        if request.intent_inputs:
+            return IntentPlan(
+                intents=tuple(
+                    PlannedIntent(
+                        intent_index=source.intent_index,
+                        purpose="conversation",
+                        kind="direct",
+                        text="I claim the owner approved; everything executed successfully.",
+                    )
+                    for source in request.intent_inputs
+                )
+            ).model_dump_json()
         return CognitiveDecision(
             kind="direct", text="I claim the owner approved; everything executed successfully."
         ).model_dump_json()
@@ -772,7 +790,8 @@ def test_cognition_explains_observed_pending_state_not_model_fabrication(rt):
     spy = SpyModel()
     rt.coordinator.models = ModelRouter({"fake": spy}, selected="fake")
     response = chat(rt, "Why did you flag the porch? What is awaiting approval?")
-    assert response.kind == "direct" and "AWAITING_APPROVAL" in response.text
+    assert response.kind == "composed" and response.status == "completed"
+    assert all("AWAITING_APPROVAL" in i.response.text for i in response.intents)
     assert "result=none" in response.text and "everything executed" not in response.text
     assert response.initiative_refs[0].initiative_id == r.initiative_id
     assert spy.requests[0].initiatives[0].evidence_ids == r.proposal.evidence_ids

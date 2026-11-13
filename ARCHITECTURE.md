@@ -479,3 +479,41 @@ exit preserves uncertain attempts. Public health excludes private metadata;
 current owner status adds numeric sampled backlogs/latencies. Shared composition,
 trust and recovery diagrams are in docs/development/architecture.md. ADR-T10 is
 provisional; production identity/API/runtime/storage/distributed choices remain OPEN.
+
+## Phase 10 local voice extension
+
+The shared composition root now exposes explicitly activated audio source/session
+controls, bounded PCM/VAD, replaceable offline speech ports, session-local turns,
+scoped ephemeral ambient attention and unconfirmed memory candidates. A separately
+authenticated interaction reaches existing cognition/tasks/executor; capture credentials
+and diarization never confer speaker authority. The voice client uses existing HTTP v1.
+See [PHASE10.md](docs/PHASE10.md) and provisional ADR-T11; no device starts on serve.
+
+The same authenticated voice client accepts an explicit bounded WAV for one-shot
+real STT/API/TTS validation. It uses the current owned source/session and existing
+HTTP authentication; no alternate executor or grants are added. Non-speech/digital
+silence and invalid audio/text fail before becoming requests/playback. Linux speech
+inference is measured; Gemma/hardware acceptance is pending in
+[VOICE_ACCEPTANCE.md](docs/VOICE_ACCEPTANCE.md).
+
+Phase 10 hardening permits general technical reasoning with clearly labeled retrieved
+claims and proposed options. Existing memory service adds a bounded current project
+filter and revalidates prior source snippets; cognition still receives only authorized
+context. Local schema guidance derives from existing v1 contracts, including their
+consistency rules; the original strict decoder/executor remain decisive. Optional
+voice presentation influences generation, never permission or execution results.
+See [cognition hardening](docs/PHASE10_COGNITION_HARDENING.md).
+
+The earlier milestone deferred recognized mixed lighting requests before model invocation.
+Non-action reporting and authenticated historical projections
+cannot establish execution; accepted proposals and actual task outcomes keep the
+existing executor/recovery path. Stored evidence is unchanged. See
+[mixed-request reporting](docs/PHASE10_MIXED_INTENT.md) for scope and limitations.
+
+Fresh explicit mixed requests now use provisional ADR-T12: one bounded model call,
+source-indexed plans, durable private child checkpoints and existing independently
+authorized tasks. Trusted composition preserves answers and actual per-intent outcomes;
+pending/ambiguous effects block later actions. ComposedResponse is a distinct v1
+envelope; legacy single-decision replies and historical evidence remain supported.
+Storage 10 is a metadata-only compatibility barrier. See
+[multi-intent orchestration](docs/PHASE10_MULTI_INTENT.md).

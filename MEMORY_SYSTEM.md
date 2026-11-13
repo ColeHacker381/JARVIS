@@ -243,3 +243,13 @@ Consent/evidence references remain explicit unverified metadata, not permission
 or source-authenticity proof. Retention periods, physical deletion, production
 authentication/collection policy and final schemas/storage remain OPEN. No
 extraction, consolidation, vector/cloud retrieval or automatic profiling is added.
+
+## Phase 10 ephemeral awareness and candidates
+
+Raw audio is bounded and never persisted. Authorized ambient turns remain in short-lived
+room/session context; at most 32 project-only candidates preserve exact supported claims,
+question/hypothesis/correction labels and STT/turn provenance. There is no automatic durable
+write or person profiling. Explicit current-authorized confirmation writes through existing
+MemoryService as a private expiring `unverified_candidate`, without superseding semantic truth.
+Unconfirmed context/candidates disappear on restart; explicitly submitted interactive API
+turns retain normal owned conversation continuity. See [PHASE10.md](docs/PHASE10.md).

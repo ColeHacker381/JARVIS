@@ -22,7 +22,7 @@ configuration/CLI/OpenAPI references against current code. It does not certify
 external links, language quality or every Markdown fragment. The quickstart smoke
 test runs fresh private initialization, actual authenticated HTTP, bounded
 scheduler work, shutdown and same-store restart; runtime-demo uses that workflow.
-CI runs Python 3.12/3.13, docs checks, all nine demos and build. Never replace
+CI runs Python 3.12/3.13, docs checks, all eleven demos and build. Never replace
 measured subprocess outcomes with predetermined success output.
 
 ```sh
@@ -35,6 +35,8 @@ uv run --no-sync jarvis world-demo
 uv run --no-sync jarvis initiative-demo
 uv run --no-sync jarvis notification-demo
 uv run --no-sync jarvis runtime-demo
+uv run --no-sync jarvis voice-demo
+uv run --no-sync jarvis ambient-demo
 ```
 
 Security tests verify actual non-invocation, inaccessible records absent from model
@@ -59,3 +61,19 @@ run its `jarvis` executable through all nine demos. Also run private runtime ini
 doctor and schema inspect/verify/online backup. Documentation checking requires
 the documentation-bearing checkout; runtime and demos do not. Confirm no token,
 database, model weight or generated runtime log enters Git.
+
+## Audio and occupied-port regressions
+
+`uv run pytest tests/test_audio.py tests/test_runtime.py` runs offline enforcement,
+provider protocol subprocesses, source/context isolation, revocation, candidate policy,
+resource cleanup, actual voice-client HTTP and restart demos. Runtime signal/recovery
+regressions occupy 8765 with an unrelated process while testing owned ephemeral sockets.
+Existing listeners are left untouched. Fakes do not establish real inference/hardware.
+See [Phase 10](../PHASE10.md) for baseline, boundaries and manual acceptance.
+
+The explicitly optional `scripts/validate_real_audio.py` probe uses real checksum-
+verified speech models/binaries, public/generated fixtures and actual authenticated
+HTTP/task services. It measures transcripts, word error rate, child CPU/peak RSS,
+latency, cancellation and failure behavior. Cognition stays explicitly fake and no
+device is opened. It is separate from the offline pytest suite, which needs no
+models. See [reproduction and hardware acceptance](../VOICE_ACCEPTANCE.md).

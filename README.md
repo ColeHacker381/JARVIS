@@ -2,7 +2,8 @@
 
 A self-hosted permission-governed JARVIS kernel with durable tasks, private memory,
 text cognition, evidence-based world state, scoped initiative and simulated
-notifications. Phase 9 integrates these services into one always-on development
+notifications. Phase 10 adds explicit local push-to-talk, offline speech adapters and bounded
+ambient simulation. Phase 9 integrates these services into one always-on development
 runtime with authenticated loopback HTTP, bounded scheduling and restart recovery.
 Production authentication, real integrations and public deployment remain OPEN.
 
@@ -90,10 +91,11 @@ For interactive development: `uv run jarvis chat --model-provider fake`. Fake mo
 is explicitly **not AI reasoning**. Chat defaults to a real local model:
 
 ```sh
-# With Ollama already installed, run `ollama serve` in another terminal.
-ollama pull qwen2.5:3b
+# With Ollama already running, select an existing local model; no new download:
+ollama list
+printf 'Exact installed model tag: '; IFS= read -r JARVIS_LOCAL_MODEL_NAME
+export JARVIS_LOCAL_MODEL_NAME
 export JARVIS_LOCAL_MODEL_ENDPOINT=http://127.0.0.1:11434/v1
-export JARVIS_LOCAL_MODEL_NAME=qwen2.5:3b
 uv run jarvis chat
 ```
 
@@ -103,10 +105,11 @@ is enabled. Conversations use `.jarvis/chat/journal.sqlite3` by default. Resume
 the printed ID with `--conversation <uuid>`; `--identity owner|friend|guest` is
 **development-only trusted host selection**, never production authentication.
 See [docs/PHASE5.md](docs/PHASE5.md) for contracts, setup, context/security rules,
-examples and validation limits. Genuine inference in this cloud environment is
-unverified in the Phase 5 cloud acceptance, when weight downloads were blocked.
-Current acceptance exercises fake and local HTTP protocol backends; genuine
-inference remains unverified. See the current local-model guide above.
+examples and validation limits. Phase 5 cloud acceptance used fake and local HTTP
+protocol backends because weight downloads were blocked. Follow-on Phase 10
+acceptance exercises genuine local Qwen through the authenticated text API;
+see [the cognition hardening report](docs/PHASE10_COGNITION_HARDENING.md) for measured
+results, setup and limitations. Physical MacBook voice acceptance remains pending.
 
 The `world-demo` command runs real ingestion/policy/SQLite world projections in two
 processes. It shows camera evidence versus inferred occupancy, corroboration,
@@ -178,7 +181,7 @@ provisional decisions distinct from accepted decisions. When a final decision is
 accepted, update `DECISIONS.md`, affected requirements/architecture, migration
 notes, and acceptance tests together.
 
-Phase 9 now integrates the local development runtime. Recommended Phase 10:
+Phase 9 now integrates the local development runtime. Earlier Phase 10 recommendation (deployment work remains deferred):
 production authentication/provisioning and genuine local-model acceptance before
 privileged real integrations. Real sensors still need explicit enrollment,
 collection and retention decisions. Production security, tamper-resistant auditing
@@ -189,7 +192,7 @@ The Phase 3 verification pass adds durable current grants/revocations/principals
 sessions, atomic permission/audit changes and cross-process security exclusion.
 The default durable identity repository denies without a trusted authenticator;
 fixture credentials remain explicitly isolated from production. Run `uv run jarvis db-init`
-explicitly to migrate existing schema 1–7 development databases to schema 8;
+explicitly to migrate existing schema 1–8 development databases to schema 9;
 this never provisions identity or restores old task approvals. Back up existing
 state before migration. See
 [docs/PHASE3_VERIFICATION.md](docs/PHASE3_VERIFICATION.md) for findings, real-process
@@ -213,7 +216,7 @@ uv run jarvis chat --database <demo-database> --model-provider fake
 ```
 
 Development host identities are fixtures; observe-only and cloud default-deny
-remain the legacy defaults. Current databases migrate explicitly to schema 8 without
+remain the legacy defaults. Current databases migrate explicitly to schema 9 without
 new grants. See [docs/PHASE7.md](docs/PHASE7.md) for policy configuration, risk,
 approval/execution guards, bounded processing, all files/requirements, verified
 results and deferred production choices. Real devices/messaging are unavailable.
@@ -242,3 +245,28 @@ links use only the existing Phase 7 trusted workflow. New development stores see
 basic rights once, with no routing policy; old stores never receive automatic grants.
 Current schema is 7. See [docs/PHASE8.md](docs/PHASE8.md) for routing/configuration,
 channels, retries, DST-aware preferences, migration, actual validation and limits.
+
+
+## Voice and ambient development
+
+See [Phase 10 setup and limitations](docs/PHASE10.md). Audio never starts automatically.
+Run `uv run jarvis voice-demo` or `uv run jarvis ambient-demo` entirely offline.
+For a real microphone use `uv sync --locked --extra voice`, explicitly enroll and
+activate a source, configure whisper.cpp and an installed offline TTS voice, then
+run `uv run jarvis voice --help`. [MacBook acceptance and real-model results](docs/VOICE_ACCEPTANCE.md)
+cover verified Linux whisper.cpp/eSpeak NG inference and the still-unverified
+Gemma/microphone/speaker workflow. Runtime integration tests select owned ephemeral ports,
+so an existing development server on port 8765 can remain running.
+
+[Phase 10 cognition hardening](docs/PHASE10_COGNITION_HARDENING.md) documents real
+Qwen reproductions, optional local JSON Schema output, grounded brainstorming,
+scoped project continuity, fixture migration and normal playback cancellation.
+Voice presentation requests concise generation without truncating verified results.
+
+[Mixed-request reporting](docs/PHASE10_MIXED_INTENT.md) records the earlier safe-deferral
+milestone and protection of historical unsubmitted action claims. Fresh mixed requests
+use the bounded orchestration below; both chat and serve support JSON Schema mode.
+
+[Multi-intent orchestration](docs/PHASE10_MULTI_INTENT.md) now handles explicit mixed
+questions and supported actions, with independent durable tasks and trusted partial
+results. Storage version 10 requires an explicit runtime-store migration before serve.

@@ -526,6 +526,10 @@ decisions reject identity/approval imports; models never invoke handlers or modi
 grants. Authorized registry discovery reuses deterministic policy; all actual
 invocation remains TaskManager -> CapabilityExecutor with fresh authorization.
 
+The single-proposal bound is extended for explicit multi-intent requests by
+provisional ADR-T12 below. Single-decision behavior and all confirmed authority
+constraints remain in force.
+
 Use normalized provider-neutral request/output contracts, deterministic fake and
 an async OpenAI-compatible loopback HTTP adapter (httpx for cancellation/deadlines).
 Provider provenance is trusted configuration, not model output. Context uses
@@ -731,3 +735,94 @@ two-process runtime-demo exercises real local services/persistence with simulati
 No real model inference, external messaging/hardware, public listener, distributed
 leases, production systemd containment, physical retention or universal exactly-once
 guarantee is inferred. All previous ACCEPTED, PROPOSED and OPEN statuses are preserved.
+
+
+## ADR-T11 — Provisional Local Voice and Ephemeral Ambient Awareness
+
+**Status:** Provisional implementation choice, authorized Phase 10 scope;
+not accepted production speech, biometric, retention or satellite architecture
+**Date:** 2026-10-11
+
+Use strict v1 bounded mono PCM contracts, explicit owned source consent/activation,
+local energy VAD and replaceable whisper.cpp/system offline TTS adapters. Optional
+PortAudio clients send authenticated text through existing conversation HTTP v1;
+shared host audio services use existing cognition, policy/tasks/memory/notifications.
+Source and unverified session-local speaker labels are evidence, never identity.
+Separately trusted interaction credentials are mandatory before ambient cognition.
+
+Keep short-lived room/session contexts, two-second bounded transcript-hash deduplication,
+rule-based attention and narrow unconfirmed project candidates. No automatic durable
+memory, unsolicited audible participation, cloud speech or voice authentication.
+Explicit candidate review uses existing current-authorized memory writes as expiring
+unverified records, without superseding facts. Provider children are bounded/cancelled
+and waited on; no microphone/weights initialize on core startup.
+
+Migration 9 adds only source/session metadata; preserves authority and durable state;
+no grants or enrollment. Context/raw buffers/candidates intentionally disappear after
+restart; authorized interactive conversations/tasks persist. Existing HTTP/CLI defaults
+remain, including port 8765. POSIX test/demo listener inheritance and an owned startup
+acknowledgement eliminate port/readiness races without weakening runtime claims.
+
+INT-002 remains PROPOSED, INT-003 LEGACY; final schemas, production authentication,
+participant consent, physical purge, hardware/model selection, actual diarization,
+acoustic deduplication, satellite transport and latency SLOs remain OPEN. Offline
+fixtures and executable protocol tests do not establish real speech intelligence.
+See docs/PHASE10.md and tests/test_audio.py for exercised scope and remaining limits.
+
+Phase 10 cognition hardening stays within ADR-T06/T11: existing v1 decisions support
+grounded reasoning with general knowledge and labeled uncertainty; the local provider's
+generation schema projects existing fields/consistency constraints. Optional JSON
+Schema output is explicit, while full strict validation and current executor policy
+remain authoritative. Bounded project filtering and current history source lookup
+reuse MemoryService; source fixtures are not relabeled as verified truth. Playback
+cancellation uses the already defined cancelled status. No final contract, policy,
+provider, truth-verification, biometric or hardware decision is accepted here.
+
+---
+
+## ADR-T12 — Provisional bounded multi-intent composition
+
+**Status:** Provisional implementation choice authorized for the Phase 10 follow-on;
+not final schemas, public API, planning, model stack or authentication decisions.
+**Date:** 2026-10-12
+
+A single decision either dropped a mixed request's question or allowed generated
+prose to imply an unexecuted action. Explicit requests now use one model invocation
+and at most four source-linked intents. IntentInput, PlannedIntent, IntentPlan,
+IntentOutcome and ComposedResponse have distinct explicit v1 envelopes; existing
+single-decision CognitiveDecision/CognitiveResponse v1 remain supported.
+
+Conservative English segmentation supplies immutable source references and action
+request hints, not permissions. Multi-intent execution admission currently supports
+explicit absolute simulated-lighting values and literal development echo. Models
+may propose parameters; every proposal must match its source, pass the existing
+context/version/citation checks, and use TaskManager -> CapabilityExecutor with
+current authorization. A question cannot authorize an additional action. Unknown
+operations, unclear relative changes and invalid parameters never reach handlers.
+
+Persist the accepted parent plan, then deterministic child request checkpoints with
+one existing decision each. Child task submission reuses existing scoped idempotency
+keys, OS claims, CAS, event/audit transactions and recovery. Children are private
+checkpoints, not public message endpoints or extra conversational history. Pending
+or uncertain actions block later actions; denied/invalid actions preserve independent
+answers and permitted later work. No LLM reconstructs recovery state or composes
+post-execution claims. Trusted composition uses validated answers and actual results.
+Voice composition retains outcomes/errors and omits only redundant spoken task UUIDs;
+full structured references remain available.
+
+The local adapter's JSON Schema transport uses explicitly versioned named slots to
+avoid unreliable positional-array grammar generation. Strict validation precedes
+normalization into the same provider-neutral IntentPlan array; no missing decisions,
+citations, proposals or identity metadata are invented. JSON object mode uses the
+core plan directly. Provider normalization cannot authorize or execute anything.
+
+SQLite storage version 10 is a metadata-only compatibility barrier. It changes no
+existing rows, tables, grants, owner state or credentials; older binaries refuse the
+new store. Existing records remain readable by the new decoder. Stop writers, retain
+an online backup, and migrate explicitly before serving. This is not a downgrade
+migration; see docs/operations/backup-restore.md.
+
+Existing cloud/identity/memory/privacy/approval boundaries remain decisive. No new
+cloud backend, automatic approval, inferred initiative, vector retrieval, memory
+extraction, real device integration, autonomous reasoning loop or general multi-agent
+planner is introduced. Provisional COG-002/INT-002 and all OPEN decisions remain so.

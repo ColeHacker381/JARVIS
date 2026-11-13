@@ -103,6 +103,7 @@ class RuntimeService:
             endpoint=self.settings.local_model_endpoint,
             model=self.settings.local_model_name,
             timeout=self.settings.model_timeout_seconds,
+            response_format=self.settings.local_model_response_format,
             identities_factory=LocalDevelopmentIdentityRepository,
             initialize=False,
             notification_channels=None if self.settings.simulated_notification_channels else (),
@@ -145,6 +146,8 @@ class RuntimeService:
             raise
 
     def _release(self):
+        if self.application is not None:
+            self.application.audio.stop()
         if self._claim is not None:
             claim, self._claim = self._claim, None
             claim.__exit__(None, None, None)
@@ -256,6 +259,8 @@ class RuntimeService:
         # Validate authoritative storage every pass. Fail closed if it is unavailable.
         with app.database.transaction():
             _ = app.identities.owner_id
+        if name == "maintenance":
+            app.audio.expire()
         failures = []
         for token in self.worker_tokens:
             if self.state in {"STOPPING", "FAILED"}:

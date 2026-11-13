@@ -729,3 +729,44 @@ PROPOSED; IAM-005/PER-004/TASK-003/004 and final auth/API/storage/scheduler/
 retention/reconciliation/SLO choices remain OPEN. Genuine model inference,
 homelab scale-out DEV-002, real hardware/messaging and public deployment are
 not established. No requirement ID/status is invented or promoted.
+
+## Phase 10 implementation coverage
+
+INT-001 and provisional INT-002 gain a local push-to-talk API client and offline
+voice/ambient demos. ARCH-001–004, COG-001, IAM-004/007, PER-001–003, CAP-002/003,
+TASK-001/002, EVT-001, MEM-001–006, WORLD-001–003, AUTO-003, COM-001 integration,
+SEC-001–004, REL-001/002 and DEV-001/003 retain existing boundaries with explicit
+audio contracts, source consent/current grants, private context, model egress refusal,
+unconfirmed provenance-aware candidates and local metadata/history recovery.
+See [PHASE10.md](docs/PHASE10.md) for exact files, tests and limitations. Schema 9
+migrates metadata only and grants nothing. INT-002 remains PROPOSED, INT-003 LEGACY,
+and final authentication/biometrics/retention/hardware/schema/provider decisions OPEN.
+
+Follow-on Phase 10 validation adds real checksum-verified whisper.cpp tiny.en/base.en
+and Linux eSpeak NG inference, authenticated one-shot audio-file interaction, measured
+failures/cancellation, and input-boundary regressions (INT-001, provisional INT-002,
+ARCH-001/003/004, COG-001, IAM-004/007, PER-001–003, CAP-002/003, TASK-001/002,
+SEC-001–003, REL-001/002, DEV-001/003). Existing authority and recovery are reused.
+Gemma and physical microphone/speaker acceptance remain unverified; see
+[the operator checklist](docs/VOICE_ACCEPTANCE.md). Requirement/ADR statuses are unchanged.
+
+Phase 10 cognition hardening extends COG-001 and provisional COG-002/INT-002 with
+real Qwen reproductions, optional local schema guidance, permitted general technical
+reasoning, scoped project/history source retrieval, explicit fixture provenance and
+normal playback cancellation. ARCH-001/003/004, MEM-001–004/006, IAM-004/007,
+PER-001, CAP-001–003, TASK-001/002, SEC-001–003, REL-001/002 and DEV-003 retain
+their boundaries and gain regressions. See [the hardening report](docs/PHASE10_COGNITION_HARDENING.md)
+for actual inference versus deterministic coverage; no status is promoted.
+
+Phase 10 mixed-request hardening adds trusted request separation and no-submission
+reporting, including historical/replayed/spoken responses (COG-001, provisional
+COG-002/INT-002, CAP-003, IAM-004, PER-001, TASK-001/002, MEM-002/003/006,
+SEC-001–003, REL-001/002, DEV-003). Actual task outcomes remain authoritative.
+See [mixed-request acceptance](docs/PHASE10_MIXED_INTENT.md); statuses stay unchanged.
+
+The authorized Phase 10 multi-intent follow-on extends COG-001 and provisional
+COG-002/INT-002 with one-model/four-intent plans, current independent authorization,
+durable child tasks, trusted partial composition, source-bound consent and voice
+presentation (ARCH-001/003/004, IAM-004/007, PER-001–003, CAP-001–003, TASK-001/002,
+MEM-001–004/006, SEC-001–004, REL-001/002, DEV-003). See
+[bounded orchestration](docs/PHASE10_MULTI_INTENT.md) and provisional ADR-T12.

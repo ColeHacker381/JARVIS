@@ -342,67 +342,125 @@ by this roadmap entry.
 
 ---
 
-## Phase 10 recommendation — Deployment Identity and Genuine Local-Model Acceptance
+## Phase 10 — Local Intelligence and Runtime Stabilization
 
-Validate an available real local model end to end; decide production owner
-provisioning/session authentication, deployment threat model, credential rotation
-and reconciliation/retention policy before privileged real integrations. A
-narrowly enrolled sensor may follow explicit collection/retention decisions.
-This is a recommendation, not an accepted architectural decision.
+User-authorized local voice milestone: explicit push-to-talk HTTP client,
+whisper.cpp and system offline TTS adapters, bounded PCM/VAD/multi-source simulation,
+ephemeral room contexts, attention and unconfirmed project-memory candidates.
+No source/label authenticates a person; existing policy/tasks/memory remain authoritative.
+See [PHASE10.md](docs/PHASE10.md) for implemented scope and unverified hardware/inference.
+INT-002 remains provisional; no production ambient intelligence is claimed.
 
-## Deferred proposal — Social Intelligence
+Follow-on real speech validation verifies Linux whisper.cpp tiny.en/base.en and
+eSpeak NG plus authenticated audio-file interaction. MacBook microphone, Gemma and
+speaker acceptance remains the next operator gate; use
+[the acceptance checklist](docs/VOICE_ACCEPTANCE.md). Do not advance to automatic
+ambient capture/profiling or claim real diarization from the heuristic simulations.
 
-**Goal:** improve JARVIS's understanding of people and relationships without weakening privacy.
+The authorized Phase 10 cognition-hardening follow-on adds real local Qwen acceptance,
+grounded engineering reasoning, scoped project continuity, fixture migration,
+schema guidance and normal interrupted playback. See
+[the hardening report](docs/PHASE10_COGNITION_HARDENING.md); this is not Phase 11.
 
-### Potential work
-- person profiles;
-- relationship graph;
-- communication adaptation;
-- interaction-derived social context;
-- confidence/provenance;
-- correction/merge flows.
+The [mixed-request follow-on](docs/PHASE10_MIXED_INTENT.md) defers recognized combined
+question/lighting commands, suppresses unsubmitted execution claims, and verifies
+both configured local structured-output modes. Generalized intent planning remains
+deferred; MacBook and physical voice acceptance are still operator gates.
 
-### Still unresolved
-- automatic new-person baseline behavior;
-- consent model;
-- sensitive profiling rules.
+The user-authorized [bounded multi-intent follow-on](docs/PHASE10_MULTI_INTENT.md)
+preserves questions alongside independently authorized actions, partial outcomes and
+restart-safe child checkpoints. General conditional planning and autonomous loops
+remain deferred under provisional ADR-T12; this remains Phase 10.
 
----
+## Future direction — PROPOSED, not started
 
-## Phase 11 — Optional Public Profile Enrichment
+The following phases supersede the earlier *planned sequencing*, not historical
+implementation records or confirmed requirements. Dependencies are gates, not a
+commitment to ship these designs. Final APIs, policy language, storage, model,
+scheduling and production identity remain OPEN. Security prerequisites must be in
+place before any externally accessible communication. Reuse existing components;
+do not create parallel task, initiative, notification, voice or capability systems.
 
-**Goal:** only if explicitly approved, enrich person context from public internet sources.
+### Phase 11 — Autonomous Capability Intelligence (PROPOSED)
 
-### Prerequisites
-- explicit owner policy decision;
-- sensitive-data classification;
-- source allowlist/blocklist policy;
-- provenance;
-- revocation/deletion;
-- audit;
-- subject/owner consent rule.
+- Dependencies: Phase 10 stability, owner decisions on standing authority and goals.
+- Functionality: persistent goals, accurate capability awareness, bounded standing
+  delegations and goal-driven plans. Reuse scoped memory, registry, policy and tasks.
+- Acceptance: goals survive restart; revoked delegations stop subsequent work;
+  discovery distinguishes simulation, unavailable and approval-required operations.
+- Security: model descriptions confer no authority; delegations are scoped,
+  revocable, auditable and independently enforced. OPEN: delegation semantics,
+  goal ownership, expiration and review; proposed ADR for delegated authority.
 
-### Status
-Do not implement as an automatic default until these decisions are resolved.
+### Phase 12 — Background Autonomy (PROPOSED)
 
----
+- Dependencies: Phase 11 authority and recoverable goals.
+- Functionality: bounded independent initiative, schedules and event-driven work;
+  reuse initiative policies, scheduler, task checkpoints and verification.
+- Acceptance: restart recovery, duplicate suppression, limits and actual outcome
+  reporting work under failures and revocation.
+- Security: budgets, current permission checks and audit per effect; OPEN: scheduler,
+  interruption and escalation policies; proposed ADR for background execution limits.
 
-## Phase 12 — Homelab Scale-Out
+### Phase 13 — Unified Communication Gateway (PROPOSED)
 
-**Goal:** migrate from local development deployment to resilient self-hosted infrastructure.
+- Dependencies: Phase 12 and Phase 14 security prerequisites before exposure.
+- Functionality: inbound/outbound routing, continuity and notifications; reuse
+  sessions, conversations, notifications, existing voice and authorization.
+- Acceptance: scoped messages route with durable outcomes and no cross-user leakage.
+- Security: authenticated channels, consent, replay protection and least privilege;
+  OPEN: gateway trust boundaries, identity mapping and retention; proposed gateway ADR.
 
-### Potential work
-- separate model host;
-- persistent database service;
-- task workers;
-- event broker if justified;
-- sensor gateways;
-- observability stack;
-- backups;
-- remote access;
-- secrets management.
+### Phase 14 — Secure Always-On Deployment (PROPOSED)
 
-Technology selection remains open.
+- Dependencies: production identity and threat model precede external access;
+  core hosting hardening may proceed before external gateway work.
+- Functionality: Fedora hosting, production identity, remote access, backups and
+  monitoring; reuse runtime, durable stores and existing backup/health interfaces.
+- Acceptance: tested recovery, credential rotation, monitoring and hardened remote
+  access; verified GPU/model compatibility and resource budgets on target host.
+- Security: encrypted transport and backups, least privilege, patching and audit;
+  OPEN: production authentication, secret management, deployment topology and SLOs;
+  proposed deployment and identity ADRs. RTX 4060 driver, VRAM, power and model
+  latency must be measured on the actual Fedora host.
+
+### Phase 15 — Real Communication Integrations (PROPOSED)
+
+- Dependencies: secure Phase 14 deployment and Phase 13 gateway.
+- Functionality: iPhone client, push, SMS, two-way voice and calls; reuse gateway,
+  notifications, voice adapters, tasks and policy.
+- Acceptance: end-to-end delivery, explicit failure/retry handling and revocation
+  verified with real devices/providers; simulations remain labeled.
+- Security: channel verification, consent, destination restrictions and provider
+  privacy controls; OPEN: provider selection, call consent and credential handling.
+
+### Phase 16 — Environmental Awareness (PROPOSED)
+
+- Dependencies: Phase 14 security and explicit collection/retention decisions.
+- Functionality: smart home, microphones, sensors, optional camera processing;
+  reuse observations, world state, voice and capability registry.
+- Acceptance: provenance, uncertainty, access filtering and device failure tests.
+- Security: explicit enrollment, consent, local processing and retention limits;
+  OPEN: hardware, identity confidence, camera policy and data lifecycle.
+
+### Phase 17 — Advanced Social Intelligence (PROPOSED)
+
+- Dependencies: scoped memory, explicit consent and governance decisions.
+- Functionality: relationship context, consent-aware learning and communication
+  adaptation; reuse memory provenance, identity and scoped access controls.
+- Acceptance: correction, revocation and user-isolation demonstrated.
+- Security: no silent sensitive profiling; OPEN: consent, sensitive attributes,
+  relationship inference, retention and subject rights; proposed social-data ADR.
+
+### Phase 18+ — Wearables, Optional Enrichment and Homelab (PROPOSED)
+
+- Dependencies: secure deployment and the relevant communication/sensor phases.
+- Functionality: optional wearables, public-profile enrichment and homelab expansion;
+  reuse gateways, evidence, scoped memory, tasks and existing adapters.
+- Acceptance: explicit enrollment, provenance, isolation and recovery demonstrated.
+- Security: public research is never automatic by default; OPEN: consent, source
+  allowlists, deletion, topology and provider selection. Earlier Phase 11 public
+  enrichment and Phase 12 homelab proposals are retained here as deferred scope.
 
 ---
 

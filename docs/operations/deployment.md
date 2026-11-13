@@ -48,3 +48,12 @@ No container platform is required or shipped; Docker/Compose, Kubernetes,
 multi-host stores and public reverse-proxy deployment are deferred. A remote
 homelab model requires an explicitly designed trusted inference/egress boundary;
 do not change the loopback validator to make it connect.
+
+## Explicit voice clients
+
+The core starts without speech hardware or weights. Install optional `voice`
+dependencies only on an explicitly authorized local client; register consent/source
+policy and select microphone/playback devices. No ambient capture starts on boot.
+Schema 8 stores require an explicit backed-up schema 9 migration before serve.
+See [Phase 10 deployment/setup](../PHASE10.md); public streaming, production speaker
+identity and unattended room-wide capture are deferred.

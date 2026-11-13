@@ -90,7 +90,11 @@ def test_new_commands_are_installed(command):
     assert command in result.stdout
 
 
-def test_local_adapter_real_http_connection_uses_authorized_core_context(tmp_path):
+@pytest.mark.parametrize("format_name", ["json_object", "json_schema"])
+def test_local_adapter_real_http_connection_uses_authorized_core_context(
+    tmp_path, monkeypatch, format_name
+):
+    monkeypatch.setenv("JARVIS_LOCAL_MODEL_RESPONSE_FORMAT", format_name)
     # Real local HTTP transport and CLI process, deliberately a protocol test server, not an AI.
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
     from threading import Thread
@@ -147,6 +151,7 @@ def test_local_adapter_real_http_connection_uses_authorized_core_context(tmp_pat
         assert response["provenance"]["model_id"] == "protocol-test-only"
         assert "microcontroller B" in response["text"]
         assert len(received) == 1 and received[0]["model"] == "protocol-test-only"
+        assert received[0]["response_format"]["type"] == format_name
     finally:
         server.shutdown()
         server.server_close()

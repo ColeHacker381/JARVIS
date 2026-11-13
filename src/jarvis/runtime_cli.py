@@ -42,9 +42,15 @@ RUNTIME_COMMANDS = {
 
 
 class LocalServer(uvicorn.Server):
-    def __init__(self, config, runtime):
+    def __init__(self, config, runtime, *, ready_callback=None):
         super().__init__(config)
         self.runtime = runtime
+        self.ready_callback = ready_callback
+
+    async def startup(self, sockets=None):
+        await super().startup(sockets=sockets)
+        if self.started and self.ready_callback is not None:
+            self.ready_callback()
 
     def handle_exit(self, sig, frame):
         # Stop job/request admission at the signal, before Uvicorn drains HTTP.
@@ -83,6 +89,12 @@ def parser():
     p.add_argument("--model-provider", choices=["fake", "local"])
     p.add_argument("--local-endpoint")
     p.add_argument("--local-model")
+    p.add_argument("--local-response-format", choices=["json_object", "json_schema"])
+    p.add_argument(
+        "--no-memory-fixture",
+        action="store_true",
+        help="new runtime: do not seed Slipstream demo memory",
+    )
     p.add_argument(
         "--demo-fixtures",
         action="store_true",
@@ -116,10 +128,11 @@ def settings_from_args(args):
         model_provider=args.model_provider,
         local_model_endpoint=args.local_endpoint,
         local_model_name=args.local_model,
+        local_model_response_format=args.local_response_format,
     )
 
 
-def initialize_development(settings, *, demo_fixtures=False, hours=24):
+def initialize_development(settings, *, demo_fixtures=False, hours=24, seed_memory_fixture=True):
     path = settings.resolved_runtime_database_path.expanduser().resolve()
     directory = settings.data_dir.expanduser().resolve()
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -138,6 +151,8 @@ def initialize_development(settings, *, demo_fixtures=False, hours=24):
             endpoint=settings.local_model_endpoint,
             model=settings.local_model_name,
             timeout=settings.model_timeout_seconds,
+            response_format=settings.local_model_response_format,
+            seed_memory_fixture=seed_memory_fixture,
             notification_channels=None if settings.simulated_notification_channels else (),
         )
         if demo_fixtures:
@@ -201,8 +216,11 @@ async def doctor(settings):
                 repo, settings.worker_credentials_file, settings.max_worker_principals
             )
             result["workers"] = True
-    except (StorageError, IdentityError, ValueError, OSError, TypeError):
+    except (StorageError, IdentityError, ValueError, OSError, TypeError) as exc:
         result["errors"].append("storage_authority_or_worker_configuration_unavailable")
+        diagnostic = getattr(exc, "storage_code", getattr(exc, "code", None))
+        if diagnostic:
+            result["errors"].append(diagnostic)
     if settings.model_provider == "fake":
         result["model_available"] = True
     else:
@@ -221,6 +239,32 @@ async def doctor(settings):
     return result
 
 
+def serve_runtime(settings, *, sockets=None, ready_callback=None):
+    """Shared foreground host; owned test/demo listeners use the same lifecycle."""
+    configure_logging(settings.log_level)
+    runtime = RuntimeService(settings)
+    server_config = uvicorn.Config(
+        create_api(runtime),
+        host=settings.runtime_host,
+        port=settings.runtime_port,
+        access_log=False,
+        proxy_headers=False,
+        server_header=False,
+        timeout_graceful_shutdown=int(settings.shutdown_timeout_seconds),
+        limit_concurrency=settings.max_requests + 8,
+        backlog=32,
+        h11_max_incomplete_event_size=16384,
+    )
+    server = LocalServer(server_config, runtime, ready_callback=ready_callback)
+    server.run(sockets=sockets)
+    if runtime.drain_timed_out or server.force_exit:
+        # A thread/provider cannot be killed safely. Actual exit releases OS claims;
+        # persisted RUNNING attempts recover under the existing unknown-effect rules.
+        os._exit(2)
+    if runtime.state == "FAILED":
+        raise SystemExit(1)
+
+
 def run_runtime_cli(argv):
     args = parser().parse_args(argv)
     try:
@@ -236,6 +280,8 @@ def run_runtime_cli(argv):
             return
         if args.demo_fixtures and args.command != "runtime-init":
             raise ValueError("demo_fixtures_require_explicit_initialization")
+        if args.no_memory_fixture and args.command != "runtime-init":
+            raise ValueError("memory_fixture_option_requires_initialization")
         if args.operation is not None and args.command not in {"credentials", "permissions"}:
             raise ValueError("operator_command_invalid")
         settings = settings_from_args(args)
@@ -243,7 +289,10 @@ def run_runtime_cli(argv):
             print(
                 json.dumps(
                     initialize_development(
-                        settings, demo_fixtures=args.demo_fixtures, hours=args.credential_hours
+                        settings,
+                        demo_fixtures=args.demo_fixtures,
+                        hours=args.credential_hours,
+                        seed_memory_fixture=not args.no_memory_fixture,
                     )
                 )
             )
@@ -331,28 +380,7 @@ def run_runtime_cli(argv):
             else:
                 raise ValueError("credential_operation_required")
         else:
-            configure_logging(settings.log_level)
-            runtime = RuntimeService(settings)
-            server_config = uvicorn.Config(
-                create_api(runtime),
-                host=settings.runtime_host,
-                port=settings.runtime_port,
-                access_log=False,
-                proxy_headers=False,
-                server_header=False,
-                timeout_graceful_shutdown=int(settings.shutdown_timeout_seconds),
-                limit_concurrency=settings.max_requests + 8,
-                backlog=32,
-                h11_max_incomplete_event_size=16384,
-            )
-            server = LocalServer(server_config, runtime)
-            server.run()
-            if runtime.drain_timed_out or server.force_exit:
-                # A thread/provider cannot be killed safely. Actual exit releases OS claims;
-                # persisted RUNNING attempts recover under the existing unknown-effect rules.
-                os._exit(2)
-            if runtime.state == "FAILED":
-                raise SystemExit(1)
+            serve_runtime(settings)
     except (StorageError, IdentityError, ValidationError, ValueError, OSError) as exc:
         code = (
             exc.code
@@ -386,9 +414,18 @@ def run_runtime_cli(argv):
             }
         ):
             code = exc.args[0]
+        diagnostic = getattr(exc, "storage_code", None)
         print(
             json.dumps(
-                {"status": "failed", "error": {"code": code, "message": code, "fields": fields}}
+                {
+                    "status": "failed",
+                    "error": {
+                        "code": code,
+                        "message": code,
+                        "fields": fields,
+                        **({"storage_code": diagnostic} if diagnostic else {}),
+                    },
+                }
             )
         )
         raise SystemExit(1) from None

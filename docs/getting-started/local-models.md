@@ -6,6 +6,12 @@ TLS. Ollama is optional; fake mode needs no model weights, account or network.
 
 In separate terminals:
 
+If you already have Gemma (or another supported local model) installed, use
+`ollama list` and the exact existing tag with `--local-model`; do not download
+another model just for JARVIS. The [voice acceptance guide](../VOICE_ACCEPTANCE.md)
+shows configuration inspection and how to retain fake regression defaults.
+The commands below are only an example for operators who need a new model.
+
 ```sh
 ollama serve
 ollama pull qwen2.5:3b
@@ -40,5 +46,25 @@ is no new SSRF or egress exception. Cloud remains disabled by default and no clo
 backend is installed.
 
 Automated tests use fake models and an actual loopback HTTP protocol fixture.
-They prove transport/contracts/provenance, not genuine AI inference. No Ollama
-installation or genuine inference is claimed in the cloud validation environment.
+They prove transport/contracts/provenance, not genuine AI inference. Separate opt-in
+Phase 10 acceptance has exercised installed Ollama/Qwen3 with isolated synthetic
+stores; see [mixed-request results](../PHASE10_MIXED_INTENT.md).
+
+Both chat and serve support `JARVIS_LOCAL_MODEL_RESPONSE_FORMAT=json_schema`.
+The default is `json_object`; a runtime file can also set
+`local_model_response_format`. Both modes retain strict output validation and
+independent authorization. Example with an already installed Qwen model:
+
+```sh
+JARVIS_LOCAL_MODEL_RESPONSE_FORMAT=json_schema uv run jarvis chat --local-model qwen3:4b-instruct
+JARVIS_LOCAL_MODEL_RESPONSE_FORMAT=json_schema JARVIS_LOCAL_MODEL_NAME=qwen3:4b-instruct \
+  uv run jarvis serve --config .jarvis/dev/runtime.json --model-provider local
+```
+
+JSON shape does not establish action execution. Send reasoning questions and lighting
+commands separately; recognized combined requests explicitly defer execution. The
+current simulated adapter's result is rendered from its durable task, never model prose.
+CPU-only inference can exceed the default 60-second model timeout. An operator may
+configure `JARVIS_MODEL_TIMEOUT_SECONDS=180` (maximum 300), after measuring their own
+hardware with `ollama ps` and repeated requests. This changes waiting time, not speed
+or authorization. Cloud acceptance measurements do not establish MacBook performance.

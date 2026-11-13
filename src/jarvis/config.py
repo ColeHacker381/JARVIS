@@ -16,6 +16,7 @@ class Settings(BaseModel):
     model_provider: Literal["local", "fake"] = "local"
     local_model_endpoint: str = "http://127.0.0.1:11434/v1"
     local_model_name: str = "qwen2.5:3b"
+    local_model_response_format: Literal["json_object", "json_schema"] = "json_object"
     model_timeout_seconds: float = Field(default=60.0, gt=0, le=300)
 
     @field_validator("data_dir", "database_path", mode="before")
@@ -46,6 +47,9 @@ class Settings(BaseModel):
                     "JARVIS_LOCAL_MODEL_ENDPOINT", "http://127.0.0.1:11434/v1"
                 ),
                 "local_model_name": os.environ.get("JARVIS_LOCAL_MODEL_NAME", "qwen2.5:3b"),
+                "local_model_response_format": os.environ.get(
+                    "JARVIS_LOCAL_MODEL_RESPONSE_FORMAT", "json_object"
+                ),
                 "model_timeout_seconds": float(
                     os.environ.get("JARVIS_MODEL_TIMEOUT_SECONDS", "60")
                 ),

@@ -267,3 +267,15 @@ grants, in addition to trusted cloud destination/enablement. Phase 8 channels re
 cloud destinations. Bootstrap grants only new development fixtures; migration/reopen
 never regrants. Public auth, provider addresses/egress, severity and urgent overrides
 remain OPEN. See docs/PHASE8.md.
+
+## Phase 10 voice boundary
+
+Source management requires pinned owner plus `audio.sources.manage`; processing
+requires current `audio.process`, exact owned source/session, explicit activation/
+consent and a permitted mode. A processing credential does not authenticate an
+ambient speaker. Only separately supplied trusted interaction credentials reach
+cognition; current capability permissions remain decisive. Unknown/overlapping
+speakers receive clarification without action. `audio.memory.confirm` plus existing
+`memory.write` and explicit consent are required for a private expiring unverified
+candidate. Source registration, transcripts, model assertions and speaker labels
+grant nothing. Audio-derived cloud routing is disabled. See [PHASE10.md](docs/PHASE10.md).

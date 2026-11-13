@@ -58,6 +58,7 @@ class Application:
     policy: DeterministicPolicy
     models: ModelRouter
     executor: object
+    audio: object = None
 
     def credentials(self, name):
         if not isinstance(self.identities, SQLiteDevelopmentIdentityService):
@@ -76,6 +77,8 @@ def build_application(
     endpoint="http://127.0.0.1:11434/v1",
     model="qwen2.5:3b",
     timeout=60.0,
+    response_format="json_object",
+    seed_memory_fixture=True,
     fake=None,
     defer_actions=False,
     clock=utc_now,
@@ -138,18 +141,19 @@ def build_application(
         permissions.grant(
             credentials.token, FRIEND_ID, BRIGHTNESS_PERMISSION, correlation_id=uuid4()
         )
-        memory.create(
-            MemoryDraft(
-                kind="semantic",
-                content={"text": "Slipstream uses microcontroller B"},
-                project_ref="project:slipstream",
-                source=Provenance(
-                    category="user_statement", source_ref="development.cognition.fixture"
+        if seed_memory_fixture:
+            memory.create(
+                MemoryDraft(
+                    kind="semantic",
+                    content={"text": "Slipstream uses microcontroller B"},
+                    project_ref="project:slipstream",
+                    source=Provenance(
+                        category="import", source_ref="development.cognition.fixture"
+                    ),
+                    consent_ref="consent:offline_fixture",
                 ),
-                consent_ref="consent:offline_fixture",
-            ),
-            session_token=credentials.token,
-        )
+                session_token=credentials.token,
+            )
         identities.close_session_for_testing(credentials.token)
     registry = InMemoryCapabilityRegistry()
     lighting = register_development_capabilities(registry)
@@ -200,7 +204,11 @@ def build_application(
         {
             "fake": fake or FakeModel(),
             "local": OpenAILocalModel(
-                endpoint=endpoint, model=model, timeout=timeout, metrics=metrics
+                endpoint=endpoint,
+                model=model,
+                timeout=timeout,
+                metrics=metrics,
+                response_format=response_format,
             ),
         },
         selected=provider,
@@ -215,7 +223,7 @@ def build_application(
         audit=audit,
         defer_actions=defer_actions,
     )
-    return Application(
+    application = Application(
         database,
         identities,
         permissions,
@@ -235,3 +243,8 @@ def build_application(
         models,
         executor,
     )
+
+    from jarvis.voice import VoiceService
+
+    application.audio = VoiceService(application, clock=clock)
+    return application

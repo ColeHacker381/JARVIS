@@ -25,6 +25,7 @@ from jarvis.runtime_cli import initialize_development
 from jarvis.runtime_config import RuntimeSettings
 from jarvis.runtime_service import RuntimeService
 from jarvis.storage.errors import StorageError
+from jarvis.storage.sqlite import SCHEMA_VERSION
 
 
 @pytest.fixture
@@ -333,7 +334,7 @@ def test_public_health_contains_no_private_metadata(api):
     )
     assert api.client.get("/api/v1/status", headers=api.headers("guest")).status_code == 403
     status = api.client.get("/api/v1/status", headers=api.headers())
-    assert status.status_code == 200 and status.json()["data"]["storage_schema"] == 8
+    assert status.status_code == 200 and status.json()["data"]["storage_schema"] == SCHEMA_VERSION
 
 
 def test_openapi_matches_authentication_contracts_and_has_no_identity_route(api):

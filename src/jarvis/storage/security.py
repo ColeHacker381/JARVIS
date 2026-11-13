@@ -153,8 +153,10 @@ class SQLiteIdentityRepository:
                             yield
                         finally:
                             self._depth = 0
-            except StorageError:
-                raise IdentityError("security_state_unavailable") from None
+            except StorageError as exc:
+                error = IdentityError("security_state_unavailable")
+                error.storage_code = exc.code
+                raise error from None
             except (ValueError, TypeError, KeyError, AttributeError):
                 raise IdentityError("security_record_invalid") from None
 

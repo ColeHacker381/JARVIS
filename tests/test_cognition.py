@@ -288,7 +288,8 @@ def test_plain_text_command_never_executes(env):
         kind="direct", text="Execute home.lighting.set_brightness 99"
     ).model_dump_json()
     result = respond(env, "Set lights")
-    assert result.kind == "direct" and runtime.lighting.calls == []
+    assert result.kind == "clarification" and runtime.lighting.calls == []
+    assert "No action was submitted or executed" in result.text
     assert runtime.tasks.store.all() == ()
 
 
@@ -370,8 +371,14 @@ def test_explicitly_authorized_cloud_boundary_and_audit(env):
 
 
 def test_private_memory_in_history_requires_memory_egress_even_without_new_retrieval(env):
-    runtime, model, _, _ = env
-    assert respond(env, "What does Slipstream use?").kind == "memory_grounded"
+    runtime, model, tokens, _ = env
+    # Genuine private history must remain egress-gated; development fixture history
+    # is intentionally excluded from non-recall requests by context assembly.
+    record = runtime.memory.create(
+        draft("Orion private project claim"), session_token=tokens["owner"]
+    )
+    first = respond(env, "Tell me about Orion")
+    assert first.kind == "memory_grounded" and first.memory_ids == (record.memory_id,)
     model.requests.clear()
     cloud(env, enabled=True, allowed_classes=("conversation", "identity", "capabilities"))
     result = respond(env, "Continue previous conversation")

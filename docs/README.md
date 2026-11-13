@@ -34,3 +34,16 @@ Earlier milestones remain accessible: [foundation](FOUNDATION.md),
 [Phase 3 verification](PHASE3_VERIFICATION.md), [Phase 4](PHASE4.md),
 [Phase 5](PHASE5.md), [Phase 6](PHASE6.md), [Phase 7](PHASE7.md),
 and [Phase 8](PHASE8.md). Their validation counts describe those milestones.
+
+## Voice and ambient audio
+
+[Phase 10 voice guide](PHASE10.md): explicit local push-to-talk, offline STT/TTS,
+consent/attention/context rules, simulated ambient demos and runtime test isolation.
+
+[Real speech and MacBook acceptance](VOICE_ACCEPTANCE.md): checksum-verified installs,
+measured real STT/TTS, existing Gemma configuration, safe schema migration and
+explicit hardware/operator checks. Physical microphone/speaker acceptance remains pending.
+
+[Phase 10 cognition hardening](PHASE10_COGNITION_HARDENING.md): independent text-API
+Qwen acceptance, structured-output diagnostics, authorized grounded reasoning,
+fixture migration and playback cancellation.

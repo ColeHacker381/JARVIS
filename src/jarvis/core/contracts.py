@@ -297,6 +297,14 @@ CONTRACT_TYPES: dict[str, type[Contract]] = {
 def decode_contract(serialized: str) -> Contract:
     """External/persistent boundary: never assume a missing or unsupported version."""
     data = json.loads(serialized)
+    from jarvis.core.audio_records import AUDIO_TYPES, decode_audio
+
+    if (
+        isinstance(data, dict)
+        and isinstance(data.get("contract_type"), str)
+        and data["contract_type"] in AUDIO_TYPES
+    ):
+        return decode_audio(serialized)
     if not isinstance(data, dict):
         raise ValueError("contract must be a JSON object")
     if isinstance(data.get("contract_type"), str) and (

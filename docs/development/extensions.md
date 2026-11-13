@@ -286,3 +286,13 @@ This example is not registered for generic decode or persistence. An actual
 extension must add its discriminator to the appropriate decoder, check explicit
 versions at entry, document compatibility/migration, and test missing/bool/string/
 unsupported versions plus extra fields. IDs/records are data, never authority.
+
+## Local audio adapters
+
+Implement [audio ports](../../src/jarvis/audio_ports.py), validate versioned bounded
+PCM/contracts and return provider metadata without audio/payload logging. Adapters
+never supply authentication or alter source policy. Submit ambient data to the shared
+`Application.audio`; a separately trusted interaction credential is mandatory for
+cognition. Bound deadlines, queues and cancellation; wait for owned subprocesses and
+device writes before releasing resources. See [Phase 10](../PHASE10.md) for consent,
+retention, provider setup and current simulation limitations.

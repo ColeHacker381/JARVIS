@@ -1,5 +1,6 @@
 """Provisional local SQLite journal, atomic task checkpoints, and payload-free audit."""
 
+import errno
 import hashlib
 import json
 import os
@@ -17,7 +18,24 @@ from jarvis.identity import IdentityError
 from jarvis.storage.errors import StorageError
 from jarvis.tasks import TaskBusyError, TaskConflictError
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 10
+
+
+def _storage_failure(exc: Exception) -> StorageError:
+    """Classify known OS/SQLite failures without exposing paths or SQL content."""
+    code = getattr(exc, "sqlite_errorcode", None)
+    primary = code & 0xFF if isinstance(code, int) else None
+    if primary in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED):
+        return StorageError("database_locked")
+    if primary in (sqlite3.SQLITE_CORRUPT, sqlite3.SQLITE_NOTADB):
+        return StorageError("database_corrupt")
+    if primary in (sqlite3.SQLITE_SCHEMA,):
+        return StorageError("database_schema_invalid")
+    if primary in (sqlite3.SQLITE_CANTOPEN, sqlite3.SQLITE_READONLY, sqlite3.SQLITE_PERM):
+        return StorageError("database_access_denied")
+    if isinstance(exc, OSError) and exc.errno in (errno.EACCES, errno.EPERM, errno.ENOENT):
+        return StorageError("database_access_denied")
+    return StorageError()
 
 
 class DuplicateEventError(StorageError):
@@ -307,6 +325,21 @@ MIGRATIONS[8] = (
 )
 
 
+# Metadata only: activation remains explicit; migrations never enroll sources or grant authority.
+MIGRATIONS[9] = (
+    "CREATE TABLE audio_sources(source_id TEXT PRIMARY KEY, owner_id TEXT NOT NULL "
+    "REFERENCES security_principals(principal_id), data TEXT NOT NULL)",
+    "CREATE INDEX audio_source_owner ON audio_sources(owner_id,source_id)",
+    "CREATE TABLE voice_sessions(voice_session_id TEXT PRIMARY KEY, owner_id TEXT NOT NULL "
+    "REFERENCES security_principals(principal_id), data TEXT NOT NULL)",
+    "CREATE INDEX voice_session_owner ON voice_sessions(owner_id,voice_session_id)",
+)
+
+# Reader/writer compatibility barrier for versioned intent plans and child-turn metadata.
+# Existing rows, authority, tasks and grants are unchanged; older binaries refuse this store.
+MIGRATIONS[10] = ()
+
+
 @contextmanager
 def _file_lock(path: Path, *, blocking: bool = False) -> Iterator[None]:
     """Crash-released local exclusion; nonblocking by default. Never use on network filesystems."""
@@ -314,15 +347,15 @@ def _file_lock(path: Path, *, blocking: bool = False) -> Iterator[None]:
 
     try:
         descriptor = os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
-    except OSError:
-        raise StorageError() from None
+    except OSError as exc:
+        raise _storage_failure(exc) from None
     try:
         try:
             fcntl.flock(descriptor, fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB))
         except BlockingIOError:
             raise TaskBusyError("task_busy") from None
-        except OSError:
-            raise StorageError() from None
+        except OSError as exc:
+            raise _storage_failure(exc) from None
         yield
     finally:
         os.close(descriptor)
@@ -348,10 +381,10 @@ class SQLiteDatabase:
             connection.execute("PRAGMA synchronous = FULL")
             connection.execute("PRAGMA busy_timeout = 5000")
             return connection
-        except (sqlite3.Error, OSError):
+        except (sqlite3.Error, OSError) as exc:
             if connection is not None:
                 connection.close()
-            raise StorageError() from None
+            raise _storage_failure(exc) from None
 
     def initialize(self) -> None:
         """Explicit, idempotent migrations; refuse future versions without touching data."""
@@ -379,8 +412,8 @@ class SQLiteDatabase:
                     except BaseException:
                         connection.rollback()
                         raise
-        except (sqlite3.Error, OSError):
-            raise StorageError() from None
+        except (sqlite3.Error, OSError) as exc:
+            raise _storage_failure(exc) from None
         finally:
             # sqlite3's context manager commits/rolls back but does not close.
             if "connection" in locals():
@@ -401,7 +434,7 @@ class SQLiteDatabase:
         except BaseException as exc:
             connection.rollback()
             if isinstance(exc, (sqlite3.Error, OSError)) and not isinstance(exc, IdentityError):
-                raise StorageError() from None
+                raise _storage_failure(exc) from None
             raise
         finally:
             connection.close()

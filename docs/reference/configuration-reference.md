@@ -31,6 +31,7 @@ Numeric JSON examples are numbers; environment equivalents are plain text.
 | `model_provider` (string) | Explicit local AI or deterministic fake; no automatic fallback; example `"local"` | `"local"` | `JARVIS_MODEL_PROVIDER` | `--model-provider` | Yes | `{"enum": ["local", "fake"]}` |
 | `local_model_endpoint` (string) | Pinned loopback compatible API base, no credentials/proxy/redirect; example `"http://127.0.0.1:11434/v1"` | `"http://127.0.0.1:11434/v1"` | `JARVIS_LOCAL_MODEL_ENDPOINT` | `--local-endpoint` | Yes | `{}` |
 | `local_model_name` (string) | Exact advertised installed model ID; availability is not inference; example `"qwen2.5:3b"` | `"qwen2.5:3b"` | `JARVIS_LOCAL_MODEL_NAME` | `--local-model` | Yes | `{}` |
+| `local_model_response_format` (string) | JSON syntax or explicit JSON Schema mode; core validation always applies; example `"json_object"` | `"json_object"` | `JARVIS_LOCAL_MODEL_RESPONSE_FORMAT` | `--local-response-format` | Yes | `{"enum": ["json_object", "json_schema"]}` |
 | `model_timeout_seconds` (number) | Bound model call/provider resource lifetime; example `60.0` | `60.0` | `JARVIS_MODEL_TIMEOUT_SECONDS` | `file/env` | Yes | `{"exclusiveMinimum": 0, "maximum": 300}` |
 | `mode` (string) | Development only; production mode rejected; example `"development"` | `"development"` | `JARVIS_MODE` | `file/env` | Yes | `{"const": "development"}` |
 | `runtime_host` (string) | Loopback listener; public addresses rejected; example `"127.0.0.1"` | `"127.0.0.1"` | `JARVIS_RUNTIME_HOST` | `--host` | Yes | `{"enum": ["127.0.0.1", "::1"]}` |
@@ -55,5 +56,13 @@ CLI aliases: `--data-dir` → data_dir; `--database` → database_path;
 `--worker-credentials` → worker_credentials_file;
 `--model-provider` → model_provider; `--local-endpoint` → local_model_endpoint;
 `--local-model` → local_model_name. Other values use the explicit JSON file or
-environment. `--config` selects that file. `--identity` is a trusted host
+environment. `--config` selects that file.
+
+Voice configuration is explicit in the separate `voice`/`audio` CLI: source ID,
+location/consent, selected input/output devices, capture duration <=10 seconds,
+local STT binary/model/language, TTS voice/rate, and owned conversation ID. Source
+activation/continuous/candidate eligibility and ephemeral transcript TTL (1–300s)
+are stored as versioned source metadata. No microphone is enabled by runtime
+settings. See [Phase 10](../PHASE10.md) and the generated voice CLI reference.
+`--identity` is a trusted host
 provisioning/legacy fixture selector, never runtime authentication or configuration.

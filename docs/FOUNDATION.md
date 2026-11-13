@@ -118,7 +118,7 @@ retention periods, profiling rules, initiative thresholds and SLOs remain open.
 
 ## Next smallest milestone
 
-Phase 9 integrates the local runtime/API and documentation. Recommended Phase 10:
+Phase 9 integrates the local runtime/API and documentation. Its earlier Phase 10 recommendation:
 production authentication/provisioning plus genuine local-model validation before
 privileged real integrations. Real sensors require explicit enrollment, collection
 and retention decisions; offline/protocol checks cannot establish real inference.
@@ -250,3 +250,30 @@ on Python 3.12.14, frozen install, Ruff lint/format (102 files), source/wheel bu
 whitespace checks, all eight demos and notification CLI/chat/database operations.
 The wheel was independently installed outside the checkout and runtime source
 matched the checkout. CI includes Python 3.12/3.13 and notification-demo.
+
+## Phase 10 extension
+
+See [PHASE10.md](PHASE10.md) for the local voice/ambient contracts, consent and separate
+interaction boundary, offline adapters, ephemeral candidates, schema 9 metadata-only
+migration, demos, runtime port isolation fix and actual validation limits. Production
+identity/retention/hardware remain unverified. Follow-on Linux validation exercised
+real verified whisper.cpp and eSpeak NG through existing authenticated services;
+Gemma and physical microphone/speaker acceptance remain unverified. See the
+[operator checklist](VOICE_ACCEPTANCE.md) and measured report linked in Phase 10.
+
+The Phase 10 [cognition hardening](PHASE10_COGNITION_HARDENING.md) follow-on exercises
+genuine local Qwen inference separately from deterministic tests. It preserves v1
+contracts and model-independent authorization, permits labeled engineering options
+with partial authorized evidence, adds scoped project continuity and content-free
+validation stages, and treats intentional playback interruption as cancelled.
+
+[Mixed-request hardening](PHASE10_MIXED_INTENT.md) records earlier separation before
+inference, safe reporting of unsubmitted lighting requests, and protected historical
+presentation without rewriting evidence. Replay, accepted-action recovery, authorization
+and task results retain their existing boundaries; both local structured modes are tested.
+
+The [multi-intent follow-on](PHASE10_MULTI_INTENT.md) adds distinct v1 plan/composition
+contracts, four-source limits, immutable parent plans, private child checkpoints and
+existing independent tasks. Storage 10 preserves old rows/authority while refusing
+older readers; provisional ADR-T12 extends the single-action bound without adding
+automatic authority, a reasoning loop or an external integration.
